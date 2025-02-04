@@ -2,8 +2,7 @@
 export default function Page() {
     return (
         <main>
-            <h1>Page</h1>
-            <p>Page content</p>
+            <h1>Welcome to the page</h1>
         </main>
-    )
+    );
 }
