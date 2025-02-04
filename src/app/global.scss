@@ -22,8 +22,19 @@ body {
     }
 }
 
+.lucide {
+    color: var(--foreground);
+    width: 64px;
+    height: 64px;
+    stroke-width: 4px;
+
+    & * {
+        vector-effect: non-scaling-stroke;
+    }
+}
+
 @layer base {
-  :root {
+    :root {
 
         --background: 0 0% 100%;
 
@@ -75,7 +86,8 @@ body {
 
         --radius: 0.5rem
     }
-  .dark {
+
+    .dark {
 
         --background: 240 10% 3.9%;
 
@@ -128,10 +140,11 @@ body {
 }
 
 @layer base {
-  * {
-    @apply border-border;
+    * {
+        @apply border-border;
     }
-  body {
-    @apply bg-background text-foreground;
+
+    body {
+        @apply bg-background text-foreground;
     }
 }
