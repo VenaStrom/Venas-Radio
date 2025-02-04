@@ -4,6 +4,9 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
     title: "VR Radiospelare",
     description: "En radiospelare gjord av och till för Viggo.",
+    icons: {
+        icon: "/icons/audio-lines.svg",
+    }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
