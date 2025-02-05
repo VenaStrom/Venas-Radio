@@ -11,6 +11,7 @@ export type Episode = {
     audiopriority: string;
     audiopresentation: string;
     publishdateutc: string;
+    publishDate?: Date;
     imageurl: string;
     imageurltemplate: string;
     photographer: string;

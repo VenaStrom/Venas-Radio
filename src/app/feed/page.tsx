@@ -7,7 +7,29 @@ const settings = {
     pastFetchTime: 7,
 };
 const episodeData: { [episodeID: number]: Episode } = {};
-const userProgress: { [episodeID: number]: number } = {"2544605": 23}; // TODO - remove
+const userTimeProgress: { [episodeID: number]: number } = { "2544605": 140 }; // TODO - remove hardcoded progress
+
+const episodeMetaData: { (episode: Episode): { publishDate: Date, formattedDate: string, formattedTime: string, duration: number | null, remaining: number | null, percent: number | null } } = (episode: Episode) => {
+    const publishDate = new Date(parseInt(episode.publishdateutc.replace(/\D/g, "")))
+    let formattedDate = publishDate.toISOString().slice(0, 10);
+
+    if (formattedDate === new Date().toISOString().slice(0, 10)) {
+        formattedDate = "Idag";
+    }
+    else {
+        formattedDate = publishDate.toLocaleString("sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" });
+    }
+    const formattedTime = publishDate.toLocaleString("sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" });
+
+    const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
+    const duration = durationSource ? Math.floor(durationSource / 60) : null;
+    const elapsed = (userTimeProgress[episode.id] || 0) / 60;
+    const remaining = duration && userTimeProgress[episode.id] ? Math.floor(duration - elapsed) : null;
+
+    const percent = duration && remaining ? Math.floor(elapsed / duration * 100) : null;
+
+    return { publishDate, formattedDate, formattedTime, duration, remaining, percent };
+};
 
 export default async function FeedPage() {
     // Time Span
@@ -28,13 +50,8 @@ export default async function FeedPage() {
             episodeData[episode.id] = episode;
 
             // Metadata
-            const publishDate = new Date(parseInt(episode.publishdateutc.replace(/\D/g, "")))
-            const localeDate = publishDate.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10) ?
-                "Idag" :
-                publishDate.toLocaleString("sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" });
-            const localeTime = publishDate.toLocaleString("sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" });
-            const duration = Math.floor((episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || 0) / 60) || "";
-            const remaining = userProgress[episode.id] && duration ? duration - userProgress[episode.id] + " min kvar" : "";
+            const { publishDate, formattedDate, formattedTime, duration, remaining, percent } = episodeMetaData(episode);
+            episodeData[episode.id].publishDate = publishDate;
 
             episodes.push(
                 <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_1fr] gap-2" key={episode.id} id={episode.id.toString()}>
@@ -51,11 +68,11 @@ export default async function FeedPage() {
                     <p className="text-xs font-normal overflow-hidden col-span-2">{episode.description}</p>
 
                     {/* Progress Bar */}
-                    <ProgressBar progress={userProgress[episode.id] || 0} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
+                    <ProgressBar progress={percent || 0} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
 
                     {/* Metadata */}
                     <div className="col-span-2 flex flex-row justify-between items-center">
-                        <p className="text-xs text-zinc-400">{localeDate} {localeTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining}</p>
+                        <p className="text-xs text-zinc-400">{formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining ? `\u00A0\u00B7\u00A0${remaining} min kvar` : ""}</p>
 
                         <button className="w-min self-end">
                             <Icon.Play className="fill-zinc-100" />
