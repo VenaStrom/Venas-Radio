@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html {
-    @apply w-full h-full;
+    @apply w-full h-full bg-zinc-800;
 }
 
 body {
@@ -14,7 +14,7 @@ body {
     }
 
     &>main {
-        @apply w-full flex-1;
+        @apply w-full flex-1 overflow-y-scroll py-2 px-5;
     }
 
     &>footer {
@@ -23,19 +23,11 @@ body {
 }
 
 .lucide {
-    color: var(--foreground);
-    width: 64px;
-    height: 64px;
-    stroke-width: 4px;
-
-    & * {
-        vector-effect: non-scaling-stroke;
-    }
+    @apply text-zinc-100;
 }
 
 @layer base {
     :root {
-
         --background: 0 0% 100%;
 
         --foreground: 240 10% 3.9%;

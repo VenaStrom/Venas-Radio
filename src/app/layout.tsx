@@ -1,4 +1,5 @@
 import "./global.scss";
+import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
@@ -11,31 +12,40 @@ export const metadata: Metadata = {
     }
 };
 
+const interFont = Inter({
+    subsets: ["latin"],
+})
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="sv">
-            <body>
-                <header>
-                    <Icon.AudioLines />
-                    <p>VR</p>
+        <html lang="sv" className={interFont.className}>
+            <body className="bg-zinc-900 text-zinc-50">
+
+                <header className="sticky bg-zinc-950 p-2 flex flex-row items-center justify-between">
+                    <div className="flex flex-row items-center justify-center gap-2">
+                        <Icon.AudioLines />
+                        <p className="font-bold text-lg">VR</p>
+                    </div>
+
+                    <Icon.Settings />
                 </header>
 
                 {children}
 
-                <footer>
+                <footer className="bg-zinc-950 p-4 flex flex-col self-end">
                     <div id="player"></div>
 
-                    <nav>
+                    <nav className="flex flex-row justify-between items-center">
                         <Link href={"/"}>
-                            <Icon.Home />
+                            <Icon.Home size={64} />
                         </Link>
 
                         <Link href={"/"}>
-                            <Icon.Search />
+                            <Icon.Search size={64} />
                         </Link>
 
                         <Link href={"/"}>
-                            <Icon.Heart fill="" />
+                            <Icon.Heart size={64} />
                         </Link>
                     </nav>
                 </footer>
