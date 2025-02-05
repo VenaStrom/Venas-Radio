@@ -1,11 +1,13 @@
 import * as Icon from "lucide-react";
+import ProgressBar from "./progress-bar";
 
+/**
+ * A component that displays audio controls and a progress bar 
+ */
 export default function AudioControls() {
     return (<>
         {/* Progress bar */}
-        <div id="progress-bar" className="h-1 w-full bg-zinc-800 flex flex-col justify-start items-start">
-            <div id="progress-bar-fill" className="h-full bg-zinc-100 w-[50%] rounded-e-sm"></div>
-        </div>
+        <ProgressBar progress={50} />
 
         {/* Controls */}
         <div id="player" className="flex flex-col items-center w-full px-5">

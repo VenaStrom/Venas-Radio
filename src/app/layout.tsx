@@ -42,15 +42,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     {/* Navigation Buttons */}
                     <nav className="w-2/3 flex flex-row justify-between items-center">
                         <Link href={"/"}>
-                            <Icon.Home size={50} />
+                            <Icon.Home size={44} />
                         </Link>
 
                         <Link href={"/"}>
-                            <Icon.Search size={50} />
+                            <Icon.Search size={44} />
                         </Link>
 
                         <Link href={"/feed"}>
-                            <Icon.Heart size={50} />
+                            <Icon.Heart size={44} />
                         </Link>
                     </nav>
                 </footer>
