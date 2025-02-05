@@ -55,7 +55,7 @@ export default async function FeedPage() {
             episodeData[episode.id].publishDate = publishDate;
 
             episodes.push(
-                <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-3" key={episode.id} id={episode.id.toString()}>
+                <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" key={episode.id} id={episode.id.toString()}>
                     {/* SR Attribute */}
                     <SRAttribute className="col-span-2" />
 
@@ -69,7 +69,7 @@ export default async function FeedPage() {
                     </div>
 
                     {/* Description */}
-                    <p className="text-xs font-normal overflow-hidden col-span-2">{episode.description}</p>
+                    <p className="text-xs pt-1 font-normal overflow-hidden col-span-2">{episode.description}</p>
 
                     {/* Progress Bar */}
                     <ProgressBar progress={percent || 0} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
