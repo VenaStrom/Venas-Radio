@@ -1,13 +1,14 @@
 import ProgressBar from "@/components/progress-bar";
+import SRAttribute from "@/components/sr-attribute";
 import { Episode } from "@/types/episode";
 import * as Icon from "lucide-react";
 import Image from "next/image";
 
 const settings = {
-    pastFetchTime: 7,
+    pastFetchTime: 7, // Days
 };
 const episodeData: { [episodeID: number]: Episode } = {};
-const userTimeProgress: { [episodeID: number]: number } = { "2544605": 140 }; // TODO - remove hardcoded progress
+const userTimeProgress: { [episodeID: number]: number } = {}; // In seconds
 
 const episodeMetaData: { (episode: Episode): { publishDate: Date, formattedDate: string, formattedTime: string, duration: number | null, remaining: number | null, percent: number | null } } = (episode: Episode) => {
     const publishDate = new Date(parseInt(episode.publishdateutc.replace(/\D/g, "")))
@@ -54,7 +55,10 @@ export default async function FeedPage() {
             episodeData[episode.id].publishDate = publishDate;
 
             episodes.push(
-                <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_1fr] gap-2" key={episode.id} id={episode.id.toString()}>
+                <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" key={episode.id} id={episode.id.toString()}>
+                    {/* SR Attribute */}
+                    <SRAttribute className="col-span-2" />
+
                     {/* Thumbnail */}
                     <Image width={128} height={72} src={""} overrideSrc={episode.imageurltemplate} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
 
