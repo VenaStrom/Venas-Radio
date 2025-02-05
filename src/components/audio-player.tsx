@@ -7,7 +7,7 @@ import ProgressBar from "./progress-bar";
 export default function AudioControls() {
     return (<>
         {/* Progress bar */}
-        <ProgressBar progress={50} />
+        <ProgressBar progress={0} />
 
         {/* Controls */}
         <div id="player" className="flex flex-col items-center w-full px-5">
