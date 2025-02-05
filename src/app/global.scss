@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 html {
-    @apply w-full h-full bg-zinc-800;
+    @apply w-full h-[100dvh] bg-zinc-800;
 }
 
 body {
-    @apply flex flex-col h-full;
+    @apply flex flex-col h-[100dvh];
 
     &>header {
-        @apply w-full;
+        @apply w-full overflow-hidden;
     }
 
     &>main {
@@ -18,7 +18,7 @@ body {
     }
 
     &>footer {
-        @apply w-full;
+        @apply w-full overflow-hidden;
     }
 }
 
