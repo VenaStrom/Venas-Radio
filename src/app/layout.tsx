@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
-import AudioPlayer from "@/components/audio-player";
+import AudioControls from "@/components/audio-player";
 
 export const metadata: Metadata = {
     title: "VR Radiospelare",
@@ -23,18 +23,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body className="bg-zinc-900 text-zinc-100">
 
                 <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
-                    <div className="flex flex-row items-center justify-center gap-2">
+                    <div className="flex flex-row items-center justify-center gap-1">
                         <Icon.AudioLines />
                         <p className="font-bold text-lg">VR</p>
                     </div>
 
-                    <Icon.Settings />
+                    <button>
+                        <Icon.Settings />
+                    </button>
                 </header>
 
                 {children}
 
                 <footer className="pb-4 bg-zinc-950 flex flex-col self-end items-center gap-y-3">
-                    <AudioPlayer />
+                    {/* Audio Controls */}
+                    <AudioControls />
 
                     {/* Navigation Buttons */}
                     <nav className="w-2/3 flex flex-row justify-between items-center">
