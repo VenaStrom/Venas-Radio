@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
         hostname: "api.sr.se",
       }
     ],
-  }
+  },
 };
 
 export default nextConfig;

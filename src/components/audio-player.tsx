@@ -1,11 +1,21 @@
-// import * as Icon from "lucide-react";
+"use client";
+
 import ProgressBar from "./progress-bar";
 import PlayButton from "./play-button";
+import { useState } from "react";
 
 /**
  * A component that displays audio controls and a progress bar 
  */
 export default function AudioControls() {
+    const [controlState, setControlState] = useState({
+        playing: false,
+        playingID: null,
+        nextID: null,
+    });
+
+    // const audio = new Audio();
+
     return (<>
         {/* Progress bar */}
         <ProgressBar progress={0} />

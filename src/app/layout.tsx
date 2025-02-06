@@ -1,5 +1,5 @@
 import "./global.scss";
-import { Inter, Nunito_Sans } from "next/font/google";
+import { Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
@@ -12,10 +12,6 @@ export const metadata: Metadata = {
         icon: "/icons/audio-lines.svg",
     }
 };
-
-const interFont = Inter({
-    subsets: ["latin"],
-});
 
 const nunitoSansFont = Nunito_Sans({
     subsets: ["latin"]

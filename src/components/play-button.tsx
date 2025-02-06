@@ -6,14 +6,20 @@ import { useState, useEffect } from "react";
 export default function PlayButton({ episodeID, className, iconSize = 24 }: { episodeID?: string | number, className?: string, iconSize?: number }) {
     const [playing, setPlaying] = useState(false);
 
-    const emitPlayID = () => {
-        setPlaying(true);
-        window.dispatchEvent(new CustomEvent("playID", { detail: { id: episodeID } }));
-    };
-
     const emitPause = () => {
         setPlaying(false);
         window.dispatchEvent(new CustomEvent("pause"));
+    };
+
+    const emitPlayID = () => {
+        if (playing) {
+            setPlaying(false);
+            emitPause();
+        }
+        else {
+            setPlaying(true);
+            window.dispatchEvent(new CustomEvent("playID", { detail: { id: episodeID } }));
+        }
     };
 
     useEffect(() => {
@@ -23,11 +29,6 @@ export default function PlayButton({ episodeID, className, iconSize = 24 }: { ep
             // If the event is not for this episode, show stop
             if (customEvent.detail.id !== episodeID) {
                 setPlaying(false);
-            }
-            // If the event is for this button, show pause and send pause event
-            else {
-                setPlaying(false);
-                emitPause();
             }
         };
         window.addEventListener("playID", listener);
