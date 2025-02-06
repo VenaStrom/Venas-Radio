@@ -1,5 +1,5 @@
 import "./global.scss";
-import { Inter } from "next/font/google";
+import { Inter, Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
@@ -15,11 +15,15 @@ export const metadata: Metadata = {
 
 const interFont = Inter({
     subsets: ["latin"],
-})
+});
+
+const nunitoSansFont = Nunito_Sans({
+    subsets: ["latin"]
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="sv" className={interFont.className}>
+        <html lang="sv" className={nunitoSansFont.className}>
             <body className="bg-zinc-900 text-zinc-100">
 
                 <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
