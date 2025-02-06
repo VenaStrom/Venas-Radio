@@ -14,8 +14,6 @@ export default function AudioControls() {
         nextID: null,
     });
 
-    // const audio = new Audio();
-
     return (<>
         {/* Progress bar */}
         <ProgressBar progress={0} />
