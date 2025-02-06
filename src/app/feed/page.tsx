@@ -1,48 +1,81 @@
-import EpisodeDOM from "@/components/episode";
+"use client";
+import React, { useEffect, useState } from "react";
+import EpisodeDOM, { EpisodeDOMPlaceholder } from "@/components/episode";
 import type { Episode } from "@/types/episode";
 
 const settings = {
-    pastFetchTime: 7, // Days
+    pastFetchTime: 2, // Days
 };
-const episodeData: { [episodeID: number]: Episode } = {};
-const userTimeProgress: { [episodeID: number]: number } = {}; // In seconds
 
-export default async function FeedPage() {
-    // Time Span
-    const fromDate = new Date();
-    fromDate.setDate(fromDate.getDate() - settings.pastFetchTime);
-    const toDate = new Date();
-    toDate.setDate(toDate.getDate() + 1);
+export default function FeedPage() {
+    const [episodeData, setEpisodeData] = useState<{ [episodeID: number]: Episode }>({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const userTimeProgress: { [episodeID: number]: number } = {}; // In seconds
 
-    const programIDs = [4923, 178, 2778, 4540]; // , 5380
+    useEffect(() => {
+        async function fetchEpisodes() {
+            const newEpisodeData: { [episodeID: number]: Episode } = {};
 
-    for (const programID of programIDs) {
-        const response = await fetch(`https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`);
-        const data: { episodes: Episode[] } = await response.json();
+            // Time span
+            const fromDate = new Date();
+            fromDate.setDate(fromDate.getDate() - settings.pastFetchTime);
+            const toDate = new Date();
+            toDate.setDate(toDate.getDate() + 1);
 
-        data.episodes.forEach((episode: Episode) => {
-            episodeData[episode.id] = episode;
-        });
-    }
+            const programIDs = [4923, 178, 2778, 4540];
 
-    const episodes: React.ReactNode[] = [];
+            try {
+                for (const programID of programIDs) {
+                    const response = await fetch(
+                        `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
+                    );
+                    const data: { episodes: Episode[] } = await response.json();
 
-    Object.values(episodeData).forEach((episode: Episode) => {
-        episodes.push(EpisodeDOM(episode, episodeData, userTimeProgress));
-    });
+                    data.episodes.forEach((episode: Episode) => {
+                        newEpisodeData[episode.id] = episode;
+                    });
+                }
+                setEpisodeData(newEpisodeData);
+            } catch (err) {
+                setError("Failed to fetch episodes.");
+            } finally {
+                setLoading(false);
+            }
+        }
 
-    // Sort by publish time
-    episodes.sort((a: any, b: any) => {
-        const publishTimeA: number = parseInt(episodeData[a?.key].publishdateutc.replace(/\D/g, ""));
-        const publishTimeB: number = parseInt(episodeData[b?.key].publishdateutc.replace(/\D/g, ""));
+        fetchEpisodes();
+    }, []);
+
+    // Skeletons
+    if (loading) return <main>
+        {new Array(10).fill(null).map((_, index) => (
+            <li className="list-none" key={index}>
+                {EpisodeDOMPlaceholder()}
+            </li>
+        ))}
+    </main>;
+    
+    if (error) return <main>{error}</main>;
+
+    const episodesArray = Object.values(episodeData);
+
+    // Sort by publish time descending
+    episodesArray.sort((a, b) => {
+        const publishTimeA = parseInt(a.publishdateutc.replace(/\D/g, ""));
+        const publishTimeB = parseInt(b.publishdateutc.replace(/\D/g, ""));
         return publishTimeB - publishTimeA;
     });
 
     return (
         <main>
             <ul className="flex flex-col gap-y-10 mt-2 mb-4">
-                {episodes}
+                {episodesArray.map((episode) => (
+                    <li key={episode.id}>
+                        {EpisodeDOM(episode, episodeData, userTimeProgress)}
+                    </li>
+                ))}
             </ul>
         </main>
-    )
+    );
 }
