@@ -1,5 +1,6 @@
-import * as Icon from "lucide-react";
+// import * as Icon from "lucide-react";
 import ProgressBar from "./progress-bar";
+import PlayButton from "./play-button";
 
 /**
  * A component that displays audio controls and a progress bar 
@@ -11,23 +12,7 @@ export default function AudioControls() {
 
         {/* Controls */}
         <div id="player" className="flex flex-col items-center w-full px-5">
-
-            {/*
-            <button>
-                <Icon.SkipBack size={30} />
-            </button>
-            */}
-
-            <button className="self-end">
-                <Icon.Play size={30} className="fill-zinc-100" />
-                {/* <Icon.Pause size={30} /> */}
-            </button>
-
-            {/*
-            <button>
-                <Icon.SkipForward size={30} />
-            </button>
-            */}
+            <PlayButton iconSize={30} className="self-end" />
         </div>
     </>)
 }

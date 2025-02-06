@@ -1,7 +1,8 @@
+import PlayButton from "@/components/play-button";
 import ProgressBar from "@/components/progress-bar";
 import SRAttribute from "@/components/sr-attribute";
-import { Episode } from "@/types/episode";
-import * as Icon from "lucide-react";
+import type { Episode } from "@/types/episode";
+// import * as Icon from "lucide-react";
 import Image from "next/image";
 
 const settings = {
@@ -78,9 +79,7 @@ export default async function FeedPage() {
                     <div className="col-span-2 flex flex-row justify-between items-center">
                         <p className="text-xs text-zinc-400">{formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining ? `\u00A0\u00B7\u00A0${remaining} min kvar` : ""}</p>
 
-                        <button className="w-min self-end">
-                            <Icon.Play className="fill-zinc-100" />
-                        </button>
+                        <PlayButton episodeID={episode.id} />
                     </div>
                 </li>
             );
