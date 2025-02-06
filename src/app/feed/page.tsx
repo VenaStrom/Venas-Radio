@@ -55,7 +55,7 @@ export default function FeedPage() {
             </li>
         ))}
     </main>;
-    
+
     if (error) return <main>{error}</main>;
 
     const episodesArray = Object.values(episodeData);
@@ -72,7 +72,7 @@ export default function FeedPage() {
             <ul className="flex flex-col gap-y-10 mt-2 mb-4">
                 {episodesArray.map((episode) => (
                     <li key={episode.id}>
-                        {EpisodeDOM(episode, episodeData, userTimeProgress)}
+                        {EpisodeDOM(episode, userTimeProgress)}
                     </li>
                 ))}
             </ul>

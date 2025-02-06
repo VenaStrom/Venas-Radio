@@ -4,7 +4,7 @@ import PlayButton from "./play-button";
 import ProgressBar from "./progress-bar";
 import type { Episode } from "@/types/episode";
 
-export default function EpisodeDOM(episode: Episode, episodeData: { [episodeID: number]: Episode }, userTimeProgress: { [episodeID: number]: number }) {
+export default function EpisodeDOM(episode: Episode, userTimeProgress: { [episodeID: number]: number }) {
 
     const episodeMetaData: { (episode: Episode): { publishDate: Date, formattedDate: string, formattedTime: string, duration: number | null, remaining: number | null, percent: number | null } } = (episode: Episode) => {
         const publishDate = new Date(parseInt(episode.publishdateutc.replace(/\D/g, "")))
@@ -29,8 +29,7 @@ export default function EpisodeDOM(episode: Episode, episodeData: { [episodeID: 
     };
 
     // Metadata
-    const { publishDate, formattedDate, formattedTime, duration, remaining, percent } = episodeMetaData(episode);
-    episodeData[episode.id].publishDate = publishDate;
+    const { formattedDate, formattedTime, duration, remaining, percent } = episodeMetaData(episode);
 
     return (
         <div className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>
@@ -56,7 +55,7 @@ export default function EpisodeDOM(episode: Episode, episodeData: { [episodeID: 
             <div className="col-span-2 flex flex-row justify-between items-center">
                 <p className="text-xs text-zinc-400">{formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining ? `\u00A0\u00B7\u00A0${remaining} min kvar` : ""}</p>
 
-                <PlayButton episodeID={episode.id} />
+                <PlayButton episodeData={episode} />
             </div>
         </div>
     );
@@ -85,7 +84,7 @@ export function EpisodeDOMPlaceholder() {
             {/* Metadata */}
             <div className="col-span-2 flex flex-row justify-between items-center">
                 <div></div>
-                
+
                 <PlayButton />
             </div>
         </div>
