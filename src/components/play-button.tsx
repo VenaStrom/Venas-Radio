@@ -1,20 +1,69 @@
 "use client";
 
+import { usePlayStateStore } from "@/store/playing-state-store";
 import { Episode } from "@/types/episode";
+import { PlayPause } from "@/types/play-pause";
 import * as Icon from "lucide-react";
 import { useState } from "react";
 
-export default function PlayButton({ episodeData, className, iconSize = 24 }: { episodeData?: Episode, className?: string, iconSize?: number }) {
-    const [playing, setPlaying] = useState(false);
+/**
+ * A play button component. It has some feature that initiate playing an episode.
+ * @param {Episode} episodeData The Episode object associated with the play button that is used for playback
+ * @param {string} role         What the button does on click. "starter" is the default role, and "controller" is used for controlling playback in the audio player for example.
+ * @param {string} className    Is passed on the outer most element in this component for styling purposes.
+ * @param {number} iconSize     The size of the icon in pixels.
+ */
+export default function PlayButton({ episodeData, role = "starter", className, iconSize = 24 }: { episodeData?: Episode, role?: "starter" | "controller", className?: string, iconSize?: number }) {
+    const [buttonState, setButtonState] = useState<PlayPause>("paused");
+    const playState = usePlayStateStore();
+
+    const click = () => {
+        console.log("clicked", role);
+        if (role === "controller") {
+            const currentState = playState.playState;
+            const invertedState = currentState === "paused" ? "playing" : "paused";
+
+            playState.setPlayState(invertedState);
+            setButtonState(invertedState);
+            return;
+        }
+
+        if (role === "starter" && episodeData) {
+            playState.setCurrentEpisode(episodeData);
+            playState.setPlayState("playing");
+            setButtonState("playing");
+            return;
+        };
+    };
+
+    // Pause if another episode is playing
+    usePlayStateStore.subscribe((state) => {
+        if (role === "controller") {
+            setButtonState(state.playState);
+            return;
+        }
+
+        // Pause if another episode is playing
+        if (episodeData && state.currentEpisode?.id !== episodeData.id) {
+            setButtonState("paused");
+            return;
+        }
+
+        // Match state with controller
+        if (episodeData && state.currentEpisode?.id === episodeData.id) {
+            setButtonState(state.playState);
+            return;
+        }
+    });
 
     const getIcon = () => {
-        return playing
-            ? <Icon.Pause size={iconSize} className="fill-zinc-100" />
-            : <Icon.Play size={iconSize} className="fill-zinc-100" />;
+        return buttonState === "paused"
+            ? <Icon.Play size={iconSize} className="fill-zinc-100" />
+            : <Icon.Pause size={iconSize} className="fill-zinc-100" />;
     };
 
     return (
-        <button className={className} id={episodeData?.id.toString() || ""} onClick={() => setPlaying(!playing)}>
+        <button className={className} id={episodeData?.id.toString() || ""} onClick={click}>
             {getIcon()}
         </button>
     );

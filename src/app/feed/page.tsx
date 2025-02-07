@@ -43,7 +43,7 @@ export default async function FeedPage() {
     }, {} as Record<number, Episode>);
 
     // Store episodes in global state
-    useEpisodeStore.getState().setEpisodes(episodeDictionary);
+    useEpisodeStore.getState().setEpisodeData(episodeDictionary);
 
     return (
         <main>

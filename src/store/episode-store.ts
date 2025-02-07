@@ -4,16 +4,16 @@ import { create } from "zustand";
 type EpisodeDictionary = { [episodeID: number]: Episode };
 
 interface EpisodeStore {
-    episodes: EpisodeDictionary;
+    episodeData: EpisodeDictionary;
+    setEpisodeData: (episodeData: EpisodeDictionary) => void;
     episodeProgress: { [episodeID: number]: number };
-    setEpisodes: (episodes: EpisodeDictionary) => void;
     setEpisodeProgress: (episodeID: number, progress: number) => void;
 }
 
 export const useEpisodeStore = create<EpisodeStore>()((set) => ({
-    episodes: {},
+    episodeData: {},
+    setEpisodeData: (episodeData) => set({ episodeData }),
     episodeProgress: {},
-    setEpisodes: (episodes) => set({ episodes }),
     setEpisodeProgress: (episodeID, progress) =>
         set((state) => ({
             episodeProgress: {
