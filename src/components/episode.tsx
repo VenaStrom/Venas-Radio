@@ -47,7 +47,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
     
     if (durationSource) {
         duration = Math.floor(durationSource / 60);
-        elapsed = progressForEpisode / 60;
+        elapsed = progressForEpisode.seconds / 60;
         remaining = duration && elapsed ? Math.floor(duration - elapsed) : null;
         percent = duration && elapsed ? Math.floor(elapsed / duration * 100) : 0;
     }
