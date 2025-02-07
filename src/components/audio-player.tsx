@@ -60,9 +60,47 @@ export default function AudioControls() {
         }
     }, [currentProgress]);
 
-    const episodeInfo = <>
-        {currentEpisode?.title}
-    </>;
+    const episodeInfo = currentEpisode ?
+        (() => {
+            const progressNumberSeconds: number = Math.floor(episodeProgress[currentEpisode.id]);
+            const durationNumberSeconds: number = Math.floor(currentEpisode?.listenpodfile.duration || currentEpisode?.downloadpodfile.duration || currentEpisode?.broadcast?.broadcastfiles[0]?.duration || 0);
+
+            const progress = {
+                hour: Math.floor(progressNumberSeconds / 3600),
+                minute: Math.floor(progressNumberSeconds / 60) % 60,
+                second: progressNumberSeconds % 60,
+            }
+            const duration = {
+                hour: Math.floor(durationNumberSeconds / 3600),
+                minute: Math.floor(durationNumberSeconds / 60) % 60,
+                second: durationNumberSeconds % 60,
+            }
+
+            const toStringAndPad = (number: number) => number.toString().padStart(2, "0");
+
+            let progressString = `${toStringAndPad(progress.minute)}:${toStringAndPad(progress.second)}`;
+            let durationString = `${toStringAndPad(duration.minute)}:${toStringAndPad(duration.second)}`;
+
+            if (progress.hour > 0) {
+                progressString = `${toStringAndPad(progress.hour)}` + progressString;
+            }
+            if (duration.hour > 0) {
+                durationString = `${toStringAndPad(duration.hour)}` + durationString;
+            }
+
+            return (
+                <div className="flex flex-row justify-between items-center w-full">
+                    <div>
+                        <p className="font-light text-sm">{currentEpisode?.program.name}</p>
+                        <p className="font-bold">{currentEpisode?.title}</p>
+                    </div>
+
+                    <p className="text-sm text-zinc-400">{progressString}/{durationString}</p>
+                </div>
+            )
+        })()
+        :
+        "Spelar inget";
 
     return (<>
         {/* Progress bar */}
@@ -71,10 +109,10 @@ export default function AudioControls() {
         <audio ref={audioRef} src={audioURL || undefined}></audio>
 
         {/* Controls */}
-        <div id="player" className="grid grid-cols-[30px_1fr_30px] w-full px-5">
-            <p className="col-start-2 text-center w-full">{currentEpisode ? episodeInfo : "Spelar inget"}</p>
+        <div id="player" className="flex flex-row justify-between items-center gap-x-4 w-full px-5">
+            {episodeInfo}
 
-            <PlayButton iconSize={30} role="controller" className="col-start-3" />
+            <PlayButton iconSize={30} role="controller" />
         </div>
     </>)
 }
