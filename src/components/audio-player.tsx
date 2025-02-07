@@ -4,14 +4,13 @@ import ProgressBar from "./progress-bar";
 import PlayButton from "./play-button";
 import { usePlayStateStore } from "@/store/playing-state-store";
 import { useEpisodeStore } from "@/store/episode-store";
-import { useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 /**
  * A component that displays audio controls and a progress bar 
  */
 export default function AudioControls() {
     const [currentProgress, setCurrentProgress] = useState(0);
-    const [canUpdateProgress, setCanUpdateProgress] = useState(true);
 
     // When playing store is updated, update the UI
     const { currentEpisode, playState } = usePlayStateStore();
@@ -49,7 +48,7 @@ export default function AudioControls() {
         if (!currentEpisode) return;
 
         // Local state update
-        if (canUpdateProgress && audioRef.current) {
+        if (audioRef.current) {
             audioRef.current.ontimeupdate = () => {
                 if (audioRef.current) {
                     setCurrentProgress(audioRef.current.currentTime);
@@ -64,10 +63,10 @@ export default function AudioControls() {
 
     // Handle when episode ends
     useEffect(() => {
-        if (audioRef.current && currentEpisode && canUpdateProgress) {
+        if (audioRef.current && currentEpisode) {
             audioRef.current.onended = () => {
                 // Update the progress in the store
-                useEpisodeStore.getState().setEpisodeProgress(currentEpisode.id, { seconds: currentProgress, finished: true });
+                useEpisodeStore.getState().setEpisodeProgress(currentEpisode.id, { seconds: currentEpisode?.listenpodfile?.duration || currentEpisode?.downloadpodfile?.duration || currentEpisode?.broadcast?.broadcastfiles[0]?.duration || currentProgress, finished: true });
 
                 // Find next episode
                 const allEpisodes = useEpisodeStore.getState().episodeData;
@@ -132,25 +131,20 @@ export default function AudioControls() {
 
             {/* Invisible thumb to progress */}
             <input className="w-full h-0 -mt-3" type="range" min="0" max="100" value={percentProgress || 0}
-                // onDrag={(e) => { usePlayStateStore.getState().setPlayState("paused"); setCanUpdateProgress(false); }}
-                // onDragEnd={(e) => { usePlayStateStore.getState().setPlayState("playing"); setCanUpdateProgress(true); }}
-                // onTouchStart={(e) => { usePlayStateStore.getState().setPlayState("paused"); setCanUpdateProgress(false); }}
-                // onTouchEnd={(e) => { usePlayStateStore.getState().setPlayState("playing"); setCanUpdateProgress(true); }}
                 onChange={(e) => {
                     if (currentEpisode) {
                         const newProgress = parseInt(e.target.value) / 100 * (currentEpisode?.listenpodfile?.duration || currentEpisode?.downloadpodfile?.duration || currentEpisode?.broadcast?.broadcastfiles[0]?.duration || 0);
+
+                        // Modify tha audio element
+                        if (audioRef.current && audioRef.current.currentTime) {
+                            audioRef.current.currentTime = newProgress;
+                        }
 
                         // Save in local state
                         setCurrentProgress(newProgress);
 
                         // Save in global store
                         useEpisodeStore.getState().setEpisodeProgress(currentEpisode.id, { seconds: newProgress, finished: false });
-
-                        console.log(`
-                            newProgress: ${newProgress}
-                            stateProgress: ${currentProgress}
-                            storeProgress: ${episodeProgress[currentEpisode.id].seconds}
-                            `);
                     }
                 }}
             />
