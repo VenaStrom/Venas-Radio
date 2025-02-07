@@ -111,13 +111,13 @@ export default function AudioControls() {
             }
 
             return (
-                <div className="flex flex-row justify-between items-center w-full">
+                <div className="flex flex-row justify-between gap-x-2 items-center w-full">
                     <div>
                         <p className="font-light text-sm">{currentEpisode?.program.name}</p>
                         <p className="font-bold">{currentEpisode?.title}</p>
                     </div>
 
-                    <p className="text-sm text-zinc-400">{progressString} / {durationString}</p>
+                    <p className="text-sm text-zinc-400">{progressString}&nbsp;/&nbsp;{durationString}</p>
                 </div>
             )
         })()
@@ -125,12 +125,12 @@ export default function AudioControls() {
         "Spelar inget";
 
     return (
-        <div className="flex flex-col justify-center items-center gap-y-[inherit] w-full">
+        <div className="flex flex-col justify-start items-center gap-y-[inherit] w-full">
             {/* Progress bar */}
             <ProgressBar progress={percentProgress} />
 
             {/* Invisible thumb to progress */}
-            <input className="w-full h-0 -mt-3" type="range" min="0" max="100" value={percentProgress || 0}
+            <input className="w-full h-0 -mt-3 opacity-0" type="range" min="0" max="100" value={percentProgress || 0}
                 onChange={(e) => {
                     if (currentEpisode) {
                         const newProgress = parseInt(e.target.value) / 100 * (currentEpisode?.listenpodfile?.duration || currentEpisode?.downloadpodfile?.duration || currentEpisode?.broadcast?.broadcastfiles[0]?.duration || 0);
@@ -146,8 +146,7 @@ export default function AudioControls() {
                         // Save in global store
                         useEpisodeStore.getState().setEpisodeProgress(currentEpisode.id, { seconds: newProgress, finished: false });
                     }
-                }}
-            />
+                }} />
 
             {/* Audio element */}
             <audio ref={audioRef} src={audioURL || undefined}></audio>

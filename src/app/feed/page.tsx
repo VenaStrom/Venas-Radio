@@ -20,6 +20,7 @@ export default async function FeedPage() {
         const response = await fetch(
             `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
         );
+
         const data: { episodes: Episode[] } = await response.json();
 
         episodeData.push(...data.episodes);
