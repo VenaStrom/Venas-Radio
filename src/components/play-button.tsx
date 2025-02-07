@@ -4,7 +4,7 @@ import { usePlayStateStore } from "@/store/playing-state-store";
 import { Episode } from "@/types/episode";
 import { PlayPause } from "@/types/play-pause";
 import * as Icon from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * A play button component. It has some feature that initiate playing an episode.
@@ -44,21 +44,28 @@ export default function PlayButton({ episodeData, role = "starter", className, i
 
     // Pause if another episode is playing
     usePlayStateStore.subscribe((state) => {
+
+        // Sync controller with global state
         if (role === "controller") {
             setButtonState(state.playState);
             return;
         }
 
-        // Pause if another episode is playing
-        if (episodeData && state.currentEpisode?.id !== episodeData.id) {
-            setButtonState("paused");
-            return;
-        }
+        // Set starter state depending on the current episode
+        if (role === "starter" && episodeData) {
+            const isThisEpisode = state.currentEpisode?.id === episodeData.id;
 
-        // Match state with controller
-        if (episodeData && state.currentEpisode?.id === episodeData.id) {
-            setButtonState(state.playState);
-            return;
+            // Reset the button state when not playing.
+            if (!isThisEpisode) {
+                setButtonState("paused");
+                return;
+            }
+
+            // Match state with controller
+            if (isThisEpisode) {
+                setButtonState(state.playState);
+                return;
+            }
         }
     });
 

@@ -35,14 +35,21 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
     }
     const formattedTime = episode.publishDate.toLocaleString(...timeLocale);
 
+    
     // Duration and progress
-    let duration = null; let elapsed = null; let remaining = null; let percent = 0;
+    let duration = null; 
+    let elapsed = null; 
+    let remaining = null; 
+    let percent = 0;
     const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
+
+    const progressForEpisode = useEpisodeStore((state) => state.episodeProgress[episode.id] || 0);
+    
     if (durationSource) {
         duration = Math.floor(durationSource / 60);
-        elapsed = (useEpisodeStore.getState().episodeProgress[episode.id] || 0) / 60;
+        elapsed = progressForEpisode / 60;
         remaining = duration && elapsed ? Math.floor(duration - elapsed) : null;
-        percent = duration && remaining ? Math.floor(elapsed / duration * 100) : 0;
+        percent = duration && elapsed ? Math.floor(elapsed / duration * 100) : 0;
     }
 
     return (
@@ -63,7 +70,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
             <p className="text-xs pt-1 font-normal overflow-hidden col-span-2">{episode.description}</p>
 
             {/* Progress Bar */}
-            <ProgressBar progress={percent || 0} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
+            <ProgressBar progress={percent} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
 
             {/* Metadata */}
             <div className="col-span-2 flex flex-row justify-between items-center">

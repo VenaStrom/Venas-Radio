@@ -1,5 +1,6 @@
 import { Episode } from "@/types/episode";
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 type EpisodeDictionary = { [episodeID: number]: Episode };
 
@@ -10,15 +11,40 @@ interface EpisodeStore {
     setEpisodeProgress: (episodeID: number, progress: number) => void;
 }
 
-export const useEpisodeStore = create<EpisodeStore>()((set) => ({
-    episodeData: {},
-    setEpisodeData: (episodeData) => set({ episodeData }),
-    episodeProgress: {},
-    setEpisodeProgress: (episodeID, progress) =>
-        set((state) => ({
-            episodeProgress: {
-                ...state.episodeProgress,
-                [episodeID]: progress,
-            },
-        })),
-}));
+const safeLocalStorage = {
+    getItem: (name: string) =>
+        typeof window !== "undefined" && window.localStorage
+            ? window.localStorage.getItem(name)
+            : null,
+    setItem: (name: string, value: string) => {
+        if (typeof window !== "undefined" && window.localStorage) {
+            window.localStorage.setItem(name, value);
+        }
+    },
+    removeItem: (name: string) => {
+        if (typeof window !== "undefined" && window.localStorage) {
+            window.localStorage.removeItem(name);
+        }
+    },
+};
+
+export const useEpisodeStore = create<EpisodeStore>()(
+    persist(
+        (set) => ({
+            episodeData: {},
+            setEpisodeData: (episodeData: EpisodeDictionary) => set({ episodeData }),
+            episodeProgress: {},
+            setEpisodeProgress: (episodeID: number, progress: number) =>
+                set((state: EpisodeStore) => ({
+                    episodeProgress: {
+                        ...state.episodeProgress,
+                        [episodeID]: progress,
+                    },
+                })),
+        }),
+        {
+            name: "episode-store",
+            storage: createJSONStorage(() => safeLocalStorage),
+        }
+    )
+);
