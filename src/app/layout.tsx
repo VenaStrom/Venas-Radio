@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     </div>
 
                     <button>
-                        <Icon.Settings />
+                        {/* <Icon.Settings /> */}
                     </button>
                 </header>
 
