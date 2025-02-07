@@ -18,7 +18,6 @@ export default function PlayButton({ episodeData, role = "starter", className, i
     const playState = usePlayStateStore();
 
     const click = () => {
-        console.log("clicked", role);
         if (role === "controller") {
             const currentState = playState.playState;
             const invertedState = currentState === "paused" ? "playing" : "paused";
@@ -29,10 +28,17 @@ export default function PlayButton({ episodeData, role = "starter", className, i
         }
 
         if (role === "starter" && episodeData) {
-            playState.setCurrentEpisode(episodeData);
-            playState.setPlayState("playing");
-            setButtonState("playing");
-            return;
+            if (buttonState === "paused") {
+                playState.setCurrentEpisode(episodeData);
+                playState.setPlayState("playing");
+                setButtonState("playing");
+                return;
+            }
+            if (buttonState === "playing") {
+                playState.setPlayState("paused");
+                setButtonState("paused");
+                return;
+            }
         };
     };
 
