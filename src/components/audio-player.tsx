@@ -58,20 +58,17 @@ export default function AudioControls() {
         audioRef.current.onended = () => {
             if (!audioRef.current || !playStateStore.currentEpisode) return;
 
-            // Update the progress in the store
-            // progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: playStateStore.currentEpisode?.listenpodfile?.duration || playStateStore.currentEpisode?.downloadpodfile?.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || Infinity, finished: true });
+            console.log("Done");
 
-            // // Find next episode
-            // const allEpisodes = episodeStore.episodeData;
-            // const episodeIDs = Object.keys(allEpisodes);
-            // const currentEpisodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
-            // const nextEpisodeID = episodeIDs[currentEpisodeIndex + 1];
-            // const nextEpisode = allEpisodes[parseInt(nextEpisodeID)];
+            // Set progress to finished
+            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: playStateStore.currentEpisode?.listenpodfile.duration || playStateStore.currentEpisode?.downloadpodfile.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || Infinity, finished: true });
 
-            // Play next episode
-            // playStateStore.setCurrentEpisode(nextEpisode)
+            console.log(useEpisodeStore());
+            // Find next episode (assuming episode store saved episodes in chronological order)
+            const indexOfCurrentEpisode = Object.keys(episodeStore.episodeData).indexOf(playStateStore.currentEpisode.id.toString())
+            console.log(indexOfCurrentEpisode);
         }
-    }, [audioRef, playStateStore, episodeStore]);
+    }, [audioRef, progressStore, playStateStore, episodeStore]);
 
 
     // Info display for the episode
@@ -119,7 +116,6 @@ export default function AudioControls() {
 
 
     // Progress bar keep up with percent progress
-    
     const percentProgress = playStateStore.currentEpisode ? (progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds || 0) / (playStateStore.currentEpisode?.listenpodfile?.duration || playStateStore.currentEpisode?.downloadpodfile?.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || 0) * 100 : 0;
 
     return (
