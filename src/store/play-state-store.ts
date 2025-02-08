@@ -21,7 +21,6 @@ export const usePlayStateStore = create<PlayStateStore>()((set) => ({
 }));
 
 
-// log on every state change
-// usePlayStateStore.subscribe(
-//     (state) => console.log("New state", state),
-// );
+// usePlayStateStore.subscribe((state) => {
+//     console.log("Play State", state)
+// });

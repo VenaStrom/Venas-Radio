@@ -3,14 +3,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 type EpisodeDictionary = { [episodeID: number]: Episode };
-type ProgressState = { seconds: number; finished: boolean };
-type ProgressDictionary = { [episodeID: number]: ProgressState };
 
 interface EpisodeStore {
     episodeData: EpisodeDictionary;
     setEpisodeData: (episodeData: EpisodeDictionary) => void;
-    episodeProgress: ProgressDictionary;
-    setEpisodeProgress: (episodeID: number, progress: ProgressState) => void;
 }
 
 const safeLocalStorage = {
@@ -35,14 +31,6 @@ export const useEpisodeStore = create<EpisodeStore>()(
         (set) => ({
             episodeData: {},
             setEpisodeData: (episodeData: EpisodeDictionary) => set({ episodeData }),
-            episodeProgress: {},
-            setEpisodeProgress: (episodeID: number, progress: ProgressState) =>
-                set((state: EpisodeStore) => ({
-                    episodeProgress: {
-                        ...state.episodeProgress,
-                        [episodeID]: progress,
-                    },
-                })),
         }),
         {
             name: "episode-store",
@@ -50,3 +38,8 @@ export const useEpisodeStore = create<EpisodeStore>()(
         }
     )
 );
+
+// Subscribe
+// useEpisodeStore.subscribe((state) => {
+//     console.log("Episode Store", state);
+// });

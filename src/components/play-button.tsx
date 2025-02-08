@@ -1,6 +1,6 @@
 "use client";
 
-import { usePlayStateStore } from "@/store/playing-state-store";
+import { usePlayStateStore } from "@/store/play-state-store";
 import { Episode } from "@/types/episode";
 import { PlayPause } from "@/types/play-pause";
 import * as Icon from "lucide-react";

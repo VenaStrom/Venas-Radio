@@ -5,12 +5,13 @@ import PlayButton from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
 import type { Episode } from "@/types/episode";
-import { useEpisodeStore } from "@/store/episode-store";
+import { useProgressStore } from "@/store/progress-store";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
 
 export default function EpisodeDOM({ episode }: { episode: Episode }) {
+    const progressStore = useProgressStore();
 
     // Validate episode publish date
     if (!episode.publishDate) {
@@ -34,7 +35,6 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
             break;
     }
     const formattedTime = episode.publishDate.toLocaleString(...timeLocale);
-
     
     // Duration and progress
     let duration = null; 
@@ -42,12 +42,11 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
     let remaining = null; 
     let percent = 0;
     const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
-
-    const progressForEpisode = useEpisodeStore((state) => state.episodeProgress[episode.id] || 0);
+    const progressForEpisode = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
     
     if (durationSource) {
         duration = Math.floor(durationSource / 60);
-        elapsed = progressForEpisode.seconds / 60;
+        elapsed = progressForEpisode / 60;
         remaining = duration && elapsed ? Math.floor(duration - elapsed) : null;
         percent = duration && elapsed ? Math.floor(elapsed / duration * 100) : 0;
     }
