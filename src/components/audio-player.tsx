@@ -4,7 +4,7 @@ import ProgressBar from "./progress-bar";
 import PlayButton from "./play-button";
 import { usePlayStateStore } from "@/store/play-state-store";
 import { useEpisodeStore } from "@/store/episode-store";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useProgressStore } from "@/store/progress-store";
 
 /**
@@ -59,12 +59,20 @@ export default function AudioControls() {
 
             // Set progress to finished
             progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: playStateStore.currentEpisode?.listenpodfile.duration || playStateStore.currentEpisode?.downloadpodfile.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || Infinity, finished: true });
-            
-            // Find next episode (assuming episode store saved episodes in chronological order)
-            console.log(Object.keys(episodeStore.episodeData));
-            const indexOfCurrentEpisode = Object.keys(episodeStore.episodeData).indexOf(playStateStore.currentEpisode.id.toString())
 
-            console.log(indexOfCurrentEpisode);
+            // Find the index of the current episode
+            const episodeIndex = episodeStore.episodeData.findIndex((episode) => episode.id === playStateStore.currentEpisode?.id);
+            if (episodeIndex === -1) return; // Episode not found
+
+            // Find the next episode that is not finished
+            for (let i = episodeIndex + 1; i < episodeStore.episodeData.length; i++) {
+                const episode = episodeStore.episodeData[i];
+
+                if (!progressStore.episodeProgressMap[episode.id]?.finished) {
+                    playStateStore.setCurrentEpisode(episode);
+                    return;
+                }
+            }
         }
     }, [audioRef, progressStore, playStateStore, episodeStore]);
 

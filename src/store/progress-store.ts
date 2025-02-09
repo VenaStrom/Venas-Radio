@@ -44,8 +44,3 @@ export const useProgressStore = create<ProgressStore>()(
         }
     )
 );
-
-// Subscribe
-// useProgressStore.subscribe((state) => {
-//     console.log("Progress Store", state);
-// });

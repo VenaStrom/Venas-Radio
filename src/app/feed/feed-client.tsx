@@ -5,13 +5,8 @@ import { useEpisodeStore } from "@/store/episode-store";
 import { Episode } from "@/types/episode";
 
 export default function FeedClient({ episodeData }: { episodeData: Episode[] }) {
-    // Re-save as dictionary with ID as key
-    const episodeDictionary = episodeData.reduce((acc, episode) => {
-        acc[episode.id] = episode;
-        return acc;
-    }, {} as Record<number, Episode>);
 
-    useEpisodeStore.setState({ episodeData: episodeDictionary });
+    useEpisodeStore.setState({ episodeData });
 
     return (
         <main>

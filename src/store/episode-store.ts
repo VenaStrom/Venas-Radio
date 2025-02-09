@@ -2,11 +2,9 @@ import { Episode } from "@/types/episode";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-type EpisodeDictionary = { [episodeID: number]: Episode };
-
 interface EpisodeStore {
-    episodeData: EpisodeDictionary;
-    setEpisodeData: (episodeData: EpisodeDictionary) => void;
+    episodeData: Episode[];
+    setEpisodeData: (episodeData: Episode[]) => void;
 }
 
 const safeLocalStorage = {
@@ -29,8 +27,8 @@ const safeLocalStorage = {
 export const useEpisodeStore = create<EpisodeStore>()(
     persist(
         (set) => ({
-            episodeData: {},
-            setEpisodeData: (episodeData: EpisodeDictionary) => set({ episodeData }),
+            episodeData: [],
+            setEpisodeData: (episodeData: Episode[]) => set({ episodeData }),
         }),
         {
             name: "episode-store",
@@ -38,8 +36,3 @@ export const useEpisodeStore = create<EpisodeStore>()(
         }
     )
 );
-
-// Subscribe
-// useEpisodeStore.subscribe((state) => {
-//     console.log("Episode Store", state);
-// });

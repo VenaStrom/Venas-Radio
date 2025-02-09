@@ -19,8 +19,3 @@ export const usePlayStateStore = create<PlayStateStore>()((set) => ({
     currentEpisode: null,
     setCurrentEpisode: (episode) => set({ currentEpisode: episode }),
 }));
-
-
-// usePlayStateStore.subscribe((state) => {
-//     console.log("Play State", state)
-// });
