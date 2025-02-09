@@ -36,7 +36,7 @@ export default function AudioControls() {
         if (audioRef.current && playStateStore.currentEpisode && progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds) {
             audioRef.current.currentTime = progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds;
         }
-    }, [audioRef, playStateStore]);
+    }, [audioRef, playStateStore, progressStore]);
 
     // Update progress in store
     useEffect(() => {

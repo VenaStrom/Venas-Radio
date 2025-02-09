@@ -4,7 +4,7 @@ import { usePlayStateStore } from "@/store/play-state-store";
 import { Episode } from "@/types/episode";
 import { PlayPause } from "@/types/play-pause";
 import * as Icon from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 /**
  * A play button component. It has some feature that initiate playing an episode.
