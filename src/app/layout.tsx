@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
     title: "VR Radiospelare",

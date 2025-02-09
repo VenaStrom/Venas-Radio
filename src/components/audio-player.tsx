@@ -48,7 +48,6 @@ export default function AudioControls() {
 
             progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: audioRef.current.currentTime, finished: false });
         }
-
     }, [audioRef, playStateStore, progressStore]);
 
     // Handle episode end
@@ -58,14 +57,13 @@ export default function AudioControls() {
         audioRef.current.onended = () => {
             if (!audioRef.current || !playStateStore.currentEpisode) return;
 
-            console.log("Done");
-
             // Set progress to finished
             progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: playStateStore.currentEpisode?.listenpodfile.duration || playStateStore.currentEpisode?.downloadpodfile.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || Infinity, finished: true });
-
-            console.log(useEpisodeStore());
+            
             // Find next episode (assuming episode store saved episodes in chronological order)
+            console.log(Object.keys(episodeStore.episodeData));
             const indexOfCurrentEpisode = Object.keys(episodeStore.episodeData).indexOf(playStateStore.currentEpisode.id.toString())
+
             console.log(indexOfCurrentEpisode);
         }
     }, [audioRef, progressStore, playStateStore, episodeStore]);

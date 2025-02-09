@@ -1,5 +1,4 @@
-import EpisodeDOM from "@/components/episode";
-import { useEpisodeStore } from "@/store/episode-store";
+import FeedClient from "@/app/feed/feed-client";
 import type { Episode } from "@/types/episode";
 
 const userSettings = {
@@ -14,17 +13,18 @@ const toDate = new Date();
 toDate.setDate(toDate.getDate() + 1);
 
 export default async function FeedPage() {
+    // const episodeStore = useEpisodeStore();
     const episodeData: Episode[] = [];
 
-    for (const programID of userSettings.programIDs) {
-        const response = await fetch(
-            `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
-        );
+    // Make promise array
+    const promises = userSettings.programIDs.map(async (programID) => {
+        return fetch(`https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`)
+            .then((response) => response.json())
+            .then((data) => { episodeData.push(...data.episodes); });
+    });
 
-        const data: { episodes: Episode[] } = await response.json();
-
-        episodeData.push(...data.episodes);
-    }
+    // Await all promises
+    await Promise.all(promises);
 
     // Create proper date objects
     episodeData.map((episode) => {
@@ -37,22 +37,5 @@ export default async function FeedPage() {
         return b.publishDate.getTime() - a.publishDate.getTime();
     });
 
-    // Re-save as dictionary with ID as key
-    const episodeDictionary = episodeData.reduce((acc, episode) => {
-        acc[episode.id] = episode;
-        return acc;
-    }, {} as Record<number, Episode>);
-
-    // Store episodes in global state
-    useEpisodeStore.getState().setEpisodeData(episodeDictionary);
-
-    return (
-        <main>
-            <ul className="flex flex-col gap-y-10 mt-2 mb-4">
-                {Object.values(episodeData).map((episode) => (
-                    <EpisodeDOM episode={episode} key={episode.id} />
-                ))}
-            </ul>
-        </main>
-    )
+    return <FeedClient episodeData={episodeData} />;
 }
