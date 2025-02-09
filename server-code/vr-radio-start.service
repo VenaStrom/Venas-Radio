@@ -3,9 +3,9 @@ Description=Viggo's Radio Service
 After=network.target
 
 [Service]
-User=vr
-WorkingDirectory=/home/vr/Viggo-Radio
-ExecStart=/usr/bin/yarn run start
+User=root
+WorkingDirectory=/home/vr/Viggos-Radio
+ExecStart=/home/vr/.nvm/versions/node/v23.7.0/bin/yarn run start
 Restart=always
 RestartSec=3
 
