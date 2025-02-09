@@ -1,0 +1,13 @@
+[Unit]
+Description=Viggo's Radio Service
+After=network.target
+
+[Service]
+User=vr
+WorkingDirectory=/home/vr/Viggo-Radio
+ExecStart=/usr/bin/yarn run start
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
