@@ -2,8 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+// Limit width on desktop
+@screen lg {
+    body {
+        @apply max-w-3xl;
+    }
+}
+
+::-webkit-scrollbar {
+    scrollbar-width: thin;
+}
+
 html {
-    @apply w-full h-[100dvh] bg-zinc-800;
+    @apply flex flex-col items-center w-full h-[100dvh] bg-zinc-800;
 }
 
 body {
