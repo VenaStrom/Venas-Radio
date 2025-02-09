@@ -5,7 +5,7 @@
 // Limit width on desktop
 @screen lg {
     body {
-        @apply max-w-3xl;
+        @apply max-w-2xl;
     }
 }
 
@@ -18,7 +18,7 @@ html {
 }
 
 body {
-    @apply flex flex-col h-[100dvh];
+    @apply flex flex-col w-full h-[100dvh];
 
     &>header {
         @apply w-full overflow-hidden;
