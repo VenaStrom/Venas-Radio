@@ -3,6 +3,7 @@ export type Episode = {
     title: string;
     description: string;
     url: string;
+    index?: number;
     program: {
         id: number;
         name: string;

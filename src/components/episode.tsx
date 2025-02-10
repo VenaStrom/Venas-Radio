@@ -10,7 +10,7 @@ import { useProgressStore } from "@/store/progress-store";
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
 
-export default function EpisodeDOM({ episode }: { episode: Episode }) {
+export default function EpisodeDOM({ episode, className }: { episode: Episode, className?: string }) {
     const progressStore = useProgressStore();
 
     // Validate episode publish date
@@ -35,15 +35,15 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
             break;
     }
     const formattedTime = episode.publishDate.toLocaleString(...timeLocale);
-    
+
     // Duration and progress
-    let duration = null; 
-    let elapsed = null; 
-    let remaining = null; 
+    let duration = null;
+    let elapsed = null;
+    let remaining = null;
     let percent = 0;
     const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
     const progressForEpisode = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
-    
+
     if (durationSource) {
         duration = Math.floor(durationSource / 60);
         elapsed = progressForEpisode / 60;
@@ -52,7 +52,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
     }
 
     return (
-        <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>
+        <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} id={episode.id.toString()}>
             {/* SR Attribute */}
             <SRAttribute className="col-span-2" />
 
@@ -76,6 +76,36 @@ export default function EpisodeDOM({ episode }: { episode: Episode }) {
                 <p className="text-xs text-zinc-400">{formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining ? `\u00A0\u00B7\u00A0${remaining} min kvar` : ""}</p>
 
                 <PlayButton episodeData={episode} />
+            </div>
+        </li>
+    );
+}
+
+export function EpisodeSkeleton() {
+    return (
+        <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2">
+            {/* SR Attribute */}
+            <div className="col-span-2 h-5"></div>
+
+            {/* Thumbnail */}
+            <div className="bg-zinc-600 rounded-md w-[128px] h-[72px] animate-pulse"></div>
+
+            {/* Header Text */}
+            <div className="col-start-2"></div>
+
+            {/* Description */}
+            <div className="h-10 text-xs pt-1 font-normal overflow-hidden col-span-2 animate-pulse"></div>
+
+            {/* Progress Bar */}
+            <div className="col-span-2 rounded-sm animate-pulse">
+                <div className="rounded-sm bg-zinc-600 h-2"></div>
+            </div>
+
+            {/* Metadata */}
+            <div className="col-span-2 flex flex-row justify-between items-center">
+                <div></div>
+
+                <PlayButton />
             </div>
         </li>
     );

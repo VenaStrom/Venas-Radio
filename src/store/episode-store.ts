@@ -1,10 +1,10 @@
-import { Episode } from "@/types/episode";
+import { EpisodeMap } from "@/types/episode-map";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 interface EpisodeStore {
-    episodeData: Episode[];
-    setEpisodeData: (episodeData: Episode[]) => void;
+    episodeData: EpisodeMap;
+    setEpisodeData: (episodeData: EpisodeMap) => void;
 }
 
 const safeLocalStorage = {
@@ -27,8 +27,8 @@ const safeLocalStorage = {
 export const useEpisodeStore = create<EpisodeStore>()(
     persist(
         (set) => ({
-            episodeData: [],
-            setEpisodeData: (episodeData: Episode[]) => set({ episodeData }),
+            episodeData: {},
+            setEpisodeData: (episodeData: EpisodeMap) => set({ episodeData }),
         }),
         {
             name: "episode-store",
