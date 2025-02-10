@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
+import SettingsMenu from "@/components/settings-menu";
+
 
 export const metadata: Metadata = {
     title: "VR Radiospelare",
@@ -28,9 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <p className="font-bold text-lg">VR</p>
                     </div>
 
-                    <button>
-                        {/* <Icon.Settings /> */}
-                    </button>
+                    <SettingsMenu />
                 </header>
 
                 {children}
