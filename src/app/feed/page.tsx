@@ -5,12 +5,9 @@ import { useEpisodeStore } from "@/store/episode-store";
 import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode";
 import { EpisodeMap } from "@/types/episode-map";
 import { Episode } from "@/types/episode";
+import { useSettingsStore } from "@/store/settings-store";
 
-const userSettings = {
-    fetchBack: 2, // Days
-    fetchForward: 1, // Days (should not be changed)
-    programIDs: [4923, 178, 2778, 4540],
-}
+const userSettings = useSettingsStore.getState().settings;
 
 const fromDate = new Date();
 fromDate.setDate(fromDate.getDate() - userSettings.fetchBack);
