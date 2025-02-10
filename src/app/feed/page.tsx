@@ -19,12 +19,13 @@ toDate.setDate(toDate.getDate() + 1);
 
 export default function FeedPage() {
     const [episodeData, setEpisodeData] = useState<EpisodeMap>({});
-    const programLinks = userSettings.programIDs.map((programID) =>
-        `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
-    );
-
+    
     useEffect(() => {
         const fetchEpisodes = async () => {
+            const programLinks = userSettings.programIDs.map((programID) =>
+                `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
+            );
+
             const allEpisodes: EpisodeMap = {};
 
             for (const programLink of programLinks) {
@@ -55,7 +56,7 @@ export default function FeedPage() {
         };
 
         fetchEpisodes();
-    }, [programLinks]);
+    }, []);
 
     return (
         <Suspense fallback={
