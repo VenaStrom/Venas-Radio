@@ -13,6 +13,25 @@ const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE",
 
 export default function EpisodeDOM({ episode, className, style }: { episode: Episode, className?: string , style?: CSSProperties }) {
     const progressStore = useProgressStore();
+    const [elapsed, setElapsed] = useState(0);
+    const [percent, setPercent] = useState(0);
+
+    const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
+    const progressForEpisode = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
+
+    useEffect(() => {
+        if (progressForEpisode) {
+            setElapsed(progressForEpisode / 60);
+        }
+    }, [progressForEpisode]);
+
+    useEffect(() => {
+        if (durationSource) {
+            const duration = Math.floor(durationSource / 60);
+            const newPercent = duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
+            setPercent(newPercent);
+        }
+    }, [elapsed, durationSource]);
 
     // Validate episode publish date
     if (!episode.publishDate) {
@@ -36,26 +55,6 @@ export default function EpisodeDOM({ episode, className, style }: { episode: Epi
             break;
     }
     const formattedTime = episode.publishDate.toLocaleString(...timeLocale);
-
-    // Duration and progress
-    const [elapsed, setElapsed] = useState(0);
-    const [percent, setPercent] = useState(0);
-    const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
-    const progressForEpisode = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
-
-    useEffect(() => {
-        if (progressForEpisode) {
-            setElapsed(progressForEpisode / 60);
-        }
-    }, [progressForEpisode]);
-
-    useEffect(() => {
-        if (durationSource) {
-            const duration = Math.floor(durationSource / 60);
-            const newPercent = duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
-            setPercent(newPercent);
-        }
-    }, [elapsed, durationSource]);
 
     let duration = null;
     let remaining = null;

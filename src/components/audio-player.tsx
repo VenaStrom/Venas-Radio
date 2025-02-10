@@ -36,7 +36,7 @@ export default function AudioControls() {
     // Load progress on episode change
     useEffect(() => {
         if (
-            audioRef.current// Audio element exists
+            audioRef.current // Audio element exists
             &&
             playStateStore?.currentEpisode // Current episode exists
             &&
@@ -95,7 +95,6 @@ export default function AudioControls() {
         }
     }, [audioRef, progressStore, playStateStore, episodeStore]);
 
-
     // Info display for the episode
     const episodeInfo = playStateStore.currentEpisode ?
         (() => {
@@ -139,7 +138,6 @@ export default function AudioControls() {
         :
         "Spelar inget";
 
-
     // Progress bar keep up with percent progress
     const percentProgress = playStateStore.currentEpisode ? (progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds || 0) / (playStateStore.currentEpisode?.listenpodfile?.duration || playStateStore.currentEpisode?.downloadpodfile?.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || 0) * 100 : 0;
 
@@ -154,8 +152,8 @@ export default function AudioControls() {
                     if (playStateStore.currentEpisode) {
                         const newProgress = parseInt(e.target.value) / 100 * (playStateStore.currentEpisode?.listenpodfile?.duration || playStateStore.currentEpisode?.downloadpodfile?.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || 0);
 
-                        // Modify tha audio element
-                        if (audioRef.current && audioRef.current.currentTime) {
+                        // Modify the audio element
+                        if (audioRef.current) {
                             audioRef.current.currentTime = newProgress;
                         }
 
