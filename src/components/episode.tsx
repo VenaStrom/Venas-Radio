@@ -6,11 +6,12 @@ import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
 import type { Episode } from "@/types/episode";
 import { useProgressStore } from "@/store/progress-store";
+import { CSSProperties } from "react";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
 
-export default function EpisodeDOM({ episode, className }: { episode: Episode, className?: string }) {
+export default function EpisodeDOM({ episode, className, style }: { episode: Episode, className?: string , style?: CSSProperties }) {
     const progressStore = useProgressStore();
 
     // Validate episode publish date
@@ -52,7 +53,7 @@ export default function EpisodeDOM({ episode, className }: { episode: Episode, c
     }
 
     return (
-        <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} id={episode.id.toString()}>
+        <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} style={style} id={episode.id.toString()}>
             {/* SR Attribute */}
             <SRAttribute className="col-span-2" />
 

@@ -17,7 +17,7 @@ fromDate.setDate(fromDate.getDate() - userSettings.fetchBack);
 const toDate = new Date();
 toDate.setDate(toDate.getDate() + 1);
 
-const FeedPage = () => {
+export default function FeedPage() {
     const [episodeData, setEpisodeData] = useState<EpisodeMap>({});
     const programLinks = userSettings.programIDs.map((programID) =>
         `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
@@ -46,7 +46,7 @@ const FeedPage = () => {
             });
 
             sortedEpisodes.forEach((episode, index) => {
-                allEpisodes[episode.id].index = index;
+                allEpisodes[episode.id].index = index + 1;
             });
 
             // Save
@@ -70,7 +70,7 @@ const FeedPage = () => {
             <main>
                 <ul className="flex flex-col gap-y-10 mt-2 mb-4">
                     {Object.values(episodeData).map((episode: Episode) => (
-                        <EpisodeDOM episode={episode} className={`order-${episode.index || 0}`} key={episode.id} />
+                        <EpisodeDOM episode={episode} style={{ order: episode.index }} key={episode.id} />
                     ))}
                 </ul>
             </main>
@@ -78,7 +78,6 @@ const FeedPage = () => {
     );
 };
 
-export default FeedPage;
 
 // "use client";
 
