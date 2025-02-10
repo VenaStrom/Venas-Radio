@@ -1,4 +1,4 @@
-# Viggo Radio
+# Viggo's Radio
 
 Visit the site [vr-radio.tailad6f63.ts.net](https://vr-radio.tailad6f63.ts.net/)
 
