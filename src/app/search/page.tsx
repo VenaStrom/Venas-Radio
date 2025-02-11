@@ -25,7 +25,7 @@ export default function SearchPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortedResults, setSortedResults] = useState<Program[]>([]);
-    const [renderCount, setRenderCount] = useState(0);
+    const [renderCount, setRenderCount] = useState(6);
 
     // Fetch programs
     useEffect(() => {
@@ -54,10 +54,10 @@ export default function SearchPage() {
 
     // Staggered rendering
     useEffect(() => {
-        if (!isLoading && renderCount < sortedResults.length) {
+        if (!isLoading && renderCount < sortedResults.length - 6) {
             const interval = setInterval(() => {
                 setRenderCount(prevCount => prevCount + 1);
-            }, 100); // Adjust the interval as needed
+            }, 50);
 
             return () => clearInterval(interval);
         }
@@ -83,7 +83,7 @@ export default function SearchPage() {
                 </button>
             </div>
 
-            <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20">
+            <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20 last:pb-10">
                 {isLoading ? (
                     <>
                         {new Array(10).fill(0).map((_, i) => (
