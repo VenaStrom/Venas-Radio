@@ -60,7 +60,7 @@ export default function SearchPage() {
         <main className="flex flex-col items-center h-full gap-y-3 py-0 my-0">
 
             {/* Search box */}
-            <div className="z-10 fixed w-10/12 mt-2 flex flex-row items-center justify-center bg-zinc-950 py-2 px-4 gap-x-2 rounded-lg">
+            <div className="z-10 fixed w-10/12 max-w-xl mt-2 flex flex-row items-center justify-center bg-zinc-950 py-2 px-4 gap-x-2 rounded-lg">
                 <Icon.Search className="opacity-50" />
 
                 <Input
