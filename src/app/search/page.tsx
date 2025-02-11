@@ -25,7 +25,9 @@ export default function SearchPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortedResults, setSortedResults] = useState<Program[]>([]);
+    const [renderCount, setRenderCount] = useState(0);
 
+    // Fetch programs
     useEffect(() => {
         fetchPrograms().then(data => {
             setProgramsData(data);
@@ -33,28 +35,33 @@ export default function SearchPage() {
         });
     }, []);
 
-    // Filter and sort results
+    // Search
     useEffect(() => {
         const fuse = new Fuse(programsData, { keys: filterKeys });
         const results = searchTerm ? fuse.search(searchTerm).map(result => result.item) : programsData;
 
-        // Delay the sorting of results
-        const timeoutId = setTimeout(() => {
-            const sorted = results.sort((a, b) => {
-                if (!searchTerm) {
-                    // Prefer followed programs
-                    const aIsFavorite = settingsStore.settings.programIDs.includes(a.id);
-                    const bIsFavorite = settingsStore.settings.programIDs.includes(b.id);
-                    if (aIsFavorite && !bIsFavorite) return -1;
-                    if (!aIsFavorite && bIsFavorite) return 1;
-                }
-                return 0;
-            });
-            setSortedResults(sorted);
-        }, 500); // Debounce time
-
-        return () => clearTimeout(timeoutId);
+        const sorted = results.sort((a, b) => {
+            if (!searchTerm) {
+                const aIsFavorite = settingsStore.settings.programIDs.includes(a.id);
+                const bIsFavorite = settingsStore.settings.programIDs.includes(b.id);
+                if (aIsFavorite && !bIsFavorite) return -1;
+                if (!aIsFavorite && bIsFavorite) return 1;
+            }
+            return 0;
+        });
+        setSortedResults(sorted);
     }, [searchTerm, programsData, settingsStore.settings.programIDs]);
+
+    // Staggered rendering
+    useEffect(() => {
+        if (!isLoading && renderCount < sortedResults.length) {
+            const interval = setInterval(() => {
+                setRenderCount(prevCount => prevCount + 1);
+            }, 100); // Adjust the interval as needed
+
+            return () => clearInterval(interval);
+        }
+    }, [isLoading, renderCount, sortedResults.length]);
 
     return (
         <main className="flex flex-col items-center h-full gap-y-3 py-0 my-0">
@@ -84,7 +91,7 @@ export default function SearchPage() {
                         ))}
                     </>
                 ) : (
-                    sortedResults.map((program) => (
+                    sortedResults.slice(0, renderCount).map((program) => (
                         <ProgramDOM programData={program} key={program.id} />
                     ))
                 )}

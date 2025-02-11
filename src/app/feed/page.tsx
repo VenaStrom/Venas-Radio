@@ -62,7 +62,7 @@ export default function FeedPage() {
             <ul className="flex flex-col gap-y-10 mt-2 mb-4">
                 {isLoading ? (
                     <>
-                        {new Array(20).fill(0).map((_, index) => (
+                        {new Array(10).fill(0).map((_, index) => (
                             <EpisodeSkeleton key={index} />
                         ))}
                     </>
