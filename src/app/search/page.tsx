@@ -1,11 +1,11 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import * as Icon from "lucide-react";
 import { Program } from "@/types/program";
-import ProgramDOM from "@/components/program-dom";
+import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
 
 const filterKeys = ["name", "description"];
 
@@ -35,7 +35,7 @@ export default function SearchPage() {
                 <Input
                     className="bg-none border-none font-semibold text-lg w-full p-0"
                     value={searchTerm}
-                    onChange={(e) => {setSearchTerm(e.target.value)}}
+                    onChange={(e) => { setSearchTerm(e.target.value) }}
                     placeholder="Sök program..."
                 />
 
@@ -46,9 +46,17 @@ export default function SearchPage() {
             </div>
 
             <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20">
-                {results.map((program) => (
-                    <ProgramDOM programData={program} key={program.id} />
-                ))}
+                <Suspense fallback={
+                    <>
+                        {new Array(10).fill(0).map((_, i) => (
+                            <ProgramSkeleton key={i} />
+                        ))}
+                    </>
+                }>
+                    {results.map((program) => (
+                        <ProgramDOM programData={program} key={program.id} />
+                    ))}
+                </Suspense>
             </ul>
         </main>
     );

@@ -17,8 +17,16 @@ export default function LikeButton(
 
     // Save state
     const toggleLike = () => {
-        setLiked(!liked);
-        settingsStore.setSetting("programIDs", Array.from(new Set([...settingsStore.settings.programIDs, programID])));
+        const newState = !liked;
+
+        setLiked(newState);
+
+        if (newState) {
+            settingsStore.setSetting("programIDs", Array.from(new Set([...settingsStore.settings.programIDs, programID])));
+        }
+        else {
+            settingsStore.setSetting("programIDs", settingsStore.settings.programIDs.filter(id => id !== programID));
+        }
     };
 
     return (
