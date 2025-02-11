@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <Icon.Home size={44} />
                         </Link>
 
-                        <Link href={"/"}>
+                        <Link href={"/search"}>
                             <Icon.Search size={44} />
                         </Link>
 
