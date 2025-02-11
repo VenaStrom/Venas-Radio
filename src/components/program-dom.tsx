@@ -3,7 +3,6 @@
 import { Program } from "@/types/program";
 import SRAttribute from "./sr-attribute";
 import Image from "next/image";
-import * as Icon from "lucide-react";
 import LikeButton from "./like-button";
 
 export default function ProgramDOM({ programData, className }: { programData: Program, className?: string }) {

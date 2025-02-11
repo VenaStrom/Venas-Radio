@@ -32,7 +32,7 @@ export default function LikeButton(
     return (
         <button className={`size-min ${className}`} style={style}>
             <Icon.Heart
-                className={liked ? "fill-zinc-100" : "none"}
+                className={liked ? "fill-[red] !text-[red]" : "none"}
                 size={28}
                 onClick={toggleLike}
             />

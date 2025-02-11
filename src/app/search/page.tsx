@@ -6,8 +6,12 @@ import Fuse from "fuse.js";
 import * as Icon from "lucide-react";
 import { Program } from "@/types/program";
 import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
+import { useSettingsStore } from "@/store/settings-store";
 
-const filterKeys = ["name", "description"];
+const filterKeys = [
+    { name: "name", weight: 0.7 },
+    { name: "description", weight: 0.3 },
+];
 
 const fetchPrograms = async () => {
     const response = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false");
@@ -16,9 +20,11 @@ const fetchPrograms = async () => {
 };
 
 export default function SearchPage() {
+    const settingsStore = useSettingsStore();
     const [programsData, setProgramsData] = useState<Program[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [sortedResults, setSortedResults] = useState<Program[]>([]);
 
     useEffect(() => {
         fetchPrograms().then(data => {
@@ -27,8 +33,28 @@ export default function SearchPage() {
         });
     }, []);
 
-    const fuse = new Fuse(programsData, { keys: filterKeys });
-    const results = searchTerm ? fuse.search(searchTerm).map(result => result.item) : programsData;
+    // Filter and sort results
+    useEffect(() => {
+        const fuse = new Fuse(programsData, { keys: filterKeys });
+        const results = searchTerm ? fuse.search(searchTerm).map(result => result.item) : programsData;
+
+        // Delay the sorting of results
+        const timeoutId = setTimeout(() => {
+            const sorted = results.sort((a, b) => {
+                if (!searchTerm) {
+                    // Prefer followed programs
+                    const aIsFavorite = settingsStore.settings.programIDs.includes(a.id);
+                    const bIsFavorite = settingsStore.settings.programIDs.includes(b.id);
+                    if (aIsFavorite && !bIsFavorite) return -1;
+                    if (!aIsFavorite && bIsFavorite) return 1;
+                }
+                return 0;
+            });
+            setSortedResults(sorted);
+        }, 500); // Debounce time
+
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, programsData, settingsStore.settings.programIDs]);
 
     return (
         <main className="flex flex-col items-center h-full gap-y-3 py-0 my-0">
@@ -58,7 +84,7 @@ export default function SearchPage() {
                         ))}
                     </>
                 ) : (
-                    results.map((program) => (
+                    sortedResults.map((program) => (
                         <ProgramDOM programData={program} key={program.id} />
                     ))
                 )}
