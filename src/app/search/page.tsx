@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import * as Icon from "lucide-react";
 import { Program } from "@/types/program";
@@ -9,19 +9,24 @@ import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
 
 const filterKeys = ["name", "description"];
 
+const fetchPrograms = async () => {
+    const response = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false");
+    const data = await response.json();
+    return data.programs;
+};
+
 export default function SearchPage() {
-    // Fetch programs
-    const [programsData, setProgramData] = useState<Program[]>([]);
+    const [programsData, setProgramsData] = useState<Program[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+
     useEffect(() => {
-        fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
-            .then(response => response.json())
-            .then(data => {
-                setProgramData(data.programs);
-            });
+        fetchPrograms().then(data => {
+            setProgramsData(data);
+            setIsLoading(false);
+        });
     }, []);
 
-    // Search stuff
-    const [searchTerm, setSearchTerm] = useState("");
     const fuse = new Fuse(programsData, { keys: filterKeys });
     const results = searchTerm ? fuse.search(searchTerm).map(result => result.item) : programsData;
 
@@ -29,7 +34,7 @@ export default function SearchPage() {
         <main className="flex flex-col items-center h-full gap-y-3 py-0 my-0">
 
             {/* Search box */}
-            <div className="fixed w-10/12 mt-2 flex flex-row items-center justify-center bg-zinc-950 py-2 px-4 gap-x-2 rounded-lg">
+            <div className="z-10 fixed w-10/12 mt-2 flex flex-row items-center justify-center bg-zinc-950 py-2 px-4 gap-x-2 rounded-lg">
                 <Icon.Search className="opacity-50" />
 
                 <Input
@@ -46,17 +51,17 @@ export default function SearchPage() {
             </div>
 
             <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20">
-                <Suspense fallback={
+                {isLoading ? (
                     <>
                         {new Array(10).fill(0).map((_, i) => (
                             <ProgramSkeleton key={i} />
                         ))}
                     </>
-                }>
-                    {results.map((program) => (
+                ) : (
+                    results.map((program) => (
                         <ProgramDOM programData={program} key={program.id} />
-                    ))}
-                </Suspense>
+                    ))
+                )}
             </ul>
         </main>
     );

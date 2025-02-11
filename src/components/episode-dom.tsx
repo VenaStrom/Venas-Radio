@@ -107,7 +107,7 @@ export function EpisodeSkeleton() {
             <div className="col-start-2"></div>
 
             {/* Description */}
-            <div className="h-10 text-xs pt-1 font-normal overflow-hidden col-span-2 animate-pulse"></div>
+            <div className="bg-zinc-600 rounded-md h-7 text-xs pt-1 font-normal overflow-hidden col-span-2 animate-pulse"></div>
 
             {/* Progress Bar */}
             <div className="col-span-2 rounded-sm animate-pulse">

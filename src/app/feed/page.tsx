@@ -1,8 +1,8 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useEpisodeStore } from "@/store/episode-store";
-import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode";
+import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode-dom";
 import { EpisodeMap } from "@/types/episode-map";
 import { Episode } from "@/types/episode";
 import { useSettingsStore } from "@/store/settings-store";
@@ -16,7 +16,8 @@ toDate.setDate(toDate.getDate() + 1);
 
 export default function FeedPage() {
     const [episodeData, setEpisodeData] = useState<EpisodeMap>({});
-    
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
         const fetchEpisodes = async () => {
             const programLinks = userSettings.programIDs.map((programID) =>
@@ -50,28 +51,27 @@ export default function FeedPage() {
             // Save
             setEpisodeData(allEpisodes);
             useEpisodeStore.getState().setEpisodeData(allEpisodes);
+            setIsLoading(false);
         };
 
         fetchEpisodes();
     }, []);
 
     return (
-        <Suspense fallback={
-            <main>
-                <ul>
-                    {new Array(20).fill(0).map((_, index) => {
-                        return <EpisodeSkeleton key={index} />;
-                    })}
-                </ul>
-            </main>
-        }>
-            <main>
-                <ul className="flex flex-col gap-y-10 mt-2 mb-4">
-                    {Object.values(episodeData).map((episode: Episode) => (
+        <main>
+            <ul className="flex flex-col gap-y-10 mt-2 mb-4">
+                {isLoading ? (
+                    <>
+                        {new Array(20).fill(0).map((_, index) => (
+                            <EpisodeSkeleton key={index} />
+                        ))}
+                    </>
+                ) : (
+                    Object.values(episodeData).map((episode: Episode) => (
                         <EpisodeDOM episode={episode} style={{ order: episode.index }} key={episode.id} />
-                    ))}
-                </ul>
-            </main>
-        </Suspense>
+                    ))
+                )}
+            </ul>
+        </main>
     );
-};
+}
