@@ -2,6 +2,8 @@
 
 Visit the site [vr-radio.tailad6f63.ts.net](https://vr-radio.tailad6f63.ts.net/)
 
+<img src="screenshots/home-page.png" alt="Home page screenshot" width="200"/>
+<img src="screenshots/search-page.png" alt="Search page screenshot" width="200"/>
 <img src="screenshots/feed-page.png" alt="Feed page screenshot" width="200"/>
 
 ## Why
