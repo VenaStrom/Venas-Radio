@@ -1,1 +1,1 @@
-cd Viggos-Radio && sudo git fetch --all && sudo git checkout origin/main --force && sudo yarn install && sudo yarn build && sudo reboot
+cd ./Viggos-Radio && sudo git fetch --all && sudo git checkout origin/main --force && sudo yarn install && sudo yarn build && sudo reboot
