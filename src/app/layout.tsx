@@ -6,13 +6,29 @@ import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import SettingsMenu from "@/components/settings-menu";
 
-
 export const metadata: Metadata = {
     title: "VR Radiospelare",
     description: "En radiospelare gjord av och för Viggo.",
     icons: {
         icon: "/icons/audio-lines.svg",
-    }
+    },
+    openGraph: {
+        type: "music.radio_station",
+        title: "VR Radiospelare",
+        siteName: "VR Radiospelare",
+        locale: "sv_SE",
+        url: "https://vr-radio.tailad6f63.ts.net/",
+        images: [
+            {
+                url: "https://raw.githubusercontent.com/viggoStrom/Viggos-Radio/refs/heads/main/public/icons/audio-lines.svg",
+                secureUrl: "https://raw.githubusercontent.com/viggoStrom/Viggos-Radio/refs/heads/main/public/icons/audio-lines.svg",
+            },
+        ],
+    },
+    creator: "Viggo Ström <ViggoStrom05+vr@gmail.com>",
+    keywords: ["radio", "radiospelare", "audio", "ljud", "musik", "podcast", "streaming"],
+    category: "Music",
+    robots: "index, follow",
 };
 
 const nunitoSansFont = Nunito_Sans({
