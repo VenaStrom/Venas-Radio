@@ -40,7 +40,7 @@ export default function ChannelDOM({ channelData, className, style }: { channelD
             publishdateutc: "",
             id: channelData.liveaudio.id,
             url: channelData.liveaudio.url,
-            statkey: ""
+            statkey: "",
         },
         downloadpodfile: {
             title: "",
@@ -48,30 +48,15 @@ export default function ChannelDOM({ channelData, className, style }: { channelD
             filesizeinbytes: 0,
             program: {
                 id: channelData.id,
-                name: channelData.name
+                name: channelData.name,
             },
             availablefromutc: "",
             duration: 0,
             publishdateutc: "",
             id: channelData.liveaudio.id,
             url: channelData.liveaudio.url,
-            statkey: ""
+            statkey: "",
         },
-        broadcast: {
-            availablestoputc: "",
-            playlist: {
-                duration: 0,
-                publishdateutc: "",
-                id: 0,
-                url: "",
-                statkey: ""
-            },
-            broadcastfiles: []
-        },
-        broadcasttime: {
-            starttimeutc: "",
-            endtimeutc: ""
-        }
     };
 
     return (

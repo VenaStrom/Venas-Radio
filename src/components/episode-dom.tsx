@@ -7,6 +7,7 @@ import SRAttribute from "./sr-attribute";
 import type { Episode } from "@/types/api/episode";
 import { useProgressStore } from "@/store/progress-store";
 import { CSSProperties, useEffect, useState } from "react";
+import { extractDuration } from "@/lib/utils";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
@@ -16,7 +17,7 @@ export default function EpisodeDOM({ episode, className, style }: { episode: Epi
     const [elapsed, setElapsed] = useState(0);
     const [percent, setPercent] = useState(0);
 
-    const durationSource = episode?.listenpodfile?.duration || episode?.downloadpodfile?.duration || episode?.broadcast?.broadcastfiles[0]?.duration || null;
+    const durationSource = extractDuration(episode) || null;
     const progressForEpisode = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
 
     useEffect(() => {
