@@ -40,15 +40,17 @@ export default function SearchPage() {
         const fuse = new Fuse(programsData, { keys: filterKeys });
         const results = searchTerm ? fuse.search(searchTerm).map(result => result.item) : programsData;
 
-        const sorted = results.sort((a, b) => {
-            if (!searchTerm) {
-                const aIsFavorite = settingsStore.settings.programIDs.includes(a.id);
-                const bIsFavorite = settingsStore.settings.programIDs.includes(b.id);
-                if (aIsFavorite && !bIsFavorite) return -1;
-                if (!aIsFavorite && bIsFavorite) return 1;
-            }
-            return 0;
-        });
+        const sorted = results
+            .filter((result) => !result.name.includes("P4"))
+            .sort((a, b) => {
+                if (!searchTerm) {
+                    const aIsFavorite = settingsStore.settings.programIDs.includes(a.id);
+                    const bIsFavorite = settingsStore.settings.programIDs.includes(b.id);
+                    if (aIsFavorite && !bIsFavorite) return -1;
+                    if (!aIsFavorite && bIsFavorite) return 1;
+                }
+                return 0;
+            });
         setSortedResults(sorted);
     }, [searchTerm, programsData, settingsStore.settings.programIDs]);
 
