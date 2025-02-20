@@ -2,11 +2,36 @@
 
 import ProgressBar from "./progress-bar";
 import PlayButton from "./play-button";
-import { usePlayStateStore } from "@/store/play-state-store";
-import { useProgressStore } from "@/store/progress-store";
-import { useEpisodeStore } from "@/store/episode-store";
+import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
+import { ProgressStore, useProgressStore } from "@/store/progress-store";
+import { EpisodeStore, useEpisodeStore } from "@/store/episode-store";
 import { useEffect, useRef } from "react";
-import { Episode } from "@/types/episode";
+import { Episode } from "@/types/api/episode";
+import { extractDuration } from "@/lib/utils";
+
+const getNthNextEpisode = (nextIndex: number, episodeStore: EpisodeStore, progressStore: ProgressStore, playStateStore: PlayStateStore): Episode | null => {
+    if (!playStateStore.currentEpisode) return null;
+
+
+    const [episodeIDs, episodeData] = [Object.keys(episodeStore.episodeData) as string[], Object.values(episodeStore.episodeData) as Episode[]];
+
+    // Find the index of the current episode
+    const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
+    if (episodeIndex === -1) return null; // Episode not found
+
+    // Find the "index" property of this episode. This index is used for ordering episodes
+    const episodeOrder = episodeData[episodeIndex]?.order || -1;
+    if (episodeOrder === -1) return null; // Episode order not found
+
+    // Find the next episode that is not finished
+    for (let i = episodeOrder + 1; i < episodeIDs.length; i++) {
+        const episode = episodeData.find((episode) => episode.order === i) || null;
+        if (!episode) continue;
+        if (!progressStore.episodeProgressMap[episode.id]?.finished) return episode;
+    }
+
+    return null;
+};
 
 /**
  * A component that displays audio controls and a progress bar 
@@ -50,7 +75,7 @@ export default function AudioControls() {
         }
     }, [playStateStore.currentEpisode, progressStore.episodeProgressMap]);
 
-    // Update progress in store
+    // Handle progress updates
     useEffect(() => {
         if (!audioRef.current) return;
 
@@ -62,37 +87,26 @@ export default function AudioControls() {
         }
     }, [audioRef, playStateStore, progressStore]);
 
-    // Handle episode end
+    // Handle episode end and caching
     useEffect(() => {
         if (!audioRef.current || !playStateStore.currentEpisode) return;
 
+        // If cache is empty, load next episode
+        // TODO - implement
+
+        // Play next on finish
         audioRef.current.onended = () => {
             if (!audioRef.current || !playStateStore.currentEpisode) return;
 
             // Set progress to finished
-            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: playStateStore.currentEpisode?.listenpodfile.duration || playStateStore.currentEpisode?.downloadpodfile.duration || playStateStore.currentEpisode?.broadcast?.broadcastfiles[0]?.duration || Infinity, finished: true });
+            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: extractDuration(playStateStore.currentEpisode), finished: true });
 
-            const [episodeIDs, episodeData] = [Object.keys(episodeStore.episodeData), Object.values(episodeStore.episodeData)];
-
-            // Find the index of the current episode
-            const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
-            if (episodeIndex === -1) return; // Episode not found
-
-            // Find the "index" property of this episode
-            const episodeOrder = episodeData[episodeIndex]?.index || -1;
-            if (episodeOrder === -1) return; // Episode order not found
-
-            // Find the next episode that is not finished
-            for (let i = episodeOrder + 1; i < episodeIDs.length; i++) {
-                const episode: Episode | null = episodeData.find((episode) => episode.index === i) || null;
-                if (!episode) continue;
-                
-                if (!progressStore.episodeProgressMap[episode.id]?.finished) {
-                    playStateStore.setCurrentEpisode(episode);
-                    return;
-                }
+            // Find the next episode
+            const nextEpisode = getNthNextEpisode(1, episodeStore, progressStore, playStateStore);
+            if (nextEpisode) {
+                playStateStore.setCurrentEpisode(nextEpisode);
             }
-        }
+        };
     }, [audioRef, progressStore, playStateStore, episodeStore]);
 
     // Info display for the episode

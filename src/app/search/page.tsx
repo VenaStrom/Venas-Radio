@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import React, { useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import * as Icon from "lucide-react";
-import { Program } from "@/types/program";
+import { Program } from "@/types/api/program";
 import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
 import { useSettingsStore } from "@/store/settings-store";
 

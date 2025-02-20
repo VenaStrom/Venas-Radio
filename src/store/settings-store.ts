@@ -7,7 +7,7 @@ type Settings = {
     programIDs: number[];
 }
 
-interface SettingsStore {
+export type SettingsStore = {
     settings: Settings;
     setSetting: (key: keyof Settings, value: any) => void;
     setAllSettings: (settings: Settings) => void;

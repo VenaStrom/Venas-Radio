@@ -4,7 +4,7 @@ import Image from "next/image";
 import PlayButton from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
-import type { Episode } from "@/types/episode";
+import type { Episode } from "@/types/api/episode";
 import { useProgressStore } from "@/store/progress-store";
 import { CSSProperties, useEffect, useState } from "react";
 

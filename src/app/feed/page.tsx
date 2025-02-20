@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useEpisodeStore } from "@/store/episode-store";
 import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode-dom";
-import { EpisodeMap } from "@/types/episode-map";
-import { Episode } from "@/types/episode";
+import { EpisodeMap } from "@/types/maps";
+import { Episode } from "@/types/api/episode";
 import { useSettingsStore } from "@/store/settings-store";
 
 const userSettings = useSettingsStore.getState().settings;
@@ -45,7 +45,7 @@ export default function FeedPage() {
             });
 
             sortedEpisodes.forEach((episode, index) => {
-                allEpisodes[episode.id].index = index + 1;
+                allEpisodes[episode.id].order = index + 1;
             });
 
             // Save
@@ -68,7 +68,7 @@ export default function FeedPage() {
                     </>
                 ) : (
                     Object.values(episodeData).map((episode: Episode) => (
-                        <EpisodeDOM episode={episode} style={{ order: episode.index }} key={episode.id} />
+                        <EpisodeDOM episode={episode} style={{ order: episode.order }} key={episode.id} />
                     ))
                 )}
             </ul>

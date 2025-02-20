@@ -1,6 +1,6 @@
 "use client";
 
-import { Program } from "@/types/program";
+import { Program } from "@/types/api/program";
 import SRAttribute from "./sr-attribute";
 import Image from "next/image";
 import LikeButton from "./like-button";

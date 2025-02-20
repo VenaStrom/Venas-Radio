@@ -1,8 +1,8 @@
-import { EpisodeMap } from "@/types/episode-map";
+import { EpisodeMap } from "@/types/maps";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-interface EpisodeStore {
+export type EpisodeStore = {
     episodeData: EpisodeMap;
     setEpisodeData: (episodeData: EpisodeMap) => void;
 }

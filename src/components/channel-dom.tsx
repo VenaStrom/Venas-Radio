@@ -3,9 +3,9 @@
 import Image from "next/image";
 import PlayButton from "./play-button";
 import SRAttribute from "./sr-attribute";
-import { Channel } from "@/types/channel";
+import { Channel } from "@/types/api/channel";
 import { CSSProperties } from "react";
-import { Episode } from "@/types/episode";
+import { Episode } from "@/types/api/episode";
 
 export default function ChannelDOM({ channelData, className, style }: { channelData: Channel, className?: string, style?: CSSProperties }) {
 

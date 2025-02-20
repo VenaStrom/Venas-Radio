@@ -1,12 +1,10 @@
+import { EpisodeProgress, ProgressMap } from "@/types/maps";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-type EpisodeProgressState = { seconds: number; finished: boolean };
-type ProgressDictionary = { [episodeID: number]: EpisodeProgressState };
-
-interface ProgressStore {
-    episodeProgressMap: ProgressDictionary;
-    setEpisodeProgress: (episodeID: number, progress: EpisodeProgressState) => void;
+export type ProgressStore = {
+    episodeProgressMap: ProgressMap;
+    setEpisodeProgress: (episodeID: number, progress: EpisodeProgress) => void;
 }
 
 const safeLocalStorage = {
@@ -30,7 +28,7 @@ export const useProgressStore = create<ProgressStore>()(
     persist(
         (set) => ({
             episodeProgressMap: {},
-            setEpisodeProgress: (episodeID: number, progress: EpisodeProgressState) =>
+            setEpisodeProgress: (episodeID: number, progress: EpisodeProgress) =>
                 set((state: ProgressStore) => ({
                     episodeProgressMap: {
                         ...state.episodeProgressMap,

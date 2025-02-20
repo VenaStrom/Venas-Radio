@@ -1,14 +1,17 @@
-import { Episode } from "@/types/episode";
+import { Episode } from "@/types/api/episode";
 import { PlayPause } from "@/types/play-pause";
 import { create } from "zustand";
 
-interface PlayStateStore {
+export type PlayStateStore = {
     playState: PlayPause;
     togglePlayState: () => void;
     setPlayState: (paused: PlayPause) => void;
 
     currentEpisode: Episode | null;
     setCurrentEpisode: (episode: Episode) => void;
+
+    cachedEpisode: Episode | null;
+    setCachedEpisode: (episode: Episode) => void;
 }
 
 export const usePlayStateStore = create<PlayStateStore>()((set) => ({
@@ -18,4 +21,7 @@ export const usePlayStateStore = create<PlayStateStore>()((set) => ({
 
     currentEpisode: null,
     setCurrentEpisode: (episode) => set({ currentEpisode: episode }),
+
+    cachedEpisode: null,
+    setCachedEpisode: (episode) => set({ cachedEpisode: episode }),
 }));
