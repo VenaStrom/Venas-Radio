@@ -8,10 +8,10 @@ export type PlayStateStore = {
     setPlayState: (paused: PlayPause) => void;
 
     currentEpisode: Episode | null;
-    setCurrentEpisode: (episode: Episode) => void;
+    setCurrentEpisode: (episode: Episode | null) => void;
 
     cachedEpisode: Episode | null;
-    setCachedEpisode: (episode: Episode) => void;
+    setCachedEpisode: (episode: Episode | null) => void;
 }
 
 export const usePlayStateStore = create<PlayStateStore>()((set) => ({

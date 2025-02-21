@@ -9,21 +9,34 @@ import { useEffect, useRef } from "react";
 import { Episode } from "@/types/api/episode";
 import { extractDuration } from "@/lib/utils";
 
-const getNthNextEpisode = (nextIndex: number, episodeStore: EpisodeStore, progressStore: ProgressStore, playStateStore: PlayStateStore): Episode | null => {
+const getNthNextEpisode = ({
+    nth = 1,
+    episodeStore,
+    progressStore,
+    playStateStore,
+}: {
+    nth?: number,
+    episodeStore: EpisodeStore,
+    progressStore: ProgressStore,
+    playStateStore: PlayStateStore,
+}): Episode | null => {
     if (!playStateStore.currentEpisode) return null;
 
-    const [episodeIDs, episodeData] = [Object.keys(episodeStore.episodeData) as string[], Object.values(episodeStore.episodeData) as Episode[]];
+    const [episodeIDs, episodeData] = [
+        Object.keys(episodeStore.episodeData),
+        Object.values(episodeStore.episodeData),
+    ];
 
     // Find the index of the current episode
     const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
     if (episodeIndex === -1) return null; // Episode not found
 
-    // Find the "index" property of this episode. This index is used for ordering episodes
+    // Find this episodes order. It is set from the publish date
     const episodeOrder = episodeData[episodeIndex]?.order || -1;
     if (episodeOrder === -1) return null; // Episode order not found
 
     // Find the next episode that is not finished
-    for (let i = episodeOrder + 1; i < episodeIDs.length; i++) {
+    for (let i = episodeOrder + nth; i < episodeIDs.length; i++) {
         const episode = episodeData.find((episode) => episode.order === i) || null;
         if (!episode) continue;
         if (!progressStore.episodeProgressMap[episode.id]?.finished) return episode;
@@ -72,7 +85,7 @@ export default function AudioControls() {
             const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds;
             if (storedProgress) audioRef.current.currentTime = storedProgress;
         }
-    }, [playStateStore.currentEpisode, progressStore.episodeProgressMap]);
+    }, [audioRef, playStateStore.currentEpisode, progressStore.episodeProgressMap]);
 
     // Handle progress updates
     useEffect(() => {
@@ -90,7 +103,10 @@ export default function AudioControls() {
         if (!audioRef.current || !playStateStore.currentEpisode) return;
 
         // If cache is empty, load next episode
-        // TODO - implement
+        const nextEpisode = getNthNextEpisode({ nth: 1, episodeStore, progressStore, playStateStore });
+        if (nextEpisode) {
+            playStateStore.setCachedEpisode(nextEpisode);
+        }
 
         // Play next on finish
         audioRef.current.onended = () => {
@@ -99,10 +115,16 @@ export default function AudioControls() {
             // Set progress to finished
             progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: extractDuration(playStateStore.currentEpisode) || Infinity, finished: true });
 
-            // Find the next episode
-            const nextEpisode = getNthNextEpisode(1, episodeStore, progressStore, playStateStore);
-            if (nextEpisode) {
-                playStateStore.setCurrentEpisode(nextEpisode);
+            // Load cache
+            if (playStateStore.cachedEpisode) {
+                playStateStore.setCurrentEpisode(playStateStore.cachedEpisode);
+                playStateStore.setCachedEpisode(null);
+            } else {
+                // Find the next episode
+                const nextEpisode = getNthNextEpisode({ nth: 1, episodeStore, progressStore, playStateStore });
+                if (nextEpisode) {
+                    playStateStore.setCurrentEpisode(nextEpisode);
+                }
             }
         };
     }, [audioRef, progressStore, playStateStore, episodeStore]);
