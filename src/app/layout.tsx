@@ -51,12 +51,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                 {children}
 
-                <footer className="pb-4 bg-zinc-950 flex flex-col self-end items-center gap-y-3">
+                <footer className="bg-zinc-950 flex flex-col self-end items-center">
                     {/* Audio Controls */}
-                    <AudioControls />
+                    <AudioControls className="" />
 
                     {/* Navigation Buttons */}
-                    <nav className="w-2/3 flex flex-row justify-between items-center">
+                    <nav className="w-2/3 flex flex-row justify-between items-center py-3">
                         <Link href={"/"}>
                             <Icon.Home size={44} />
                         </Link>

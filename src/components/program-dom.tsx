@@ -7,7 +7,7 @@ import LikeButton from "./like-button";
 
 export default function ProgramDOM({ programData, className }: { programData: Program, className?: string }) {
     return (
-        <li className={`grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3 ${className}`}>
+        <li className={`grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3 ${className || ""}`}>
             {/* SR Attribute */}
             <SRAttribute className="col-span-2" />
 

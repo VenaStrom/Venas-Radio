@@ -3,76 +3,45 @@
 import Image from "next/image";
 import PlayButton from "./play-button";
 import SRAttribute from "./sr-attribute";
-import { Channel } from "@/types/api/channel";
 import { CSSProperties } from "react";
-import { Episode } from "@/types/api/episode";
+import type { Channel } from "@/types/api/channel";
+import type { Content } from "@/types/api/content";
 
 export default function ChannelDOM({ channelData, className, style }: { channelData: Channel, className?: string, style?: CSSProperties }) {
 
-    // It's hacky but... Let's squeeze the channelData into Episode structure
+    // It's hacky but... Let's squeeze the channelData into a Content structure
     // so we can use the PlayButton component without modifications
-    const episodeData: Episode = {
+    const contentData: Content = {
         id: channelData.id,
         title: channelData.name,
         description: channelData.tagline,
-        url: channelData.siteurl,
+        url: channelData.liveaudio.url,
+        publishDate: new Date(),
         program: {
             id: channelData.id,
             name: channelData.name
         },
-        audiopreference: "",
-        audiopriority: "",
-        audiopresentation: "",
-        publishdateutc: "",
-        imageurl: channelData.image,
-        imageurltemplate: "",
-        photographer: "",
-        listenpodfile: {
-            title: "",
-            description: "",
-            filesizeinbytes: 0,
-            program: {
-                id: channelData.id,
-                name: channelData.name
-            },
-            availablefromutc: "",
-            duration: 0,
-            publishdateutc: "",
-            id: channelData.liveaudio.id,
-            url: channelData.liveaudio.url,
-            statkey: "",
-        },
-        downloadpodfile: {
-            title: "",
-            description: "",
-            filesizeinbytes: 0,
-            program: {
-                id: channelData.id,
-                name: channelData.name,
-            },
-            availablefromutc: "",
-            duration: 0,
-            publishdateutc: "",
-            id: channelData.liveaudio.id,
-            url: channelData.liveaudio.url,
-            statkey: "",
-        },
-    };
+        duration: 0,
+        image: {
+            square: channelData.image,
+            wide: channelData.imagetemplate
+        }
+    }
 
     return (
-        <li className={`w-full grid grid-cols-[96px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} style={style} id={channelData.id.toString()}>
+        <li className={`w-full grid grid-cols-[96px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className || ""}`} style={style} id={channelData.id.toString()}>
             {/* SR Attribute */}
             <SRAttribute className="col-span-2" />
 
             {/* Thumbnail */}
-            <Image width={96} height={96} src={""} overrideSrc={channelData.image} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
+            <Image width={96} height={96} src={""} overrideSrc={channelData.image} alt="Kanalbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
 
             {/* Header Text */}
             <div className="col-start-2 grid grid-cols-[1fr_auto] grid-rows-[auto_1fr] gap-1">
                 <p className="col-start-1 text-sm font-light overflow-hidden">{channelData.channeltype}</p>
                 <p className="col-start-1 text-sm font-bold overflow-hidden">{channelData.name}</p>
 
-                <PlayButton episodeData={episodeData} iconSize={28} className="col-start-2 row-start-1 row-span-2" />
+                <PlayButton episodeData={contentData} iconSize={28} className="col-start-2 row-start-1 row-span-2" />
             </div>
 
             {/* Description */}

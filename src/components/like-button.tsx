@@ -30,7 +30,7 @@ export default function LikeButton(
     };
 
     return (
-        <button className={`size-min ${className}`} style={style}>
+        <button className={`size-min ${className || ""}`} style={style}>
             <Icon.Heart
                 className={liked ? "fill-[red] !text-[red]" : "none"}
                 size={28}

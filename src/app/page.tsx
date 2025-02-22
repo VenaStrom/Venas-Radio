@@ -31,10 +31,11 @@ export default function HomePage() {
     }, []);
 
     useEffect(() => {
+        // Janky staggard loading for performance reasons
         if (!isLoading && renderCount < Object.keys(channelData).length - 6) {
             const interval = setInterval(() => {
                 setRenderCount(prevCount => prevCount + 1);
-            }, 100); // Adjust the interval as needed
+            }, 100); 
 
             return () => clearInterval(interval);
         }
@@ -59,7 +60,6 @@ export default function HomePage() {
                     {isLoading ? (
                         <>
                             {new Array(10).fill(0).map((_, i) => (
-                                // <div key={i} className="channel-skeleton">Loading...</div>
                                 <ChannelSkeleton key={i} />
                             ))}
                         </>

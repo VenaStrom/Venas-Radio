@@ -1,10 +1,11 @@
-import type { EpisodeProgress, ProgressMap } from "@/types/maps";
+import { ContentMap } from "@/types/maps";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-export type ProgressStore = {
-    episodeProgressMap: ProgressMap;
-    setEpisodeProgress: (episodeID: string, progress: EpisodeProgress) => void;
+export type ContentStore = {
+    contentData: ContentMap;
+    setContentData: (contentData: ContentMap) => void;
+    appendContentData: (contentData: ContentMap) => void;
 }
 
 const safeLocalStorage = {
@@ -24,20 +25,15 @@ const safeLocalStorage = {
     },
 };
 
-export const useProgressStore = create<ProgressStore>()(
+export const useContentStore = create<ContentStore>()(
     persist(
         (set) => ({
-            episodeProgressMap: {},
-            setEpisodeProgress: (episodeID: string, progress: EpisodeProgress) =>
-                set((state: ProgressStore) => ({
-                    episodeProgressMap: {
-                        ...state.episodeProgressMap,
-                        [episodeID]: progress,
-                    },
-                })),
+            contentData: {},
+            setContentData: (contentData: ContentMap) => set({ contentData: contentData }),
+            appendContentData: (contentData: ContentMap) => set((state) => ({ contentData: { ...state.contentData, ...contentData } })),
         }),
         {
-            name: "progress-store",
+            name: "content-store",
             storage: createJSONStorage(() => safeLocalStorage),
         }
     )

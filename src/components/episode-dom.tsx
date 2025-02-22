@@ -4,41 +4,31 @@ import Image from "next/image";
 import PlayButton from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
-import type { Episode } from "@/types/api/episode";
 import { useProgressStore } from "@/store/progress-store";
 import { CSSProperties, useEffect, useState } from "react";
-import { extractDuration } from "@/lib/utils";
+import type { Content } from "@/types/api/content";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
 
-export default function EpisodeDOM({ episode, className, style }: { episode: Episode, className?: string , style?: CSSProperties }) {
+export default function EpisodeDOM({ episode, className, style }: { episode: Content, className?: string, style?: CSSProperties }) {
     const progressStore = useProgressStore();
     const [elapsed, setElapsed] = useState(0);
     const [percent, setPercent] = useState(0);
 
-    const durationSource = extractDuration(episode) || null;
-    const progressForEpisode = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
+    const episodeProgress = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
 
     useEffect(() => {
-        if (progressForEpisode) {
-            setElapsed(progressForEpisode / 60);
+        if (episodeProgress) {
+            setElapsed(episodeProgress / 60);
         }
-    }, [progressForEpisode]);
+    }, [episodeProgress]);
 
     useEffect(() => {
-        if (durationSource) {
-            const duration = Math.floor(durationSource / 60);
-            const newPercent = duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
-            setPercent(newPercent);
-        }
-    }, [elapsed, durationSource]);
-
-    // Validate episode publish date
-    if (!episode.publishDate) {
-        console.error(`Episode ${episode.id} has no publish date.`);
-        return <></>;
-    }
+        const duration = Math.floor(episode.duration / 60);
+        const newPercent = duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
+        setPercent(newPercent);
+    }, [elapsed, episode]);
 
     // Date and time formatting
     let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
@@ -57,21 +47,19 @@ export default function EpisodeDOM({ episode, className, style }: { episode: Epi
     }
     const formattedTime = episode.publishDate.toLocaleString(...timeLocale);
 
-    let duration = null;
-    let remaining = null;
-
-    if (durationSource) {
-        duration = Math.floor(durationSource / 60);
-        remaining = duration && elapsed ? Math.floor(duration - elapsed) : null;
-    }
+    const duration = Math.round(episode.duration / 60);
+    const remainingMin = elapsed ? Math.ceil(duration - elapsed) : null;
+    const remaining =
+        remainingMin === 0 ? "\u00a0\u00a0\u00b7\u00a0\u00a0Lyssnad" :
+            remainingMin !== null ? `\u00a0\u00a0\u00b7\u00a0\u00a0${remainingMin} min kvar` : "";
 
     return (
-        <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} style={style} id={episode.id.toString()}>
+        <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className || ""}`} style={style} id={episode.id.toString()}>
             {/* SR Attribute */}
             <SRAttribute className="col-span-2" />
 
             {/* Thumbnail */}
-            <Image width={128} height={72} src={""} overrideSrc={episode.imageurltemplate} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
+            <Image width={128} height={72} src={""} overrideSrc={episode.image.wide} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
 
             {/* Header Text */}
             <div className="col-start-2">
@@ -87,7 +75,10 @@ export default function EpisodeDOM({ episode, className, style }: { episode: Epi
 
             {/* Metadata */}
             <div className="col-span-2 flex flex-row justify-between items-center">
-                <p className="text-xs text-zinc-400">{formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining ? `\u00A0\u00B7\u00A0${remaining} min kvar` : ""}</p>
+                <p className="text-xs text-zinc-400">
+                    {/* {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining !== null && remaining >= 0 ? `\u00a0\u00a0\u00b7\u00a0\u00a0${remaining} min kvar` : ""} */}
+                    {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining}
+                </p>
 
                 <PlayButton episodeData={episode} />
             </div>

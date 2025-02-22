@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useEpisodeStore } from "@/store/episode-store";
 import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode-dom";
-import { EpisodeMap } from "@/types/maps";
-import { Episode } from "@/types/api/episode";
 import { useSettingsStore } from "@/store/settings-store";
+import { useContentStore } from "@/store/content-store";
+import type { ContentMap } from "@/types/maps";
+import type { Content } from "@/types/api/content";
+import type { Episode } from "@/types/api/episode";
 
 const userSettings = useSettingsStore.getState().settings;
 
@@ -15,7 +16,7 @@ const toDate = new Date();
 toDate.setDate(toDate.getDate() + 1);
 
 export default function FeedPage() {
-    const [episodeData, setEpisodeData] = useState<EpisodeMap>({});
+    const [episodeData, setEpisodeData] = useState<ContentMap>({});
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -24,33 +25,36 @@ export default function FeedPage() {
                 `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`
             );
 
-            const allEpisodes: EpisodeMap = {};
+            const allEpisodes: ContentMap = {};
 
             for (const programLink of programLinks) {
                 const response = await fetch(programLink);
                 const data = await response.json();
 
+                // Convert to Content
                 data.episodes.forEach((episode: Episode) => {
                     allEpisodes[episode.id] = {
-                        ...episode,
+                        id: episode.id,
+                        title: episode.title,
+                        description: episode.description,
+                        url: episode.listenpodfile.url || episode.downloadpodfile.url,
+                        program: {
+                            id: episode.program.id,
+                            name: episode.program.name,
+                        },
                         publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
+                        duration: episode.listenpodfile.duration || episode.downloadpodfile.duration || 0,
+                        image: {
+                            square: episode.imageurl,
+                            wide: episode.imageurltemplate,
+                        }
                     };
                 });
             }
 
-            // Define their order via an index property
-            const sortedEpisodes = Object.values(allEpisodes).sort((a, b) => {
-                if (!a?.publishDate || !b?.publishDate) return 0;
-                return b.publishDate.getTime() - a.publishDate.getTime();
-            });
-
-            sortedEpisodes.forEach((episode, index) => {
-                allEpisodes[episode.id].order = index + 1;
-            });
-
             // Save
             setEpisodeData(allEpisodes);
-            useEpisodeStore.getState().setEpisodeData(allEpisodes);
+            useContentStore.getState().appendContentData(allEpisodes);
             setIsLoading(false);
         };
 
@@ -67,9 +71,11 @@ export default function FeedPage() {
                         ))}
                     </>
                 ) : (
-                    Object.values(episodeData).map((episode: Episode) => (
-                        <EpisodeDOM episode={episode} style={{ order: episode.order }} key={episode.id} />
-                    ))
+                    Object.values(episodeData)
+                        .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())
+                        .map((episode: Content, i: number) => (
+                            <EpisodeDOM episode={episode} style={{ order: i }} key={episode.id} />
+                        ))
                 )}
             </ul>
         </main>

@@ -1,45 +1,37 @@
 "use client";
 
-import ProgressBar from "./progress-bar";
-import PlayButton from "./play-button";
+import ProgressBar from "@/components/progress-bar";
+import PlayButton from "@/components/play-button";
 import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
 import { ProgressStore, useProgressStore } from "@/store/progress-store";
-import { EpisodeStore, useEpisodeStore } from "@/store/episode-store";
+import { ContentStore, useContentStore } from "@/store/content-store";
 import { useEffect, useRef } from "react";
-import { Episode } from "@/types/api/episode";
-import { extractDuration } from "@/lib/utils";
+import type { Content } from "@/types/api/content";
 
-const getNthNextEpisode = ({
-    nth = 1,
-    episodeStore,
-    progressStore,
-    playStateStore,
-}: {
-    nth?: number,
-    episodeStore: EpisodeStore,
+const getNextEpisode = (
+    contentStore: ContentStore,
     progressStore: ProgressStore,
     playStateStore: PlayStateStore,
-}): Episode | null => {
+): Content | null => {
     if (!playStateStore.currentEpisode) return null;
 
-    const [episodeIDs, episodeData] = [
-        Object.keys(episodeStore.episodeData),
-        Object.values(episodeStore.episodeData),
-    ];
+    const episodeData = Object.values(contentStore.contentData);
+
+    // Sort the episodes by publish date
+    episodeData.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+
+    const episodeIDs = episodeData.map((episode) => episode.id.toString());
 
     // Find the index of the current episode
     const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
     if (episodeIndex === -1) return null; // Episode not found
 
-    // Find this episodes order. It is set from the publish date
-    const episodeOrder = episodeData[episodeIndex]?.order || -1;
-    if (episodeOrder === -1) return null; // Episode order not found
-
     // Find the next episode that is not finished
-    for (let i = episodeOrder + nth; i < episodeIDs.length; i++) {
-        const episode = episodeData.find((episode) => episode.order === i) || null;
+    for (let i = episodeIndex + 1; i < episodeIDs.length; i++) {
+        const episode = episodeData.find((episode) => episode.id.toString() === episodeIDs[i]) || null;
         if (!episode) continue;
-        if (!progressStore.episodeProgressMap[episode.id]?.finished) return episode;
+        const isFinished = progressStore.episodeProgressMap[episode.id]?.finished;
+        if (!isFinished) return episode;
     }
 
     return null;
@@ -48,22 +40,23 @@ const getNthNextEpisode = ({
 /**
  * A component that displays audio controls and a progress bar 
  */
-export default function AudioControls() {
+export default function AudioControls({ className }: { className?: string }) {
     // Stores
     const playStateStore = usePlayStateStore();
-    const episodeStore = useEpisodeStore();
+    const contentStore = useContentStore();
     const progressStore = useProgressStore();
 
     // Define audio things
-    const audioURL = playStateStore.currentEpisode?.listenpodfile?.url || playStateStore.currentEpisode?.downloadpodfile?.url || null;
+    const audioURL = playStateStore.currentEpisode?.url;
     const audioRef = useRef<HTMLAudioElement>(null);
-    const previousEpisodeIdRef = useRef<string | null>(null);
+    const previousEpisodeIdRef = useRef<number | null>(null);
+    const preloadRef = useRef<HTMLAudioElement | null>(null);
 
     // Sync audio ref's state with global state
     useEffect(() => {
         if (!audioRef.current) return;
 
-        if (playStateStore.playState === "playing" && playStateStore.currentEpisode) {
+        if (playStateStore.currentEpisode && playStateStore.playState === "playing") {
             audioRef.current.play();
         } else {
             audioRef.current.pause();
@@ -75,63 +68,68 @@ export default function AudioControls() {
         if (
             audioRef.current // Audio element exists
             &&
-            playStateStore?.currentEpisode // Current episode exists
+            playStateStore.currentEpisode // Current episode exists
             &&
-            playStateStore?.currentEpisode?.id?.toString() !== (previousEpisodeIdRef.current || "-1") // Episode has changed
+            playStateStore.currentEpisode.id !== (previousEpisodeIdRef.current || -1) // Episode has changed
         ) {
-            previousEpisodeIdRef.current = playStateStore.currentEpisode.id.toString();
+            previousEpisodeIdRef.current = playStateStore.currentEpisode.id;
 
             // Load progress if available
-            const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds;
+            const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds;
             if (storedProgress) audioRef.current.currentTime = storedProgress;
+
+            // Preload the next episode
+            const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+            if (nextEpisode) playStateStore.setPreloadEpisode(nextEpisode);
         }
-    }, [audioRef, playStateStore.currentEpisode, progressStore.episodeProgressMap]);
+    }, [audioRef, playStateStore, progressStore, contentStore]);
 
     // Handle progress updates
     useEffect(() => {
-        if (!audioRef.current) return;
+        if (!audioRef.current || !playStateStore.currentEpisode) return;
 
         audioRef.current.ontimeupdate = () => {
             if (!audioRef.current || !playStateStore.currentEpisode) return;
 
-            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: audioRef.current.currentTime, finished: false });
+            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id.toString(), { seconds: audioRef.current.currentTime, finished: false });
         }
-    }, [audioRef, playStateStore, progressStore]);
+    }, [audioRef, playStateStore, progressStore, contentStore]);
 
-    // Handle episode end and caching
+    // Handle episode end
     useEffect(() => {
         if (!audioRef.current || !playStateStore.currentEpisode) return;
-
-        // If cache is empty, load next episode
-        const nextEpisode = getNthNextEpisode({ nth: 1, episodeStore, progressStore, playStateStore });
-        if (nextEpisode) {
-            playStateStore.setCachedEpisode(nextEpisode);
-        }
 
         // Play next on finish
         audioRef.current.onended = () => {
             if (!audioRef.current || !playStateStore.currentEpisode) return;
 
             // Set progress to finished
-            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: extractDuration(playStateStore.currentEpisode) || Infinity, finished: true });
+            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id.toString(), { seconds: playStateStore.currentEpisode.duration || Infinity, finished: true });
 
-            // Load cache
-            if (playStateStore.cachedEpisode) {
-                playStateStore.setCurrentEpisode(playStateStore.cachedEpisode);
-                playStateStore.setCachedEpisode(null);
+            // Find the next episode
+            const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+            if (nextEpisode) {
+                playStateStore.setCurrentEpisode(nextEpisode);
             } else {
-                // Find the next episode
-                const nextEpisode = getNthNextEpisode({ nth: 1, episodeStore, progressStore, playStateStore });
-                if (nextEpisode) {
-                    playStateStore.setCurrentEpisode(nextEpisode);
-                }
+                // No next episode found
+                playStateStore.setCurrentEpisode(null);
+                console.info("No next episode found");
             }
         };
-    }, [audioRef, progressStore, playStateStore, episodeStore]);
+    }, [audioRef, progressStore, playStateStore, contentStore]);
+
+    // Preload the next episode
+    useEffect(() => {
+        if (!preloadRef.current) return;
+
+        if (playStateStore.preloadEpisode) {
+            preloadRef.current = new Audio(playStateStore.preloadEpisode.url);
+        }
+    }, [audioRef, playStateStore]);
 
     const onProgressDrag = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (playStateStore.currentEpisode) {
-            const newProgress = parseInt(e.target.value) / 100 * (extractDuration(playStateStore.currentEpisode) || 0);
+            const newProgress = parseInt(e.target.value) / 100 * playStateStore.currentEpisode.duration;
 
             // Modify the audio element
             if (audioRef.current) {
@@ -139,15 +137,15 @@ export default function AudioControls() {
             }
 
             // Save in global store
-            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id, { seconds: newProgress, finished: false });
+            progressStore.setEpisodeProgress(playStateStore.currentEpisode.id.toString(), { seconds: newProgress, finished: false });
         }
     };
 
     const episodeInfo = playStateStore.currentEpisode && {
-        programName: playStateStore.currentEpisode?.program.name || "",
-        episodeTitle: playStateStore.currentEpisode?.title || "",
+        programName: playStateStore.currentEpisode.program.name,
+        episodeTitle: playStateStore.currentEpisode.title,
         progressSeconds: progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds || 0,
-        durationSeconds: extractDuration(playStateStore.currentEpisode) || 0,
+        durationSeconds: playStateStore.currentEpisode.duration,
         percent: () => {
             if (!playStateStore.currentEpisode || !episodeInfo) return 0;
             if (episodeInfo.durationSeconds === 0) return 0;
@@ -180,29 +178,30 @@ export default function AudioControls() {
     }
 
     return (
-        <div className="flex flex-col justify-start items-center gap-y-[inherit] w-full">
-            {/* Progress bar */}
-            <ProgressBar progress={episodeInfo?.percent() || 0} />
+        <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
+            <div className="w-full">
+                {/* Progress bar */}
+                <ProgressBar className="block top-0" progress={episodeInfo?.percent() || 0} />
 
-            {/* Invisible thumb to progress */}
-            <input className="w-full h-0 -mt-3 opacity-0" type="range" min="0" max="100" value={episodeInfo?.percent() || 0}
-                onChange={onProgressDrag} />
+                {/* Invisible thumb to progress */}
+                <input className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0" type="range" min="0" max="100"
+                    value={episodeInfo?.percent() || 0}
+                    onChange={onProgressDrag} />
+            </div>
 
             {/* Audio element */}
-            <audio ref={audioRef} src={audioURL || undefined}></audio>
+            <audio ref={audioRef} src={audioURL}></audio>
 
             {/* Controls */}
-            <div id="player" className="flex flex-row justify-between items-center gap-x-4 w-full px-5">
-                <div className="flex flex-row justify-between gap-x-2 items-center w-full">
-                    <div>
-                        <p className="font-light text-sm">{episodeInfo?.programName}</p>
-                        <p className="font-bold">{episodeInfo?.episodeTitle || "Spelar inget"}</p>
-                    </div>
-
-                    <p className="text-sm text-zinc-400">
-                        {episodeInfo ? `${episodeInfo.progress()}\u00a0/\u00a0${episodeInfo.duration()}` : ""}
-                    </p>
+            <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3">
+                <div>
+                    <p className="font-light text-sm">{episodeInfo?.programName}</p>
+                    <p className="font-bold max-h-[3rem] overflow-hidden text-ellipsis whitespace-break-spaces">{episodeInfo?.episodeTitle || "Spelar inget"}</p>
                 </div>
+
+                <p className="text-sm text-zinc-400">
+                    {episodeInfo ? `${episodeInfo.progress()}\u00a0/\u00a0${episodeInfo.duration()}` : ""}
+                </p>
 
                 <PlayButton iconSize={30} role="controller" />
             </div>
