@@ -193,13 +193,13 @@ export default function AudioControls({ className }: { className?: string }) {
             <audio ref={audioRef} src={audioURL}></audio>
 
             {/* Controls */}
-            <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3">
+            <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
                 <div>
                     <p className="font-light text-sm">{episodeInfo?.programName}</p>
                     <p className="font-bold max-h-[3rem] overflow-hidden text-ellipsis whitespace-break-spaces">{episodeInfo?.episodeTitle || "Spelar inget"}</p>
                 </div>
 
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-zinc-400">add 
                     {episodeInfo ? `${episodeInfo.progress()}\u00a0/\u00a0${episodeInfo.duration()}` : ""}
                 </p>
 
