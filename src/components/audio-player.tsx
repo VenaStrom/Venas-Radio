@@ -37,6 +37,35 @@ const getNextEpisode = (
     return null;
 };
 
+const getPreviousEpisode = (
+    contentStore: ContentStore,
+    progressStore: ProgressStore,
+    playStateStore: PlayStateStore,
+): Content | null => {
+    if (!playStateStore.currentEpisode) return null;
+
+    const episodeData = Object.values(contentStore.contentData);
+
+    // Sort the episodes by publish date
+    episodeData.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+
+    const episodeIDs = episodeData.map((episode) => episode.id.toString());
+
+    // Find the index of the current episode
+    const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
+    if (episodeIndex === -1) return null; // Episode not found
+
+    // Find the previous episode that is not finished
+    for (let i = episodeIndex - 1; i >= 0; i--) {
+        const episode = episodeData.find((episode) => episode.id.toString() === episodeIDs[i]) || null;
+        if (!episode) continue;
+        const isFinished = progressStore.episodeProgressMap[episode.id]?.finished;
+        if (!isFinished) return episode;
+    }
+
+    return null;
+};
+
 /**
  * A component that displays audio controls and a progress bar 
  */
@@ -52,7 +81,7 @@ export default function AudioControls({ className }: { className?: string }) {
     const previousEpisodeIdRef = useRef<number | null>(null);
     const preloadRef = useRef<HTMLAudioElement | null>(null);
 
-    // Sync audio ref's state with global state
+    // Sync audio ref"s state with global state
     useEffect(() => {
         if (!audioRef.current) return;
 
@@ -141,6 +170,57 @@ export default function AudioControls({ className }: { className?: string }) {
         }
     };
 
+    const updateMediaSessionMetadata = () => {
+        if ("mediaSession" in navigator && playStateStore.currentEpisode) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: playStateStore.currentEpisode.title,
+                artist: playStateStore.currentEpisode.program.name,
+                album: "Podcast",
+                artwork: [
+                    { src: playStateStore.currentEpisode.image.square, sizes: "96x96", type: "image/png" },
+                    { src: playStateStore.currentEpisode.image.square, sizes: "128x128", type: "image/png" },
+                    { src: playStateStore.currentEpisode.image.square, sizes: "192x192", type: "image/png" },
+                    { src: playStateStore.currentEpisode.image.square, sizes: "256x256", type: "image/png" },
+                    { src: playStateStore.currentEpisode.image.square, sizes: "384x384", type: "image/png" },
+                    { src: playStateStore.currentEpisode.image.square, sizes: "512x512", type: "image/png" },
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler("play", () => {
+                playStateStore.setPlayState("playing");
+            });
+            navigator.mediaSession.setActionHandler("pause", () => {
+                playStateStore.setPlayState("paused");
+            });
+            navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+                if (audioRef.current) {
+                    audioRef.current.currentTime = Math.max(audioRef.current.currentTime - (details.seekOffset || 10), 0);
+                }
+            });
+            navigator.mediaSession.setActionHandler("seekforward", (details) => {
+                if (audioRef.current) {
+                    audioRef.current.currentTime = Math.min(audioRef.current.currentTime + (details.seekOffset || 10), audioRef.current.duration);
+                }
+            });
+            navigator.mediaSession.setActionHandler("previoustrack", () => {
+                const previousEpisode = getPreviousEpisode(contentStore, progressStore, playStateStore);
+                if (previousEpisode) {
+                    playStateStore.setCurrentEpisode(previousEpisode);
+                }
+            });
+            navigator.mediaSession.setActionHandler("nexttrack", () => {
+                const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+                if (nextEpisode) {
+                    playStateStore.setCurrentEpisode(nextEpisode);
+                }
+            });
+        }
+    };
+
+    useEffect(() => {
+        updateMediaSessionMetadata();
+    });
+
     const episodeInfo = playStateStore.currentEpisode && {
         programName: playStateStore.currentEpisode.program.name,
         episodeTitle: playStateStore.currentEpisode.title,
@@ -199,7 +279,7 @@ export default function AudioControls({ className }: { className?: string }) {
                     <p className="font-bold max-h-[3rem] overflow-hidden text-ellipsis whitespace-break-spaces">{episodeInfo?.episodeTitle || "Spelar inget"}</p>
                 </div>
 
-                <p className="text-sm text-zinc-400">add 
+                <p className="text-sm text-zinc-400">
                     {episodeInfo ? `${episodeInfo.progress()}\u00a0/\u00a0${episodeInfo.duration()}` : ""}
                 </p>
 
