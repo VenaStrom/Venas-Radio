@@ -41,7 +41,6 @@ export default function SearchPage() {
         const results = searchTerm ? fuse.search(searchTerm).map(result => result.item) : programsData;
 
         const sorted = results
-            .filter((result) => !result.name.includes("P4"))
             .sort((a, b) => {
                 if (!searchTerm) {
                     const aIsFavorite = settingsStore.settings.programIDs.includes(a.id);

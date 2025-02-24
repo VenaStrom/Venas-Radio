@@ -31,25 +31,28 @@ export default function FeedPage() {
                 const response = await fetch(programLink);
                 const data = await response.json();
 
+
                 // Convert to Content
-                data.episodes.forEach((episode: Episode) => {
-                    allEpisodes[episode.id] = {
-                        id: episode.id,
-                        title: episode.title,
-                        description: episode.description,
-                        url: episode.listenpodfile.url || episode.downloadpodfile.url,
-                        program: {
-                            id: episode.program.id,
-                            name: episode.program.name,
-                        },
-                        publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
-                        duration: episode.listenpodfile.duration || episode.downloadpodfile.duration || 0,
-                        image: {
-                            square: episode.imageurl,
-                            wide: episode.imageurltemplate,
-                        }
-                    };
-                });
+                data.episodes
+                    .filter((episode: Episode) => episode.listenpodfile || episode.downloadpodfile)
+                    .forEach((episode: Episode) => {
+                        allEpisodes[episode.id] = {
+                            id: episode.id,
+                            title: episode.title,
+                            description: episode.description,
+                            url: episode?.listenpodfile?.url || episode?.downloadpodfile?.url,
+                            program: {
+                                id: episode.program.id,
+                                name: episode.program.name,
+                            },
+                            publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
+                            duration: episode.listenpodfile.duration || episode.downloadpodfile.duration || 0,
+                            image: {
+                                square: episode.imageurl,
+                                wide: episode.imageurltemplate,
+                            }
+                        };
+                    });
             }
 
             // Save
