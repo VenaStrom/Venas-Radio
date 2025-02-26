@@ -65,7 +65,7 @@ export default function SearchPage() {
     }, [isLoading, renderCount, sortedResults.length]);
 
     return (
-        <main className="flex flex-col items-center h-full gap-y-3 py-0 my-0">
+        <main className="flex flex-col items-center h-full gap-y-3 p-0 my-0">
 
             {/* Search box */}
             <div className="z-10 fixed w-10/12 max-w-xl mt-2 flex flex-row items-center justify-center bg-zinc-950 py-2 px-4 gap-x-2 rounded-lg">
@@ -84,7 +84,7 @@ export default function SearchPage() {
                 </button>
             </div>
 
-            <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20 last:pb-10">
+            <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20 px-5 last:pb-10">
                 {isLoading ? (
                     <>
                         {new Array(10).fill(0).map((_, i) => (
