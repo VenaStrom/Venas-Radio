@@ -8,22 +8,23 @@ export type ContentStore = {
     appendContentData: (contentData: ContentMap) => void;
 }
 
-const safeLocalStorage = {
+const safeSessionStorage = {
     getItem: (name: string) =>
-        typeof window !== "undefined" && window.localStorage
-            ? window.localStorage.getItem(name)
+        typeof window !== "undefined" && window.sessionStorage
+            ? window.sessionStorage.getItem(name)
             : null,
     setItem: (name: string, value: string) => {
-        if (typeof window !== "undefined" && window.localStorage) {
-            window.localStorage.setItem(name, value);
+        if (typeof window !== "undefined" && window.sessionStorage) {
+            window.sessionStorage.setItem(name, value);
         }
     },
     removeItem: (name: string) => {
-        if (typeof window !== "undefined" && window.localStorage) {
-            window.localStorage.removeItem(name);
+        if (typeof window !== "undefined" && window.sessionStorage) {
+            window.sessionStorage.removeItem(name);
         }
     },
 };
+
 
 export const useContentStore = create<ContentStore>()(
     persist(
@@ -34,7 +35,7 @@ export const useContentStore = create<ContentStore>()(
         }),
         {
             name: "content-store",
-            storage: createJSONStorage(() => safeLocalStorage),
+            storage: createJSONStorage(() => safeSessionStorage),
         }
     )
 );

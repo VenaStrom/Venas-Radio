@@ -25,6 +25,10 @@ export default function ChannelDOM({ channelData, className, style }: { channelD
         image: {
             square: channelData.image,
             wide: channelData.imagetemplate
+        },
+        meta: {
+            saveProgress: false,
+            disableDragProgress: true
         }
     }
 

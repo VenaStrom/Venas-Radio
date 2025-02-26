@@ -13,4 +13,8 @@ export type Content = {
     }
     publishDate: Date;
     duration: number;
+    meta: {
+        saveProgress: boolean;
+        disableDragProgress: boolean;
+    }
 }

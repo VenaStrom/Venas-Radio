@@ -50,6 +50,10 @@ export default function FeedPage() {
                             image: {
                                 square: episode.imageurl,
                                 wide: episode.imageurltemplate,
+                            },
+                            meta: {
+                                saveProgress: true,
+                                disableDragProgress: false,
                             }
                         };
                     });

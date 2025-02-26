@@ -119,6 +119,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
         audioRef.current.ontimeupdate = () => {
             if (!audioRef.current || !playStateStore.currentEpisode) return;
+            if (!playStateStore.currentEpisode.meta.saveProgress) return;
 
             progressStore.setEpisodeProgress(playStateStore.currentEpisode.id.toString(), { seconds: audioRef.current.currentTime, finished: false });
         }
@@ -158,6 +159,8 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const onProgressDrag = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (playStateStore.currentEpisode) {
+            if (playStateStore.currentEpisode.meta.disableDragProgress) return;
+
             const newProgress = parseInt(e.target.value) / 100 * playStateStore.currentEpisode.duration;
 
             // Modify the audio element
