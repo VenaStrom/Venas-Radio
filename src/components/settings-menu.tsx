@@ -25,7 +25,7 @@ export default function SettingsMenu() {
       }
     }}>
       <DialogTrigger className="cursor-pointer">
-        <Icon.Settings size={36} strokeWidth={1.5}/>
+        <Icon.Settings size={36} strokeWidth={1.5} />
       </DialogTrigger>
 
       <DialogContent className="w-[90%] bg-zinc-900 rounded-lg border-none">

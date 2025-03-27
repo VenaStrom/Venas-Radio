@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </button>
               </SignInButton>
             </SignedOut>
-            
+
             <SignedIn>
               <UserButton appearance={{
                 layout: { shimmer: false },

@@ -17,6 +17,7 @@
   "dependencies": {
     "@clerk/localizations": "^3.13.4",
     "@clerk/nextjs": "^6.12.12",
+    "@prisma/client": "^6.5.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.2",
@@ -26,7 +27,6 @@
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.474.0",
     "next": "^15.2.4",
-    "prisma": "^6.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.2",
@@ -41,6 +41,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.6",
     "postcss": "^8.5.3",
+    "prisma": "^6.5.0",
     "tailwindcss": "^4.0.17",
     "typescript": "^5"
   }
