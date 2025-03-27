@@ -62,8 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <UserButton appearance={{
                 layout: { shimmer: false },
                 elements: {
-                  avatarBox: "size-[44px]",
-                  avatarImage: "size-[44px]",
+                  avatarBox: "!size-[36px]",
                 }
               }} />
             </SignedIn>

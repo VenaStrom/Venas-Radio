@@ -24,8 +24,8 @@ export default function SettingsMenu() {
         window.location.reload();
       }
     }}>
-      <DialogTrigger>
-        <Icon.Settings size={44} />
+      <DialogTrigger className="cursor-pointer">
+        <Icon.Settings size={36} />
       </DialogTrigger>
 
       <DialogContent className="w-[90%] bg-zinc-900 rounded-lg border-none">
