@@ -36,7 +36,6 @@
 
   .lucide {
     @apply text-zinc-100;
-    stroke-width: 2;
   }
 
   h1 {

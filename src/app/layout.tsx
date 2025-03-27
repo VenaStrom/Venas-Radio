@@ -40,10 +40,10 @@ const nunitoSansFont = Nunito_Sans({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider localization={svSE}>
-      <html lang="sv" className={nunitoSansFont.className}>
+      <html lang="sv-SE" className={nunitoSansFont.className}>
         <body className="bg-zinc-900 text-zinc-100">
 
-          <header className="bg-zinc-950 p-4 flex flex-row items-center justify-between gap-x-4">
+          <header className="bg-zinc-950 p-4 pe-5 flex flex-row items-center justify-between gap-x-4">
             <div className="flex flex-row items-center justify-center gap-1">
               <Icon.AudioLines size={32} />
               <p className="font-bold text-2xl">VR</p>
@@ -58,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </button>
               </SignInButton>
             </SignedOut>
+            
             <SignedIn>
               <UserButton appearance={{
                 layout: { shimmer: false },
