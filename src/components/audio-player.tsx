@@ -2,69 +2,11 @@
 
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
-import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
-import { ProgressStore, useProgressStore } from "@/store/progress-store";
-import { ContentStore, useContentStore } from "@/store/content-store";
-import { useEffect, useRef } from "react";
-import type { Content } from "@/types/api/content";
-
-const getNextEpisode = (
-  contentStore: ContentStore,
-  progressStore: ProgressStore,
-  playStateStore: PlayStateStore,
-): Content | null => {
-  if (!playStateStore.currentEpisode) return null;
-
-  const episodeData = Object.values(contentStore.contentData);
-
-  // Sort the episodes by publish date
-  episodeData.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
-
-  const episodeIDs = episodeData.map((episode) => episode.id.toString());
-
-  // Find the index of the current episode
-  const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
-  if (episodeIndex === -1) return null; // Episode not found
-
-  // Find the next episode that is not finished
-  for (let i = episodeIndex + 1; i < episodeIDs.length; i++) {
-    const episode = episodeData.find((episode) => episode.id.toString() === episodeIDs[i]) || null;
-    if (!episode) continue;
-    const isFinished = progressStore.episodeProgressMap[episode.id]?.finished;
-    if (!isFinished) return episode;
-  }
-
-  return null;
-};
-
-const getPreviousEpisode = (
-  contentStore: ContentStore,
-  progressStore: ProgressStore,
-  playStateStore: PlayStateStore,
-): Content | null => {
-  if (!playStateStore.currentEpisode) return null;
-
-  const episodeData = Object.values(contentStore.contentData);
-
-  // Sort the episodes by publish date
-  episodeData.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
-
-  const episodeIDs = episodeData.map((episode) => episode.id.toString());
-
-  // Find the index of the current episode
-  const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
-  if (episodeIndex === -1) return null; // Episode not found
-
-  // Find the previous episode that is not finished
-  for (let i = episodeIndex - 1; i >= 0; i--) {
-    const episode = episodeData.find((episode) => episode.id.toString() === episodeIDs[i]) || null;
-    if (!episode) continue;
-    const isFinished = progressStore.episodeProgressMap[episode.id]?.finished;
-    if (!isFinished) return episode;
-  }
-
-  return null;
-};
+import { usePlayStateStore } from "@/store/play-state-store";
+import { useProgressStore } from "@/store/progress-store";
+import { useContentStore } from "@/store/content-store";
+import { useCallback, useEffect, useRef } from "react";
+import { getNextEpisode, getPreviousEpisode } from "@/lib/episode-finder";
 
 /**
  * A component that displays audio controls and a progress bar 
@@ -87,7 +29,6 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const handleError = (e: Event) => {
       console.error("Audio playback error:", e);
-      // Optionally reset player state here
     };
 
     audioRef.current.addEventListener("error", handleError);
@@ -225,7 +166,7 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [playStateStore.preloadEpisode]);
 
-  const onProgressDrag = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onProgressDrag = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (!playStateStore.currentEpisode ||
       playStateStore.currentEpisode.meta.disableDragProgress) return;
 
@@ -241,7 +182,7 @@ export default function AudioControls({ className }: { className?: string }) {
       playStateStore.currentEpisode.id.toString(),
       { seconds: newProgress, finished: false }
     );
-  };
+  }, [playStateStore.currentEpisode, progressStore]);
 
   // MediaSession API setup
   useEffect(() => {
@@ -345,7 +286,7 @@ export default function AudioControls({ className }: { className?: string }) {
         return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:${second.toString().padStart(2, "0")}`;
       }
       return `${minute.toString().padStart(2, "0")}:${second.toString().padStart(2, "0")}`;
-    })
+    }),
   };
 
   return (
@@ -357,7 +298,8 @@ export default function AudioControls({ className }: { className?: string }) {
         {/* Invisible thumb to progress */}
         <input className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0" type="range" min="0" max="100"
           value={episodeInfo?.percent() || 0}
-          onChange={onProgressDrag} />
+          onChange={onProgressDrag}
+        />
       </div>
 
       {/* Audio element */}
