@@ -2,6 +2,8 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+console.assert(process.env.HTTPS_PUBLIC_URL, "HTTPS_PUBLIC_URL is required");
+
 export default clerkMiddleware(async (auth, req) => {
   const res = NextResponse.next();
 
@@ -11,13 +13,17 @@ export default clerkMiddleware(async (auth, req) => {
   const user = await auth();
 
   if (user.userId) {
-    const response = fetch("localhost:3000/api/auth/user", {
-      headers: { "Content-Type": "application/json" },
+
+    // Login
+    const apiResponse = await fetch(`${process.env.HTTPS_PUBLIC_URL}/api/login`, {
       method: "POST",
-      body: JSON.stringify({ userID: user.userId })
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId: user.userId }),
     });
 
-    console.dir(response);
+    // console.dir(apiResponse);
   }
 
   return res;
