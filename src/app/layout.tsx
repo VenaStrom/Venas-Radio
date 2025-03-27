@@ -1,10 +1,12 @@
-import "./global.scss";
+import "./global.tw.css";
 import { Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import * as Icon from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import SettingsMenu from "@/components/settings-menu";
+import { ClerkProvider, SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, } from "@clerk/nextjs"
+import { svSE } from "@clerk/localizations";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
@@ -37,40 +39,61 @@ const nunitoSansFont = Nunito_Sans({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="sv" className={nunitoSansFont.className}>
-      <body className="bg-zinc-900 text-zinc-100">
+    <ClerkProvider localization={svSE}>
+      <html lang="sv" className={nunitoSansFont.className}>
+        <body className="bg-zinc-900 text-zinc-100">
 
-        <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
-          <div className="flex flex-row items-center justify-center gap-1">
-            <Icon.AudioLines />
-            <p className="font-bold text-lg">VR</p>
-          </div>
+          <header className="bg-zinc-950 p-4 flex flex-row items-center justify-between gap-x-4">
+            <div className="flex flex-row items-center justify-center gap-1">
+              <Icon.AudioLines size={32} />
+              <p className="font-bold text-2xl">VR</p>
+            </div>
 
-          <SettingsMenu />
-        </header>
+            <div className="flex-1"></div>
 
-        {children}
+            <SignedOut>
+              <SignInButton>
+                <button className="bg-zinc-900 px-4 py-2 rounded-md font-semibold">
+                  Logga in
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton appearance={{
+                layout: { shimmer: false },
+                elements: {
+                  avatarBox: "size-[44px]",
+                  avatarImage: "size-[44px]",
+                }
+              }} />
+            </SignedIn>
 
-        <footer className="bg-zinc-950 flex flex-col self-end items-center">
-          {/* Audio Controls */}
-          <AudioControls className="" />
+            <SettingsMenu />
+          </header>
 
-          {/* Navigation Buttons */}
-          <nav className="w-2/3 flex flex-row justify-between items-center py-3">
-            <Link href={"/"}>
-              <Icon.Home size={44} />
-            </Link>
+          {children}
 
-            <Link href={"/search"}>
-              <Icon.Search size={44} />
-            </Link>
+          <footer className="bg-zinc-950 flex flex-col self-end items-center">
+            {/* Audio Controls */}
+            <AudioControls className="" />
 
-            <Link href={"/feed"}>
-              <Icon.Heart size={44} />
-            </Link>
-          </nav>
-        </footer>
-      </body>
-    </html>
+            {/* Navigation Buttons */}
+            <nav className="w-2/3 flex flex-row justify-between items-center py-3">
+              <Link href={"/"}>
+                <Icon.Home size={44} />
+              </Link>
+
+              <Link href={"/search"}>
+                <Icon.Search size={44} />
+              </Link>
+
+              <Link href={"/feed"}>
+                <Icon.Heart size={44} />
+              </Link>
+            </nav>
+          </footer>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
