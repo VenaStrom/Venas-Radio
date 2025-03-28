@@ -17,7 +17,7 @@ model User {
   // Clerk provided ID
   id       String    @id @unique
   // Default to a Clerk provided username but can be changed
-  username String    @unique
+  username String
   // Programs someone is following
   programs Program[]
 }
