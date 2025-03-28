@@ -15,19 +15,29 @@ datasource db {
 
 model User {
   // Clerk provided ID
-  id       String    @id @unique
+  id        String    @id @unique
   // Default to a Clerk provided username but can be changed
-  username String
-  // Programs someone is following
-  programs Program[]
+  username  String    @unique
+
+  // Programs you are following
+  programs  Program[]
+  // Episodes you are following
+  channels  Channel[]
+
+  /* Options */
+  // Fetch span in days
+  fetchSpan Int       @default(7)
+  // How the server renders the feed
+  feedSort  String    @default("newest") // newest, oldest, oldest-per-day
 }
 
 model Program {
   // Provided by API
-  id   Int    @id @unique
-  name String @unique
+  id          Int      @id @unique
+  name        String   @unique
+  publishDate DateTime
 
-  User     User[]
+  Users    User[]
   Episodes Episode[]
 
   channelId Int?
@@ -36,8 +46,9 @@ model Program {
 
 model Episode {
   // Provided by API
-  id   Int    @id @unique
-  name String
+  id          Int      @id @unique
+  name        String
+  publishDate DateTime
 
   programId Int?
   program   Program? @relation(fields: [programId], references: [id])
@@ -52,4 +63,6 @@ model Channel {
 
   programs Program[]
   episodes Episode[]
+  User     User?     @relation(fields: [userId], references: [id])
+  userId   String?
 }

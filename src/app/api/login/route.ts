@@ -8,27 +8,27 @@ export async function POST(req: NextRequest) {
   try {
     const { userId } = await req.json();
 
+    // Invalid request
     if (!userId || typeof userId !== "string") {
       return NextResponse.json({ error: "Valid userId is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
+    // Get db user
+    const dbUser = await prisma.user.findUnique({
       where: { id: userId },
     });
-
-    if (!user) {
-      return NextResponse.json({}, { status: 201 });
+    if (dbUser) {
+      // Return existing user
+      return NextResponse.json({ user: dbUser }, { status: 200 });
     }
 
-    
-    // Get data from Clerk
-    const clerkUser = await (await client).users.getUser(userId);
+    // If user not found in db, create a new user via Clerk information
 
+    // Get Clerk user
+    const clerkUser = await (await client).users.getUser(userId);
     if (!clerkUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    console.dir(clerkUser.fullName);
 
     // Existing user found
     return NextResponse.json({}, { status: 200 });

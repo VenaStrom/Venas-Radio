@@ -1,12 +1,13 @@
 import "./global.tw.css";
-import { Nunito_Sans } from "next/font/google";
+import { ClerkProvider, SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, } from "@clerk/nextjs"
 import type { Metadata } from "next";
+import { Nunito_Sans } from "next/font/google";
+import { svSE } from "@clerk/localizations";
 import * as Icon from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import AudioControls from "@/components/audio-player";
 import SettingsMenu from "@/components/settings-menu";
-import { ClerkProvider, SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, } from "@clerk/nextjs"
-import { svSE } from "@clerk/localizations";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
@@ -53,9 +54,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <SignedOut>
               <SignInButton>
-                <button className="bg-zinc-900 px-4 py-2 rounded-md font-semibold">
+                <Button size={"lg"} className="text-base font-bold">
                   Logga in
-                </button>
+                </Button>
               </SignInButton>
             </SignedOut>
 
