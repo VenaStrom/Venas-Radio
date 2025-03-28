@@ -23,15 +23,33 @@ model User {
 }
 
 model Program {
-  // Provided my API
-  id       Int       @id @unique
+  // Provided by API
+  id   Int    @id @unique
+  name String
+
   User     User[]
   Episodes Episode[]
+
+  channelId Int?
+  Channel   Channel? @relation(fields: [channelId], references: [id])
 }
 
 model Episode {
-  // Provided my API
-  id        Int     @id @unique
-  programId Int
-  program   Program @relation(fields: [programId], references: [id])
+  // Provided by API
+  id   Int    @id @unique
+  name String
+
+  programId Int?
+  program   Program? @relation(fields: [programId], references: [id])
+  channelId Int?
+  Channel   Channel? @relation(fields: [channelId], references: [id])
+}
+
+model Channel {
+  // Provided by API
+  id   Int    @id @unique
+  name String
+
+  programs Program[]
+  episodes Episode[]
 }
