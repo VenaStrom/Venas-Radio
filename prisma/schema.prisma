@@ -37,6 +37,7 @@ model Program {
   id          Int      @id @unique
   name        String   @unique
   publishDate DateTime
+  lastFetch   DateTime @default(now())
 
   Users    User[]
   Episodes Episode[]
@@ -66,4 +67,9 @@ model Channel {
   episodes Episode[]
   User     User?     @relation(fields: [userId], references: [id])
   userId   String?
+}
+
+model ServerMeta {
+  id                String   @id @unique @default(uuid())
+  lastProgramsFetch DateTime @default(now())
 }

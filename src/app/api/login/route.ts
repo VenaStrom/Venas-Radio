@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import { randomUUID } from "node:crypto";
+import { clerkClient } from "@clerk/nextjs/server";
 
 const client = clerkClient();
 
