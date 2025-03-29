@@ -10,11 +10,10 @@ export default clerkMiddleware(async (auth, req) => {
   // TODO: REMOVE THIS FOR PROD
   if (process.env.NODE_ENV !== "production") res.headers.set("Cache-Control", "no-store");
 
+  
+  // Ensure user is in db after clerk login
   const clerkUser = await auth();
-
   if (clerkUser.userId) {
-
-    // Login
     const apiResponse = await fetch(`${process.env.HTTPS_PUBLIC_URL}/api/login`, {
       method: "POST",
       headers: {
@@ -23,10 +22,14 @@ export default clerkMiddleware(async (auth, req) => {
       body: JSON.stringify({ userId: clerkUser.userId }),
     });
 
-    const dbUser = await apiResponse.json();
+    if (!apiResponse.ok) {
+      console.error("Error logging in:", apiResponse.statusText);
+      return res;
+    }
 
-    console.debug(dbUser);
+    const _dbUser = await apiResponse.json();
   }
+
 
   return res;
 });

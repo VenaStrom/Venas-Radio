@@ -15,20 +15,21 @@ datasource db {
 
 model User {
   // Clerk provided ID
-  id        String    @id @unique
+  id String @id @unique
   // Default to a Clerk provided username but can be changed
-  username  String    @unique
 
   // Programs you are following
-  programs  Program[]
+  programs Program[]
   // Episodes you are following
-  channels  Channel[]
+  channels Channel[]
 
-  /* Options */
+  /**
+   * Options
+   */
   // Fetch span in days
-  fetchSpan Int       @default(7)
+  fetchSpan Int    @default(7)
   // How the server renders the feed
-  feedSort  String    @default("newest") // newest, oldest, oldest-per-day
+  feedSort  String @default("oldest-per-day") // newest, oldest, oldest-per-day
 }
 
 model Program {
