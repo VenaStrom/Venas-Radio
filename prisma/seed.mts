@@ -1,24 +1,17 @@
 import { PrismaClient } from "@prisma/client"
 import "dotenv/config";
 
-// Custom ENV type extends the NodeJS ProcessEnv type to include PROGRAM_INDEX
-type ENV = NodeJS.ProcessEnv & {
-  PROGRAM_INDEX: string;
-};
-process.env = process.env as ENV;
-
 const prisma = new PrismaClient();
 
 async function main() {
-  const programsApiUrl = process.env.PROGRAM_INDEX;
-  const args = "?format=json&pagination=false&isarchived=false"
+  const programsApiUrl = process.env.API_PROGRAM_INDEX_URL;
+  const args = `?${process.env.API_COMMON_ARGS}&isarchived=false`;
   if (!programsApiUrl) {
-    throw new Error("PROGRAM_INDEX is not defined in the environment variables.");
+    throw new Error("API_PROGRAM_INDEX_URL is not defined in the environment variables.");
   }
   const programs = (await (await fetch(`${programsApiUrl}${args}`)).json()).programs;
 
-  console.debug(programs);
-  console.debug(programs.length);
+
 }
 
 main()
