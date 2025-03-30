@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
+import { FeedSort } from "@prisma/client";
 
 const client = clerkClient();
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     const newUser = await prisma.user.create({
       data: {
         id: userId,
-        feedSort: "OLDEST_PER_DAY",
+        feedSort: FeedSort.OLDEST_PER_DAY,
       },
     });
 
