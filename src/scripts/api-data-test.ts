@@ -100,9 +100,11 @@ async function programs() {
   const programApiURL = process.env.API_PROGRAM_INDEX_URL + programArgs;
   const programs = (await (await fetch(programApiURL)).json()).programs;
 
-  const typeMap = typeMapper(programs);
-  console.log("Program type map:");
-  console.dir(typeMap, { depth: null });
+  console.dir(programs[0], { depth: null });
+
+  // const typeMap = typeMapper(programs);
+  // console.log("Program type map:");
+  // console.dir(typeMap, { depth: null });
 }
 
 async function channels() {
@@ -118,7 +120,8 @@ async function channels() {
   console.dir(typeMap, { depth: null });
 }
 
-episodes()
+// episodes()
+programs()
 // channels()
 
 function typeMapper(dataset: any[]): Record<string, string> {

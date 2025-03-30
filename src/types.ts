@@ -5,15 +5,7 @@ export type User = {
 }
 
 export type Program = {
-  id: string;
-  name: string;
-  publishDate: Date;
-}
-
-export type Channel = {
-  id: string;
-  name: string;
-  publishDate: Date;
+  
 }
 
 /* 
@@ -197,16 +189,16 @@ export type SR_Channel = {
   color: string;
   tagline: string;
   siteurl: string;
-  liveaudio: object;
+  liveaudio: SR_LiveAudio;
   channeltype: string;
   scheduleurl?: string;
   xmltvid?: string;
 }
 
-export type SR_API = {
-  Program: SR_Program;
-  Channel: SR_Channel;
-  Episode: SR_Episode;
-  EpisodePod: SR_EpisodePod;
-  EpisodeBroadcast: SR_EpisodeBroadcast;
+export namespace SR_API {
+  export type Program = SR_Program;
+  export type Channel = SR_Channel;
+  export type Episode = SR_Episode;
+  export type EpisodePod = SR_EpisodePod;
+  export type EpisodeBroadcast = SR_EpisodeBroadcast;
 }
