@@ -29,6 +29,11 @@ export type SR_ProgramCategory = {
   name: string;
 }
 
+export type SR_ProgramParentRef = {
+  id: number;
+  name: string;
+}
+
 export type SR_LiveAudio = {
   id: number;
   url: string;
@@ -53,7 +58,7 @@ export type SR_ListenPodfile = {
   title: string;
   description: string;
   filesizeinbytes: number;
-  program: SR_Program;
+  program: SR_ProgramParentRef;
   availablefromutc: string;
   duration: number;
   publishdateutc: string;
@@ -61,12 +66,29 @@ export type SR_ListenPodfile = {
   url: string;
   statkey: string;
 }
+
 export type SR_DownloadPodfile = {
   title: string;
   description: string;
   filesizeinbytes: number;
-  program: SR_Program;
+  program: SR_ProgramParentRef;
   availablefromutc: string;
+  duration: number;
+  publishdateutc: string;
+  id: number;
+  url: string;
+  statkey: string;
+}
+
+export type SR_BroadcastPlaylist = {
+  duration: number;
+  publishdateutc: string;
+  id: number;
+  url: string;
+  statkey: string;
+}
+
+export type SR_BroadcastFile = {
   duration: number;
   publishdateutc: string;
   id: number;
@@ -76,18 +98,13 @@ export type SR_DownloadPodfile = {
 
 export type SR_Broadcast = {
   availablestoputc?: string;
-  playlist: SR_ListenPodfile[];
-  broadcastfiles: SR_ListenPodfile[];
+  playlist: SR_BroadcastPlaylist;
+  broadcastfiles: SR_BroadcastFile[];
 }
 
 export type SR_BroadcastTime = {
   starttimeutc: string;
   endtimeutc: string;
-}
-
-export type SR_ProgramParentRef = {
-  id: number;
-  name: string;
 }
 
 export type SR_Episode = {
@@ -111,40 +128,40 @@ export type SR_Episode = {
 }
 
 export type SR_EpisodePod = {
-  id: number,
-  title: string,
-  description: string,
-  url: string,
-  program: SR_ProgramParentRef,
-  audiopreference: string,
-  audiopriority: string,
-  audiopresentation: string,
-  publishdateutc: string,
-  imageurl: string,
-  imageurltemplate: string,
-  listenpodfile: SR_ListenPodfile,
-  downloadpodfile: SR_DownloadPodfile,
-  broadcasttime?: SR_BroadcastTime,
-  photographer?: string,
-  channelid?: number
+  id: number;
+  title: string;
+  description: string;
+  url: string;
+  program: SR_ProgramParentRef;
+  audiopreference: string;
+  audiopriority: string;
+  audiopresentation: string;
+  publishdateutc: string;
+  imageurl: string;
+  imageurltemplate: string;
+  listenpodfile: SR_ListenPodfile;
+  downloadpodfile: SR_DownloadPodfile;
+  broadcasttime?: SR_BroadcastTime;
+  photographer?: string;
+  channelid?: number;
 }
 
 export type SR_EpisodeBroadcast = {
-  id: number,
-  title: string,
-  description: string,
-  url: string,
-  program: SR_ProgramParentRef,
-  audiopreference: string,
-  audiopriority: string,
-  audiopresentation: string,
-  publishdateutc: string,
-  imageurl: string,
-  imageurltemplate: string,
-  photographer: string,
-  broadcast: SR_Broadcast,
-  broadcasttime: SR_BroadcastTime,
-  channelid: number
+  id: number;
+  title: string;
+  description: string;
+  url: string;
+  program: SR_ProgramParentRef;
+  audiopreference: string;
+  audiopriority: string;
+  audiopresentation: string;
+  publishdateutc: string;
+  imageurl: string;
+  imageurltemplate: string;
+  photographer: string;
+  broadcast: SR_Broadcast;
+  broadcasttime: SR_BroadcastTime;
+  channelid: number;
 }
 
 export type SR_Program = {
@@ -172,6 +189,24 @@ export type SR_Program = {
   payoff?: string;
 }
 
+export type SR_Channel = {
+  id: number;
+  name: string;
+  image: string;
+  imagetemplate: string;
+  color: string;
+  tagline: string;
+  siteurl: string;
+  liveaudio: object;
+  channeltype: string;
+  scheduleurl?: string;
+  xmltvid?: string;
+}
+
 export type SR_API = {
   Program: SR_Program;
+  Channel: SR_Channel;
+  Episode: SR_Episode;
+  EpisodePod: SR_EpisodePod;
+  EpisodeBroadcast: SR_EpisodeBroadcast;
 }
