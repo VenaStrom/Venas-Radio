@@ -27,7 +27,7 @@ model User {
    * Options
    */
   // Fetch span in days
-  fetchSpan Int    @default(7)
+  fetchSpan Int      @default(7)
   // How the server renders the feed
   feedSort  FeedSort
 }
@@ -39,7 +39,7 @@ enum FeedSort {
 }
 
 model Channel {
-  id Int @id @unique
+  id           Int          @id @unique
   name         String
   image        String
   imageHD      String
@@ -48,10 +48,15 @@ model Channel {
   liveAudioURL String
   channelType  String
   scheduleURL  String?
+  User         User?        @relation(fields: [userId], references: [id])
+  userId       String?
+  ChannelMeta  ChannelMeta?
+  Program      Program[]
+  Episode      Episode[]
 }
 
 model ChannelMeta {
-  id Int @id @unique @map("channelId")
+  id      Int     @id @unique @map("channelId")
   channel Channel @relation(fields: [id], references: [id])
 
   programs Program[]
@@ -59,28 +64,35 @@ model ChannelMeta {
 }
 
 model Program {
-  id                Int       @id @unique
-  name              String
-  description       String
-  imageSquare       String
-  imageSquareHD     String
-  imageWide         String
-  imageWideHD       String
-  broadcastinfo     String?
-  payoff            String?
-  
+  id            Int     @id @unique
+  name          String
+  description   String
+  imageSquare   String
+  imageSquareHD String
+  imageWide     String
+  imageWideHD   String
+  broadcastinfo String?
+  payoff        String?
+
   channelId         Int
-  channel           Channel
+  channel           Channel          @relation(fields: [channelId], references: [id])
   programCategoryId Int?
-  programCategory   ProgramCategory? 
+  programCategory   ProgramCategory? @relation(fields: [programCategoryId], references: [id])
+  User              User?            @relation(fields: [userId], references: [id])
+  userId            String?
+  ChannelMeta       ChannelMeta?     @relation(fields: [channelMetaId], references: [id])
+  channelMetaId     Int?
+  ProgramMeta       ProgramMeta?
+  Episode           Episode[]
+  PodFile           PodFile[]
 }
 
 model ProgramMeta {
-  id Int @id @unique @map("programId")
+  id      Int     @id @unique @map("programId")
   program Program @relation(fields: [id], references: [id])
 
-  episodes Episode[]
-  lastFetchUTC  DateTime
+  episodes     Episode[]
+  lastFetchUTC DateTime
 }
 
 model ProgramCategory {
@@ -90,30 +102,36 @@ model ProgramCategory {
 }
 
 model Episode {
-  id Int @id @unique
-  title String
-  description String
+  id             Int      @id @unique
+  title          String
+  description    String
   publishDateUTC DateTime
-  image String
-  imageHD String
-  podFile PodFile
+  image          String
+  imageHD        String
+  podFile        PodFile  @relation(fields: [podFileId], references: [id])
 
-  programId   Int
-  program     Program 
-  channelId   Int?
-  channel     Channel? 
+  programId     Int
+  program       Program      @relation(fields: [programId], references: [id])
+  channelId     Int?
+  channel       Channel?     @relation(fields: [channelId], references: [id])
+  ChannelMeta   ChannelMeta? @relation(fields: [channelMetaId], references: [id])
+  channelMetaId Int?
+  ProgramMeta   ProgramMeta? @relation(fields: [programMetaId], references: [id])
+  programMetaId Int?
+  podFileId     Int
 }
 
 model PodFile {
-  id Int @id @unique
-  title String
-  description String
-  duration Int
+  id              Int       @id @unique
+  title           String
+  description     String
+  duration        Int
   fileSizeInBytes Int
-  publishDateUTC DateTime
-  url String
-  programId Int
-  program Program
+  publishDateUTC  DateTime
+  url             String
+  programId       Int
+  program         Program   @relation(fields: [programId], references: [id])
+  Episode         Episode[]
 }
 
 model ServerMeta {
