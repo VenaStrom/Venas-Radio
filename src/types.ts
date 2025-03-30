@@ -1,11 +1,65 @@
 export type User = {
   id: string;
-  username: string;
+  channels: Channel[];
   programs: Program[];
+  fetchSpan: number;
+  feedSort: "NEWEST" | "OLDEST" | "OLDEST_PER_DAY";
 }
 
 export type Program = {
-  
+  id: number;
+  name: string;
+  description: string;
+  imageSquareHD: string;
+  imageSquare: string;
+  imageWideHD: string;
+  imageWide: string;
+  broadcastInfo?: string;
+  programCategory?: ProgramCategory;
+  payoff?: string;
+  channel: Channel;
+}
+
+export type ProgramCategory = {
+  id: number;
+  name: string;
+  programs: Program[];
+}
+
+export type Channel = {
+  id: number;
+  name: string;
+  image: string;
+  imageHD: string;
+  color: string;
+  tagline: string;
+  liveAudioURL: string;
+  channelType: string;
+  scheduleURL?: string;
+  programs: Program[];
+}
+
+export type Episode = {
+  id: number;
+  title: string;
+  description: string;
+  publishDateUTC: string;
+  imageurl: string;
+  imageurltemplate: string;
+  podFile: PodFile;
+  program: Program;
+  channel?: Channel;
+}
+
+export type PodFile = {
+  id: number;
+  title: string;
+  description: string;
+  program: Program;
+  duration: number;
+  fileSizeInBytes: number;
+  publishDateUTC: Date;
+  url: string;
 }
 
 /* 

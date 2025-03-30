@@ -18,16 +18,107 @@ model User {
   id String @id @unique
   // Default to a Clerk provided username but can be changed
 
-  // Programs you are following
-  programs Program[]
   // Episodes you are following
   channels Channel[]
+  // Programs you are following
+  programs Program[]
 
   /**
    * Options
    */
   // Fetch span in days
-  fetchSpan     Int          @default(7)
+  fetchSpan Int    @default(7)
   // How the server renders the feed
-  feedSort      String       @default("oldest-per-day") // newest, oldest, oldest-per-day
+  feedSort  FeedSort
+}
+
+enum FeedSort {
+  NEWEST
+  OLDEST
+  OLDEST_PER_DAY
+}
+
+model Channel {
+  id Int @id @unique
+  name         String
+  image        String
+  imageHD      String
+  color        String
+  tagline      String
+  liveAudioURL String
+  channelType  String
+  scheduleURL  String?
+}
+
+model ChannelMeta {
+  id Int @id @unique @map("channelId")
+  channel Channel @relation(fields: [id], references: [id])
+
+  programs Program[]
+  episodes Episode[]
+}
+
+model Program {
+  id                Int       @id @unique
+  name              String
+  description       String
+  imageSquare       String
+  imageSquareHD     String
+  imageWide         String
+  imageWideHD       String
+  broadcastinfo     String?
+  payoff            String?
+  
+  channelId         Int
+  channel           Channel
+  programCategoryId Int?
+  programCategory   ProgramCategory? 
+}
+
+model ProgramMeta {
+  id Int @id @unique @map("programId")
+  program Program @relation(fields: [id], references: [id])
+
+  episodes Episode[]
+  lastFetchUTC  DateTime
+}
+
+model ProgramCategory {
+  id       Int       @id @unique
+  name     String    @unique
+  programs Program[]
+}
+
+model Episode {
+  id Int @id @unique
+  title String
+  description String
+  publishDateUTC DateTime
+  image String
+  imageHD String
+  podFile PodFile
+
+  programId   Int
+  program     Program 
+  channelId   Int?
+  channel     Channel? 
+}
+
+model PodFile {
+  id Int @id @unique
+  title String
+  description String
+  duration Int
+  fileSizeInBytes Int
+  publishDateUTC DateTime
+  url String
+  programId Int
+  program Program
+}
+
+model ServerMeta {
+  id String @id @unique @default(uuid())
+
+  lastChannelIndexFetchUTC DateTime
+  lastProgramIndexFetchUTC DateTime
 }

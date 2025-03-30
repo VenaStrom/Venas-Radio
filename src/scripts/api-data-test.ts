@@ -49,9 +49,6 @@ async function episodes() {
     }
   });
 
-  // console.dir(listenAndDownloadPodfileEpisodes[0], { depth: null });
-
-
   // const listenstruct = episodes.filter(episode => episode.listenpodfile).map(episode => episode.listenpodfile);
   // const downloadstruct = episodes.filter(episode => episode.downloadpodfile).map(episode => episode.downloadpodfile);
   // const broadcaststruct = episodes.filter(episode => episode.broadcast).map(episode => episode.broadcast);
@@ -120,8 +117,8 @@ async function channels() {
   console.dir(typeMap, { depth: null });
 }
 
-// episodes()
-programs()
+episodes()
+// programs()
 // channels()
 
 function typeMapper(dataset: any[]): Record<string, string> {

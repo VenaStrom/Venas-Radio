@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     const newUser = await prisma.user.create({
       data: {
         id: userId,
+        feedSort: "OLDEST_PER_DAY",
       },
     });
 
