@@ -66,8 +66,8 @@ model Program {
   Users         User[]
   episodes      Episode[]
 
-  channelId         Int
-  channel           Channel          @relation(fields: [channelId], references: [id])
+  channelId         Int?
+  channel           Channel?         @relation(fields: [channelId], references: [id])
   programCategoryId Int?
   programCategory   ProgramCategory? @relation(fields: [programCategoryId], references: [id])
 

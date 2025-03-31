@@ -46,7 +46,7 @@ async function main() {
   });
   console.info("Channels seeded");
 
-  
+
   /** Program Categories */
   const programCategoriesDataInAPIFormat = await fetchProgramCategories();
   // Format
@@ -59,25 +59,29 @@ async function main() {
     data: programCategoriesData,
   });
   console.info("Program categories seeded");
-  
+
 
   /** Programs */
-  const programsDataInAPIFormat = await fetchPrograms();
+  const programsDataInAPIFormat = (await fetchPrograms())
+    // Filter valid channelIds
+    .map(program => channelsData.find(channel => channel.id === program.channel.id) ? program : { ...program, channel: null });
   // Format
-  const programsData: Program[] = programsDataInAPIFormat.map((program) => ({
-    id: program.id,
-    name: program.name,
-    description: program.description,
-    imageSquare: program.programimage,
-    imageSquareHD: program.programimagetemplate,
-    imageWide: program.programimagewide,
-    imageWideHD: program.programimagetemplatewide,
-    broadcastInfo: program.broadcastinfo || null,
-    payoff: program.payoff || null,
-    channelId: program.channel.id,
-    programCategoryId: program.programcategory?.id || null,
-    lastFetchUTC: new Date(),
-  }));
+  const programsData: Program[] = programsDataInAPIFormat.map((program) => {
+    return {
+      id: program.id,
+      name: program.name,
+      description: program.description,
+      imageSquare: program.programimage,
+      imageSquareHD: program.programimagetemplate,
+      imageWide: program.programimagewide,
+      imageWideHD: program.programimagetemplatewide,
+      broadcastInfo: program.broadcastinfo || null,
+      payoff: program.payoff || null,
+      channelId: program.channel?.id || null,
+      programCategoryId: program.programcategory?.id || null,
+      lastFetchUTC: new Date(),
+    };
+  });
   // Write to database
   await prisma.program.createMany({
     data: programsData,
