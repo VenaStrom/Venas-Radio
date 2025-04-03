@@ -1,7 +1,7 @@
 "use client";
 
-import ProgressBar from "@/components/progress-bar";
-import PlayButton from "@/components/play-button";
+import { ProgressBar } from "@/components/progress-bar";
+import { PlayButton } from "@/components/play-button";
 import { usePlayStateStore } from "@/store/play-state-store";
 import { useProgressStore } from "@/store/progress-store";
 import { useContentStore } from "@/store/content-store";

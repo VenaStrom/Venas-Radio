@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "api.sr.se",
+      },
+      {
+        protocol: "https",
+        hostname: "static-cdn.sr.se",
       }
     ],
   },

@@ -85,8 +85,8 @@ model Episode {
   title          String
   description    String
   publishDateUTC DateTime
-  image          String
-  imageHD        String
+  imageSquare    String
+  imageWideHD    String
   podFile        PodFile  @relation(fields: [id], references: [id])
 
   programId Int

@@ -1,13 +1,13 @@
 import "./global.tw.css";
-import { ClerkProvider, SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, } from "@clerk/nextjs"
 import type { Metadata } from "next";
-import { Nunito_Sans } from "next/font/google";
+import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton, } from "@clerk/nextjs"
+import { dark } from "@clerk/themes";
 import { svSE } from "@clerk/localizations";
+import { Nunito_Sans } from "next/font/google";
 import * as Icon from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import AudioControls from "@/components/audio-player";
-import SettingsMenu from "@/components/settings-menu";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
@@ -40,7 +40,7 @@ const nunitoSansFont = Nunito_Sans({
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider localization={svSE}>
+    <ClerkProvider appearance={{ baseTheme: dark }} localization={svSE}>
       <html lang="sv-SE" className={nunitoSansFont.className}>
         <body className="bg-zinc-900 text-zinc-100">
 
@@ -50,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <p className="font-bold text-2xl">VR</p>
             </div>
 
+            {/* Filler */}
             <div className="flex-1"></div>
 
             <SignedOut>
@@ -61,15 +62,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </SignedOut>
 
             <SignedIn>
-              <UserButton appearance={{
-                layout: { shimmer: false },
-                elements: {
-                  avatarBox: "!size-[36px]",
-                }
-              }} />
+              {/* Div prevents resizing during loading */}
+              <div className="size-[36px]">
+                <UserButton appearance={{
+                  layout: { shimmer: false },
+                  elements: {
+                    avatarBox: "!size-[36px]",
+                  }
+                }} />
+              </div>
             </SignedIn>
-
-            <SettingsMenu />
           </header>
 
           {children}

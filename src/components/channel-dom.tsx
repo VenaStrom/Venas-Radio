@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import PlayButton from "./play-button";
-import SRAttribute from "./sr-attribute";
+import { PlayButton } from "./play-button";
+import { SRAttribute } from "./sr-attribute";
 import { CSSProperties } from "react";
 import type { Channel } from "@/types/api/channel";
 import type { Content } from "@/types/api/content";

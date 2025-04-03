@@ -1,0 +1,69 @@
+import type { Episode } from "@/types";
+import Image from "next/image";
+import { SRAttribute } from "@/components/sr-attribute";
+import { ProgressBar } from "@/components/progress-bar";
+import { PlayButton } from "@/components/play-button";
+
+export function EpisodeElement(
+  { episode, className = "" }: { episode: Episode, className?: string }
+) {
+  /* Date and time */
+  const pubDate = new Date(episode.publishDateUTC);
+  const isToday = pubDate.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
+  const isYesterday = pubDate.toISOString().slice(0, 10) === new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
+  const prettyTime = `kl. ${pubDate.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}`;
+  const prettyDate = pubDate.toLocaleDateString("sv-SE", { weekday: "short", month: "short", day: "2-digit" });
+  // E.g. mån 31 mars kl 06.00
+  const prettyDateTime = `${isToday ? "Idag" : isYesterday ? "Igår" : prettyDate} ${prettyTime}`;
+
+  /* Duration and progress */
+  const durationSeconds = episode.podfile.duration;
+  const durationMinutes = Math.floor(durationSeconds / 60);
+  const prettyDuration = `${durationMinutes} min`;
+  // TODO - Do remaining time
+
+  return (
+    <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} id={episode.id.toString()}>
+      {/* SR Attribute */}
+      <SRAttribute className="col-span-2" />
+
+      {/* Thumbnail */}
+      <Image width={128} height={72} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
+
+      {/* Header Text */}
+      <div className="col-start-2">
+        <p className="text-sm font-light overflow-hidden">{episode.program.name}</p>
+        <p className="text-sm font-bold overflow-hidden">{episode.title}</p>
+      </div>
+
+      {/* Description */}
+      <p className="text-xs pt-1 font-normal overflow-hidden col-span-2">{episode.description}</p>
+
+      {/* Progress Bar */}
+      <ProgressBar progress={0} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
+
+      {/* Metadata */}
+      <div className="col-span-2 flex flex-row justify-between items-center">
+        <p className="text-xs text-zinc-400 flex flex-row gap-x-2">
+          <span>
+            {prettyDateTime}
+          </span>
+
+          &middot;
+
+          <span>
+            {prettyDuration}
+          </span>
+
+          {/* &middot;
+
+          <span>
+            {prettyRemaining}
+          </span> */}
+        </p>
+
+        <PlayButton episodeData={episode} />
+      </div>
+    </li>
+  );
+}

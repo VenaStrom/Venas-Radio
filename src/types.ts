@@ -1,7 +1,21 @@
+import type { Episode as PrismaEpisode, PodFile, Program } from "@prisma/client";
+
+export type Episode = PrismaEpisode & { podfile: PodFile } & { program: Program };
+
+export type SortFunction = (a: Episode, b: Episode) => number;
 
 /* 
  * SR API Types
  */
+export namespace SR_API {
+  export type Channel = SR_Channel;
+  export type ProgramCategory = SR_ProgramCategory;
+  export type Program = SR_Program;
+  export type Episode = SR_Episode;
+  export type PodEpisode = SR_EpisodePod;
+  export type EpisodeBroadcast = SR_EpisodeBroadcast;
+}
+
 export type SR_SocialMediaPlatform = {
   platform: string;
   platformurl: string;
@@ -184,13 +198,4 @@ export type SR_Channel = {
   channeltype: string;
   scheduleurl?: string;
   xmltvid?: string;
-}
-
-export namespace SR_API {
-  export type Channel = SR_Channel;
-  export type ProgramCategory = SR_ProgramCategory;
-  export type Program = SR_Program;
-  export type Episode = SR_Episode;
-  export type EpisodePod = SR_EpisodePod;
-  export type EpisodeBroadcast = SR_EpisodeBroadcast;
 }
