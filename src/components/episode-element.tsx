@@ -2,7 +2,7 @@ import type { Episode } from "@/types";
 import Image from "next/image";
 import { SRAttribute } from "@/components/sr-attribute";
 import { PlayButton } from "@/components/play-button";
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@shadcn/progress";
 
 export function EpisodeElement(
   { episode, className = "" }: { episode: Episode, className?: string }
@@ -62,7 +62,7 @@ export function EpisodeElement(
           </span> */}
         </p>
 
-        <PlayButton episodeData={episode} />
+        <PlayButton episode={episode} />
       </div>
     </li>
   );

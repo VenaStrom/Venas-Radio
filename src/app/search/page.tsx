@@ -1,6 +1,6 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
+import { Input } from "@shadcn/input";
 import React, { useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import * as Icon from "lucide-react";

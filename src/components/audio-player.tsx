@@ -1,6 +1,6 @@
 "use client";
 
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@shadcn/progress";
 import { PlayButton } from "@/components/play-button";
 import { usePlayStateStore } from "@/store/play-state-store";
 import { useProgressStore } from "@/store/progress-store";

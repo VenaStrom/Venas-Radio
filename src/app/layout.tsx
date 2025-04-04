@@ -6,7 +6,7 @@ import { svSE } from "@clerk/localizations";
 import { Nunito_Sans } from "next/font/google";
 import * as Icon from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@shadcn/button";
 import AudioControls from "@/components/audio-player";
 
 export const metadata: Metadata = {
