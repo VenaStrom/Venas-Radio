@@ -1,6 +1,6 @@
 "use client";
 
-import { ProgressBar } from "@/components/progress-bar";
+import { Progress } from "@/components/ui/progress";
 import { PlayButton } from "@/components/play-button";
 import { usePlayStateStore } from "@/store/play-state-store";
 import { useProgressStore } from "@/store/progress-store";
@@ -293,7 +293,8 @@ export default function AudioControls({ className }: { className?: string }) {
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
       <div className="w-full">
         {/* Progress bar */}
-        <ProgressBar className="block top-0" progress={episodeInfo?.percent() || 0} />
+        <Progress className="block top-0" value={episodeInfo?.percent() || 0} />
+        
 
         {/* Invisible thumb to progress */}
         <input className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0" type="range" min="0" max="100"

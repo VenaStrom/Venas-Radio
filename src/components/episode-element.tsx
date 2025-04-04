@@ -1,8 +1,8 @@
 import type { Episode } from "@/types";
 import Image from "next/image";
 import { SRAttribute } from "@/components/sr-attribute";
-import { ProgressBar } from "@/components/progress-bar";
 import { PlayButton } from "@/components/play-button";
+import { Progress } from "@/components/ui/progress";
 
 export function EpisodeElement(
   { episode, className = "" }: { episode: Episode, className?: string }
@@ -40,7 +40,7 @@ export function EpisodeElement(
       <p className="text-xs pt-1 font-normal overflow-hidden col-span-2">{episode.description}</p>
 
       {/* Progress Bar */}
-      <ProgressBar progress={0} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
+      <Progress className="col-span-2 w-full h-1" value={50} max={100} />
 
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">

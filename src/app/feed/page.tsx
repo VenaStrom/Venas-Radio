@@ -118,7 +118,7 @@ export default async function FeedPage() {
 
   return (
     <main className="px-0">
-      <ul className="mx-5 flex flex-col gap-y-10 mt-3 mb-5">
+      <ul className="mx-5 flex flex-col gap-y-9 first:pt-4 last:pb-10">
         {episodesData
           // Sort episodes based on user preference
           .sort(sortMap[dbUser.feedSort])

@@ -41,7 +41,7 @@ const nunitoSansFont = Nunito_Sans({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider appearance={{ baseTheme: dark }} localization={svSE}>
-      <html lang="sv-SE" className={nunitoSansFont.className}>
+      <html suppressHydrationWarning lang="sv-SE" className={nunitoSansFont.className}>
         <body className="bg-zinc-900 text-zinc-100">
 
           <header className="bg-zinc-950 p-4 pe-5 flex flex-row items-center justify-between gap-x-4">
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <SignedOut>
               <SignInButton>
-                <Button size={"lg"} className="text-base font-bold">
+                <Button size={"lg"} className="text-base font-bold bg-zinc-800 hover:bg-zinc-800/80">
                   Logga in
                 </Button>
               </SignInButton>
@@ -78,7 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <footer className="bg-zinc-950 flex flex-col self-end items-center">
             {/* Audio Controls */}
-            <AudioControls className="" />
+            {/* <AudioControls className="" /> */}
 
             {/* Navigation Buttons */}
             <nav className="w-2/3 flex flex-row justify-between items-center py-3">
