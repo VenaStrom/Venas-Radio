@@ -23,13 +23,28 @@ model User {
   // Programs you are following
   programs Program[]
 
+  // Per episode progress
+  progress EpisodeProgress[]
+
   /**
    * Options
    */
   // Fetch span in days
   fetchSpan Int      @default(7)
   // How the server renders the feed
-  feedSort  FeedSort
+  feedSort  FeedSort @default(OLDEST_PER_DAY)
+}
+
+model EpisodeProgress {
+  progress Int
+  duration Int
+
+  episodeId Int     @map("episode_id")
+  episode   Episode @relation(fields: [episodeId], references: [id])
+  userId    String  @map("user_id")
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@id([userId, episodeId])
 }
 
 enum FeedSort {
@@ -93,6 +108,8 @@ model Episode {
   program   Program  @relation(fields: [programId], references: [id])
   channelId Int?
   channel   Channel? @relation(fields: [channelId], references: [id])
+
+  EpisodeProgress EpisodeProgress[]
 }
 
 model PodFile {
