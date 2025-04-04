@@ -1,11 +1,13 @@
+import type { EpisodeProgress, User } from "@prisma/client";
 import type { Episode } from "@/types";
-import Image from "next/image";
 import { SRAttribute } from "@/components/sr-attribute";
 import { PlayButton } from "@/components/play-button";
 import { Progress } from "@shadcn/progress";
+import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 
-export function EpisodeElement(
-  { episode, className = "" }: { episode: Episode, className?: string }
+export async function EpisodeElement(
+  { episode, userId, progress, className = "" }: { episode: Episode, userId: string, progress: EpisodeProgress | null, className?: string }
 ) {
   /* Date and time */
   const pubDate = new Date(episode.publishDateUTC);
@@ -16,11 +18,25 @@ export function EpisodeElement(
   // E.g. mån 31 mars kl 06.00
   const prettyDateTime = `${isToday ? "Idag" : isYesterday ? "Igår" : prettyDate} ${prettyTime}`;
 
-  /* Duration and progress */
+  /** Progress */
+  if (!progress) {
+    progress = {
+      userId: userId,
+      episodeId: episode.id,
+      progress: 0,
+    } as EpisodeProgress;
+  }
+  const progressSeconds = progress.progress || 0;
+  const progressMinutes = Math.floor(progressSeconds / 60);
+
+  /* Duration and remaining */
   const durationSeconds = episode.podfile.duration;
   const durationMinutes = Math.floor(durationSeconds / 60);
   const prettyDuration = `${durationMinutes} min`;
-  // TODO - Do remaining time
+
+  const remainingSeconds = durationSeconds - progressSeconds;
+  const remainingMinutes = Math.floor(remainingSeconds / 60);
+  const prettyRemaining = durationMinutes <= 0 ? `${remainingSeconds} sek kvar` : `${remainingMinutes} min kvar`;
 
   return (
     <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} id={episode.id.toString()}>
@@ -55,11 +71,15 @@ export function EpisodeElement(
             {prettyDuration}
           </span>
 
-          {/* &middot;
+          {progressSeconds > 0 &&
+            <>
+              &middot;
 
-          <span>
-            {prettyRemaining}
-          </span> */}
+              <span>
+                {prettyRemaining}
+              </span>
+            </>
+          }
         </p>
 
         <PlayButton episode={episode} />

@@ -1,5 +1,5 @@
 import type { Episode, SR_API } from "@/types";
-import type { Program, User } from "@prisma/client";
+import type { EpisodeProgress, Program, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { getDateFromString } from "@/lib/date-extractor";
@@ -86,9 +86,8 @@ export default async function FeedPage() {
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      programs: {
-        include: { episodes: true },
-      },
+      progress: true,
+      programs: true,
     },
   });
 
@@ -98,8 +97,6 @@ export default async function FeedPage() {
 
   const episodeFetchers = dbUser.programs.map(program =>
     new Promise<Episode[]>(async (resolve, reject) => {
-      // TODO: DB caching
-
       const fetchedEpisodes = await fetchEpisodes(program, dbUser);
 
       if (!fetchedEpisodes) {
@@ -115,6 +112,61 @@ export default async function FeedPage() {
   );
 
   await Promise.all(episodeFetchers);
+
+  // Write the episodes to the database
+  await Promise.all(episodesData.map(async (episode) => {
+    try {
+      // First create the podfile
+      await prisma.podFile.upsert({
+        where: { id: episode.podfile.id },
+        update: {
+          title: episode.podfile.title,
+          description: episode.podfile.description,
+          duration: episode.podfile.duration,
+          fileSizeInBytes: episode.podfile.fileSizeInBytes,
+          publishDateUTC: episode.podfile.publishDateUTC,
+          url: episode.podfile.url,
+          programId: episode.podfile.programId
+        },
+        create: {
+          id: episode.podfile.id,
+          title: episode.podfile.title,
+          description: episode.podfile.description,
+          duration: episode.podfile.duration,
+          fileSizeInBytes: episode.podfile.fileSizeInBytes,
+          publishDateUTC: episode.podfile.publishDateUTC,
+          url: episode.podfile.url,
+          programId: episode.podfile.programId
+        }
+      });
+
+      // Then create the episode (which references the podfile)
+      await prisma.episode.upsert({
+        where: { id: episode.id },
+        update: {
+          title: episode.title,
+          description: episode.description,
+          imageSquare: episode.imageSquare,
+          imageWideHD: episode.imageWideHD,
+          programId: episode.programId,
+          channelId: episode.channelId,
+          publishDateUTC: episode.publishDateUTC,
+        },
+        create: {
+          id: episode.id,
+          title: episode.title,
+          description: episode.description,
+          imageSquare: episode.imageSquare,
+          imageWideHD: episode.imageWideHD,
+          programId: episode.programId,
+          channelId: episode.channelId,
+          publishDateUTC: episode.publishDateUTC,
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to save episode ${episode.id}:`, error);
+    }
+  }));
 
   return (
     <main className="px-0">
@@ -140,7 +192,12 @@ export default async function FeedPage() {
           .map((data, i) => {
             return (
               <React.Fragment key={i}>
-                <EpisodeElement episode={data.episodeData} key={"episode" + i} />
+                <EpisodeElement
+                  key={"episode" + i}
+                  userId={dbUser.id}
+                  episode={data.episodeData}
+                  progress={dbUser.progress.find(p => p.episodeId === data.episodeData.id) || null}
+                />
 
                 {/* If theres a day break, add a line with the date */}
                 {data.dateLine && (

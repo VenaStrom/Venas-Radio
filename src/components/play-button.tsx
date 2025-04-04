@@ -13,8 +13,24 @@ export function PlayButton({ episode }: { episode: Episode }) {
     setButtonState((prevState) => (prevState === "playing" ? "paused" : "playing"));
   };
 
+  const handlePlay = () => {
+    toggleButton();
+    
+    fetch("/api/progress", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: "userId", // Replace with actual user ID
+        episodeId: episode.id,
+        progress: buttonState === "playing" ? 0 : episode.podfile.duration,
+      }),
+    });
+  };
+
   return (
-    <Button onClick={toggleButton} variant={"link"} className="!p-0 !m-1 size-5 hover:fill-zinc-100/50">
+    <Button onClick={handlePlay} variant={"link"} className="!p-0 !m-1 size-5 hover:fill-zinc-100/50">
       {buttonState === "paused" ?
         <Icon.Play className="fill-zinc-100 size-full" />
         :
