@@ -4,6 +4,19 @@ export type Episode = PrismaEpisode & { podfile: PodFile } & { program: Program 
 
 export type SortFunction = (a: Episode, b: Episode) => number;
 
+export type AudioPlayerPacket = {
+  url: string | null;
+  image: string | null;
+
+  // Title: bigger text, main descriptor of what is being played
+  title: string;
+  // Subtitle: smaller text, can be longer
+  subtitle: string;
+
+  progress: number;
+  duration: number;
+};
+
 /* 
  * SR API Types
  */

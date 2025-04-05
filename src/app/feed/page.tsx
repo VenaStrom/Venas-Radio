@@ -59,7 +59,7 @@ async function fetchEpisodes(program: Program, config: User): Promise<Episode[] 
         program: program,
         publishDateUTC: getDateFromString(pod.publishdateutc),
         podfile: {
-          id: episode.id,
+          id: episode.id, // Use the episode ID as the podfile ID since they are one to one
           title: pod.listenpodfile.title,
           description: pod.listenpodfile.description,
           url: pod.listenpodfile.url,
@@ -176,17 +176,17 @@ export default async function FeedPage() {
           .sort(sortMap[dbUser.feedSort])
           // Determine if there should be a date line between episodes
           .map((episodeData, i) => {
-            if (dbUser.feedSort !== "OLDEST_PER_DAY") return { episodeData, dateLine: null };
+            if (dbUser.feedSort !== "OLDEST_PER_DAY") return { episodeData, dayBreak: null };
 
             const nextEpisode: Episode | undefined = episodesData[i + 1];
-            if (!nextEpisode) return { episodeData, dateLine: null };
+            if (!nextEpisode) return { episodeData, dayBreak: null };
 
             // Add a date separator for each day
             const thisDate = episodeData.publishDateUTC.toISOString().slice(0, 10);
             const nextDate = nextEpisode.publishDateUTC.toISOString().slice(0, 10);
-            if (thisDate !== nextDate) return { episodeData, dateLine: new Date(nextDate) };
+            if (thisDate !== nextDate) return { episodeData, dayBreak: new Date(nextDate) };
 
-            return { episodeData, dateLine: null };
+            return { episodeData, dayBreak: null };
           })
           // Make the episodes
           .map((data, i) => {
@@ -200,9 +200,9 @@ export default async function FeedPage() {
                 />
 
                 {/* If theres a day break, add a line with the date */}
-                {data.dateLine && (
+                {data.dayBreak && (
                   <div className="text-sm font-bold text-zinc-500" key={"dateLine" + i}>
-                    {data.dateLine.toLocaleDateString("sv-SE", { weekday: "long", month: "long", day: "2-digit" })}
+                    {data.dayBreak.toLocaleDateString("sv-SE", { weekday: "long", month: "long", day: "2-digit" })}
                   </div>
                 )}
               </React.Fragment>

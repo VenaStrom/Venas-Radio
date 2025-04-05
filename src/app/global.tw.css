@@ -65,7 +65,7 @@
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: var(--color-zinc-100);
-  --muted: oklch(0.967 0.001 286.375);
+  --muted: var(--color-zinc-700);
   --muted-foreground: oklch(0.552 0.016 285.938);
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: var(--color-zinc-100);

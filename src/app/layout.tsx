@@ -7,7 +7,7 @@ import { Nunito_Sans } from "next/font/google";
 import * as Icon from "lucide-react";
 import Link from "next/link";
 import { Button } from "@shadcn/button";
-import AudioControls from "@/components/audio-player";
+import { AudioPlayer } from "@/components/audio-player";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
@@ -79,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <footer className="bg-zinc-950 flex flex-col self-end items-center">
             {/* Audio Controls */}
             {/* <AudioControls className="" /> */}
+            <AudioPlayer packet={null} />
 
             {/* Navigation Buttons */}
             <nav className="w-2/3 flex flex-row justify-between items-center py-3">

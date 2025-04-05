@@ -3,7 +3,6 @@ import type { Episode } from "@/types";
 import { SRAttribute } from "@/components/sr-attribute";
 import { PlayButton } from "@/components/play-button";
 import { Progress } from "@shadcn/progress";
-import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 
 export async function EpisodeElement(
@@ -44,7 +43,7 @@ export async function EpisodeElement(
       <SRAttribute className="col-span-2" />
 
       {/* Thumbnail */}
-      <Image width={128} height={72} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
+      <Image width={128} height={72} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md"></Image>
 
       {/* Header Text */}
       <div className="col-start-2">
@@ -56,33 +55,27 @@ export async function EpisodeElement(
       <p className="text-xs pt-1 font-normal overflow-hidden col-span-2">{episode.description}</p>
 
       {/* Progress Bar */}
-      <Progress className="col-span-2 w-full h-1" value={50} max={100} />
+      <Progress className="col-span-2 w-full h-1" value={progressSeconds / durationSeconds} max={100} />
 
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">
         <p className="text-xs text-zinc-400 flex flex-row gap-x-2">
-          <span>
-            {prettyDateTime}
-          </span>
+          <span>{prettyDateTime}</span>
 
           &middot;
 
-          <span>
-            {prettyDuration}
-          </span>
+          <span>{prettyDuration}</span>
 
           {progressSeconds > 0 &&
             <>
               &middot;
 
-              <span>
-                {prettyRemaining}
-              </span>
+              <span>{prettyRemaining}</span>
             </>
           }
         </p>
 
-        <PlayButton episode={episode} />
+        <PlayButton episode={episode} userId={userId} progress={progressSeconds} />
       </div>
     </li>
   );

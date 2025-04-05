@@ -27,3 +27,29 @@ export async function POST(req: Request) {
     return new Response("Internal server error", { status: 500 });
   }
 }
+
+export async function GET(req: Request) {
+  try {
+    const { userId, episodeId } = await req.json();
+
+    // Validate request
+    if (!userId || !episodeId) {
+      return new Response("Invalid request", { status: 400 });
+    }
+
+    // Fetch progress from the database
+    const progress = await prisma.episodeProgress.findUnique({
+      where: {
+        userId_episodeId: {
+          userId,
+          episodeId,
+        },
+      },
+    });
+
+    return new Response(JSON.stringify(progress), { status: 200 });
+  } catch (error) {
+    console.error("Error fetching progress:", error);
+    return new Response("Internal server error", { status: 500 });
+  }
+}
