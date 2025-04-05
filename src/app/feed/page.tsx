@@ -59,7 +59,7 @@ async function fetchEpisodes(program: Program, config: User): Promise<Episode[] 
         program: program,
         publishDateUTC: getDateFromString(pod.publishdateutc),
         podfile: {
-          id: pod.listenpodfile.id,
+          id: episode.id,
           title: pod.listenpodfile.title,
           description: pod.listenpodfile.description,
           url: pod.listenpodfile.url,
@@ -148,19 +148,19 @@ export default async function FeedPage() {
           description: episode.description,
           imageSquare: episode.imageSquare,
           imageWideHD: episode.imageWideHD,
+          publishDateUTC: episode.publishDateUTC,
           programId: episode.programId,
           channelId: episode.channelId,
-          publishDateUTC: episode.publishDateUTC,
         },
         create: {
-          id: episode.id,
           title: episode.title,
           description: episode.description,
           imageSquare: episode.imageSquare,
           imageWideHD: episode.imageWideHD,
-          programId: episode.programId,
-          channelId: episode.channelId,
           publishDateUTC: episode.publishDateUTC,
+          podFile: {
+            connect: { id: episode.podfile.id }
+          },
         }
       });
     } catch (error) {

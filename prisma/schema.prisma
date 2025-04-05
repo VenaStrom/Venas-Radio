@@ -103,8 +103,8 @@ model Episode {
   imageWideHD    String
   podFile        PodFile  @relation(fields: [id], references: [id])
 
-  programId Int
-  program   Program  @relation(fields: [programId], references: [id])
+  programId Int?
+  program   Program? @relation(fields: [programId], references: [id])
   channelId Int?
   channel   Channel? @relation(fields: [channelId], references: [id])
 
