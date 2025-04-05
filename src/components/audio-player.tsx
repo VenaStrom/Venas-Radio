@@ -1,7 +1,7 @@
 "use client";
 
 import type { AudioPlayerPacket } from "@/types";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Slider } from "@shadcn/slider";
 
 export function AudioPlayer({ className = "", packet }: { className?: string, packet: AudioPlayerPacket | null }) {
@@ -12,14 +12,29 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
       image: null,
       title: "Spelar inget",
       subtitle: "Hitta ett avsnitt eller en kanal att lyssna på",
-      duration: 100,
+      duration: 60,
       progress: 0,
     }
   }
 
+  const sliderMargin = 9;
+  const calculateClampedValues = (value: number): { actual: number, visual: number } => {
+    const clamped = Math.max(0, Math.min(value, 100));
+    if (clamped === 100) return { actual: 100, visual: 100 + sliderMargin };
+    if (clamped === 0) return { actual: 0, visual: -sliderMargin };
+    return { actual: clamped, visual: clamped };
+  };
+
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [percent, setPercent] = useState<number>(packet.progress);
-  const [currentValue, setCurrentValue] = useState<number>(packet.progress);
+  const [percent, setPercent] = useState<number>((packet.progress / packet.duration) * 100);
+  const [sliderValue, setSliderValue] = useState<number>(calculateClampedValues(percent).visual);
+
+  const handleValueCommit = useCallback((value: number[]) => {
+    // The value we wanna get out is between 0 and 100
+    const { actual, visual } = calculateClampedValues(value[0]);
+    setSliderValue(visual);
+    setPercent(actual);
+  }, [calculateClampedValues]);
 
   return (
     <div className="w-full flex flex-col">
@@ -28,31 +43,27 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
         <style>{`
           *[data-slot='slider-thumb'] {
             z-index: 10;
-            opacity: 0;
             height: 64px;
             width: 64px;
-            overflow: visible !import;
+            overflow: visible;
+            opacity: 0;
           }`}
         </style>
 
-        {/* Colored margin */}
-        <span className={`h-[6px] flex-1 ${currentValue > 0 ? "bg-primary" : "bg-muted"}`}></span>
-
         <Slider
-          defaultValue={[percent]}
-          max={packet.duration}
-          className="w-10/12 **:rounded-none"
-          onValueCommit={(value) => {
-            setPercent(value[0]);
-          }}
-          onValueChange={(value) => setCurrentValue(value[0])}
+          // defaultValue={[percent]}
+          value={[sliderValue]}
+          min={-sliderMargin}
+          max={100 + sliderMargin}
+          className="**:rounded-none"
+          onValueCommit={handleValueCommit}
+          onValueChange={value => setSliderValue(value[0])}
         />
-
-        {/* Colored margin */}
-        <span className={`h-[6px] flex-1 ${currentValue > 99.9 ? "bg-primary" : "bg-muted"}`}></span>
       </div>
 
-      <p className="my-5">current:{currentValue} committed:{percent}</p>
+      <p className="my-5">
+        percent: {percent.toFixed(2)}%
+      </p>
     </div>
   );
 }
