@@ -39,6 +39,14 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
     setPercent(actual);
   }, [calculateValues]);
 
+  // Progress and duration as "mm:ss"
+  const progressSeconds = Math.floor(packet.progress % 60);
+  const progressMinutes = Math.floor(packet.progress / 60);
+  const durationSeconds = Math.floor(packet.duration % 60);
+  const durationMinutes = Math.floor(packet.duration / 60);
+  const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
+  const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
+
   return (
     <div className="w-full flex flex-col">
       <div className="w-full flex flex-row">
@@ -63,12 +71,12 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
         />
       </div>
 
-      <div className="flex flex-col px-3 pe-5 py-2 pb-4">
+      <div className="flex flex-col ps-3.5 pe-5 pt-3 pb-4">
         {/* Super title */}
         <p className={`text-xs overflow-hidden transition-all duration-100 ease-in-out ${packet.superTitle ? "h-4" : "h-0"}`}>
           <span className="text-xs font-light opacity-60">{packet.superTitle}</span>
         </p>
-        
+
         <div className="flex flex-row items-center justify-between gap-x-5">
           {/* Title and subtitle */}
           <div>
@@ -76,7 +84,11 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
             <p className="text-sm">{packet.subtitle}</p>
           </div>
 
-          <PlayButton className="size-7" />
+          <p className="text-sm opacity-80">
+            {prettyProgress}&nbsp;/&nbsp;{prettyDuration}
+          </p>
+
+          <PlayButton className="size-7 z-30" />
         </div>
       </div>
     </div>
