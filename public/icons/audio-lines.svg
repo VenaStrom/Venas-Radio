@@ -1,12 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
   class="lucide lucide-audio-lines">
-  <style>
-    @media (prefers-color-scheme: dark) {
-      svg {
-        stroke: var(--color-icon-dark, hsl(0, 0%, 100%))
-      }
-    }
-  </style>
   <path d="M2 10v3" />
   <path d="M6 6v11" />
   <path d="M10 3v18" />
