@@ -8,6 +8,7 @@ export type AudioPlayerPacket = {
   url: string | null;
   image: string | null;
 
+  superTitle: string | null;
   // Title: bigger text, main descriptor of what is being played
   title: string;
   // Subtitle: smaller text, can be longer

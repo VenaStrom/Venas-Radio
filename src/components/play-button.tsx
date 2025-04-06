@@ -1,34 +1,18 @@
 "use client";
 
-import { Episode } from "@/types";
 import { Button } from "@shadcn/button";
 import * as Icon from "lucide-react";
 import { useState } from "react";
 
-export function PlayButton({ episode, userId, progress }: { episode: Episode, userId: string, progress: number }) {
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [progressState, setProgressState] = useState<number>(progress);
+export function PlayButton({ className = "", state = "paused" }: { className?: string, state?: "playing" | "paused" }) {
+  const [isPlaying, setIsPlaying] = useState<boolean>(state === "playing");
 
-  const handlePlay = () => {
+  const toggle = () => {
     setIsPlaying((prevState) => !prevState);
-
-    // fetch("/api/progress", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify({
-    //     userId: userId,
-    //     episodeId: episode.id,
-    //     progress: progress,
-    //   }),
-    // });
-
-    
   };
 
   return (
-    <Button onClick={handlePlay} variant={"link"} className="!p-0 !m-1 size-5 hover:fill-zinc-100/50">
+    <Button data-is-playing={isPlaying} onClick={toggle} variant={"link"} className={`!p-0 !m-1 size-6 hover:fill-zinc-100/50 ${className}`}>
       {isPlaying ?
         <Icon.Pause className="fill-zinc-100 size-full" />
         :

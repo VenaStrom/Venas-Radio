@@ -38,16 +38,16 @@ export async function EpisodeElement(
   const prettyRemaining = durationMinutes <= 0 ? `${remainingSeconds} sek kvar` : `${remainingMinutes} min kvar`;
 
   return (
-    <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className}`} id={episode.id.toString()}>
+    <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-1.5 ${className}`} id={episode.id.toString()}>
       {/* SR Attribute */}
       <SRAttribute className="col-span-2" />
 
       {/* Thumbnail */}
-      <Image width={128} height={72} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md"></Image>
+      <Image width={128*1.25} height={72*1.25} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md"></Image>
 
       {/* Header Text */}
       <div className="col-start-2">
-        <p className="text-sm font-light overflow-hidden">{episode.program.name}</p>
+        <p className="text-xs font-light overflow-hidden">{episode.program.name}</p>
         <p className="text-sm font-bold overflow-hidden">{episode.title}</p>
       </div>
 
@@ -75,7 +75,7 @@ export async function EpisodeElement(
           }
         </p>
 
-        <PlayButton episode={episode} userId={userId} progress={progressSeconds} />
+        <PlayButton />
       </div>
     </li>
   );
