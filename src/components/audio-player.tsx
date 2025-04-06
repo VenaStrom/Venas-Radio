@@ -13,37 +13,44 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
       image: null,
       superTitle: null,
       title: "Spelar inget",
-      subtitle: "Hitta ett avsnitt eller en kanal att lyssna på lorem.",
-      duration: 60,
+      subtitle: "Hitta ett avsnitt eller en kanal att lyssna på.",
+      duration: 0,
       progress: 0,
     }
   }
 
+  const audioRef = useRef<HTMLAudioElement>(null);
+
   /** Separate the actual and visual values of the slider. This is to avoid it being really difficult to reach edge values on mobile. */
   const sliderMargin = 9;
-  const calculateValues = (value: number): { actual: number, visual: number } => {
+  const calculatePercentages = (value: number): { actual: number, visual: number } => {
     const clamped = Math.max(0, Math.min(value, 100));
     if (clamped === 100) return { actual: 100, visual: 100 + sliderMargin };
     if (clamped === 0) return { actual: 0, visual: -sliderMargin };
     return { actual: clamped, visual: clamped };
   };
 
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [percent, setPercent] = useState<number>((packet.progress / packet.duration) * 100);
-  const [sliderValue, setSliderValue] = useState<number>(calculateValues(percent).visual);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [progressState, setProgressState] = useState<number>(packet.progress);
+  const [durationState, setDurationState] = useState<number>(packet.duration);
 
-  const handleValueChange = useCallback((value: number[]) => setSliderValue(value[0]), []);
+  const [progressPercent, setPercent] = useState<number>((progressState / durationState) * 100);
+  const [sliderPercent, setSliderValue] = useState<number>(calculatePercentages(progressPercent).visual);
+
+  const handleValueChange = useCallback((value: number[]) => setSliderValue(value[0]), [setSliderValue]);
   const handleValueCommit = useCallback((value: number[]) => {
-    const { actual, visual } = calculateValues(value[0]);
+    const { actual, visual } = calculatePercentages(value[0]);
     setSliderValue(visual);
     setPercent(actual);
-  }, [calculateValues]);
+
+    setProgressState(actual * durationState / 100);
+  }, [calculatePercentages]);
 
   // Progress and duration as "mm:ss"
-  const progressSeconds = Math.floor(packet.progress % 60);
-  const progressMinutes = Math.floor(packet.progress / 60);
-  const durationSeconds = Math.floor(packet.duration % 60);
-  const durationMinutes = Math.floor(packet.duration / 60);
+  const progressSeconds = Math.floor(progressState % 60);
+  const progressMinutes = Math.floor(progressState / 60);
+  const durationSeconds = Math.floor(durationState % 60);
+  const durationMinutes = Math.floor(durationState / 60);
   const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
   const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
 
@@ -62,10 +69,10 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
         </style>
 
         <Slider
-          value={[sliderValue]}
+          value={[sliderPercent]}
           min={-sliderMargin}
           max={100 + sliderMargin}
-          className="**:rounded-none z-20"
+          className="**:rounded-none z-20 brightness-90 h-1"
           onValueCommit={handleValueCommit}
           onValueChange={handleValueChange}
         />
@@ -81,14 +88,13 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
           {/* Title and subtitle */}
           <div>
             <p className="text-base font-bold">{packet.title}</p>
-            <p className="text-sm">{packet.subtitle}</p>
           </div>
 
           <p className="text-sm opacity-80">
             {prettyProgress}&nbsp;/&nbsp;{prettyDuration}
           </p>
 
-          <PlayButton className="size-7 z-30" />
+          <PlayButton state={isPlaying ? "playing" : "paused"} className="size-7 z-30" />
         </div>
       </div>
     </div>
