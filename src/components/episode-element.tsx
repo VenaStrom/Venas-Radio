@@ -12,7 +12,7 @@ export async function EpisodeElement(
   const pubDate = new Date(episode.publishDateUTC);
   const isToday = pubDate.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
   const isYesterday = pubDate.toISOString().slice(0, 10) === new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
-  const prettyTime = `kl. ${pubDate.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}`;
+  const prettyTime = `${pubDate.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" })}`;
   const prettyDate = pubDate.toLocaleDateString("sv-SE", { weekday: "short", month: "short", day: "2-digit" });
   // E.g. mån 31 mars kl 06.00
   const prettyDateTime = `${isToday ? "Idag" : isYesterday ? "Igår" : prettyDate} ${prettyTime}`;
@@ -43,7 +43,7 @@ export async function EpisodeElement(
       <SRAttribute className="col-span-2" />
 
       {/* Thumbnail */}
-      <Image width={128*1.25} height={72*1.25} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md"></Image>
+      <Image width={160} height={90} src={episode.imageWideHD} alt="Avsnittsbild" className="bg-zinc-600 rounded-md"></Image>
 
       {/* Header Text */}
       <div className="col-start-2">
