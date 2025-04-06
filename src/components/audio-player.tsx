@@ -11,7 +11,7 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
     packet = {
       url: null,
       image: null,
-      superTitle: "Programnamn",
+      superTitle: null,
       title: "Spelar inget",
       subtitle: "Hitta ett avsnitt eller en kanal att lyssna på lorem.",
       duration: 60,
@@ -63,14 +63,21 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
         />
       </div>
 
-      <div className="flex flex-row items-center justify-between px-3 pe-5 py-2 pb-4 gap-x-5">
-        <div>
-          <p className="text-xs font-light opacity-60">{packet.superTitle}</p>
-          <p className="text-base font-bold">{packet.title}</p>
-          <p className="text-sm">{packet.subtitle}</p>
-        </div>
+      <div className="flex flex-col px-3 pe-5 py-2 pb-4">
+        {/* Super title */}
+        <p className={`text-xs overflow-hidden transition-all duration-100 ease-in-out ${packet.superTitle ? "h-4" : "h-0"}`}>
+          <span className="text-xs font-light opacity-60">{packet.superTitle}</span>
+        </p>
+        
+        <div className="flex flex-row items-center justify-between gap-x-5">
+          {/* Title and subtitle */}
+          <div>
+            <p className="text-base font-bold">{packet.title}</p>
+            <p className="text-sm">{packet.subtitle}</p>
+          </div>
 
-        <PlayButton className="size-7" />
+          <PlayButton className="size-7" />
+        </div>
       </div>
     </div>
   );
