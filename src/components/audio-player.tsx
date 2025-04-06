@@ -54,6 +54,10 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
   const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
   const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
 
+  const handlePlay = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+  }, []);
+
   return (
     <div className="w-full flex flex-col">
       <div className="w-full flex flex-row">
@@ -94,7 +98,7 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
             {prettyProgress}&nbsp;/&nbsp;{prettyDuration}
           </p>
 
-          <PlayButton state={isPlaying ? "playing" : "paused"} className="size-7 z-30" />
+          <PlayButton onClick={handlePlay} state={isPlaying ? "playing" : "paused"} className="size-7 z-30" />
         </div>
       </div>
     </div>
