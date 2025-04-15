@@ -8,6 +8,7 @@ import * as Icon from "lucide-react";
 import Link from "next/link";
 import { Button } from "@shadcn/button";
 import { AudioPlayer } from "@/components/audio-player";
+import { AudioContextProvider } from "@/components/audio-context";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
@@ -41,63 +42,65 @@ const nunitoSansFont = Nunito_Sans({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider appearance={{ baseTheme: dark }} localization={svSE}>
-      <html suppressHydrationWarning lang="sv-SE" className={nunitoSansFont.className}>
-        <body className="bg-zinc-900 text-zinc-100">
+      <AudioContextProvider>
+        <html suppressHydrationWarning lang="sv-SE" className={`${nunitoSansFont.className}`}>
+          <body className="bg-zinc-900 text-zinc-100">
 
-          <header className="bg-zinc-950 p-4 pe-5 flex flex-row items-center justify-between gap-x-4">
-            <div className="flex flex-row items-center justify-center gap-1">
-              <Icon.AudioLines size={32} />
-              <p className="font-bold text-2xl">VR</p>
-            </div>
-
-            {/* Filler */}
-            <div className="flex-1"></div>
-
-            <SignedOut>
-              <SignInButton>
-                <Button size={"lg"} className="text-base font-bold bg-zinc-800 hover:bg-zinc-800/80">
-                  Logga in
-                </Button>
-              </SignInButton>
-            </SignedOut>
-
-            <SignedIn>
-              {/* Div prevents resizing during loading */}
-              <div className="size-[36px]">
-                <UserButton appearance={{
-                  layout: { shimmer: false },
-                  elements: {
-                    avatarBox: "!size-[36px]",
-                  }
-                }} />
+            <header className="bg-zinc-950 p-4 pe-5 flex flex-row items-center justify-between gap-x-4">
+              <div className="flex flex-row items-center justify-center gap-1">
+                <Icon.AudioLines size={32} />
+                <p className="font-bold text-2xl">VR</p>
               </div>
-            </SignedIn>
-          </header>
 
-          {children}
+              {/* Filler */}
+              <div className="flex-1"></div>
 
-          <footer className="bg-zinc-950 flex flex-col self-end items-center">
-            {/* Audio Controls */}
-            {/* <AudioControls className="" /> */}
-            <AudioPlayer packet={null} />
+              <SignedOut>
+                <SignInButton>
+                  <Button size={"lg"} className="text-base font-bold bg-zinc-800 hover:bg-zinc-800/80">
+                    Logga in
+                  </Button>
+                </SignInButton>
+              </SignedOut>
 
-            {/* Navigation Buttons */}
-            <nav className="w-2/3 flex flex-row justify-between items-center py-3">
-              <Link href={"/"}>
-                <Icon.Home size={44} />
-              </Link>
+              <SignedIn>
+                {/* Div prevents resizing during loading */}
+                <div className="size-[36px]">
+                  <UserButton appearance={{
+                    layout: { shimmer: false },
+                    elements: {
+                      avatarBox: "!size-[36px]",
+                    }
+                  }} />
+                </div>
+              </SignedIn>
+            </header>
 
-              <Link href={"/search"}>
-                <Icon.Search size={44} />
-              </Link>
+            {children}
 
-              <Link href={"/feed"}>
-                <Icon.Heart size={44} />
-              </Link>
-            </nav>
-          </footer>
-        </body>
-      </html>
+            <footer className="bg-zinc-950 flex flex-col self-end items-center">
+              {/* Audio Controls */}
+              {/* <AudioControls className="" /> */}
+              <AudioPlayer packet={null} />
+
+              {/* Navigation Buttons */}
+              <nav className="w-2/3 flex flex-row justify-between items-center py-3">
+                <Link href={"/"}>
+                  <Icon.Home size={44} />
+                </Link>
+
+                <Link href={"/search"}>
+                  <Icon.Search size={44} />
+                </Link>
+
+                <Link href={"/feed"}>
+                  <Icon.Heart size={44} />
+                </Link>
+              </nav>
+            </footer>
+          </body>
+        </html>
+      </AudioContextProvider>
     </ClerkProvider>
   );
 }

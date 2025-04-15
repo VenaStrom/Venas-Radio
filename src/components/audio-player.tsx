@@ -4,20 +4,21 @@ import type { AudioPlayerPacket } from "@/types";
 import { useCallback, useRef, useState } from "react";
 import { Slider } from "@shadcn/slider";
 import { PlayButton } from "./play-button";
+import { useAudioContext } from "./audio-context";
 
-export function AudioPlayer({ className = "", packet }: { className?: string, packet: AudioPlayerPacket | null }) {
-  if (!packet) {
-    // Default packet
-    packet = {
-      url: null,
-      image: null,
-      superTitle: null,
-      title: "Spelar inget",
-      subtitle: "Hitta ett avsnitt eller en kanal att lyssna på.",
-      duration: 0,
-      progress: 0,
-    }
-  }
+const nullPacket: AudioPlayerPacket = {
+  url: null,
+  image: null,
+  superTitle: null,
+  title: "Spelar inget",
+  subtitle: "Hitta ett avsnitt eller en kanal att lyssna på.",
+  duration: 0,
+  progress: 0,
+};
+
+export function AudioPlayer({ className = "" }: { className?: string }) {
+  const { audioPacket, setAudioPacket } = useAudioContext();
+  const packet = audioPacket || nullPacket;
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -31,28 +32,29 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
   };
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [progressState, setProgressState] = useState<number>(packet.progress);
-  const [durationState, setDurationState] = useState<number>(packet.duration);
+  const [timeProgressState, setTimeProgressState] = useState<number>(packet.progress);
+  const [timeDurationState, setTimeDurationState] = useState<number>(packet.duration);
 
-  const [progressPercent, setPercent] = useState<number>((progressState / durationState) * 100);
+  const [progressPercent, setPercent] = useState<number>((timeProgressState / timeDurationState) * 100);
   const [sliderPercent, setSliderValue] = useState<number>(calculatePercentages(progressPercent).visual);
 
+  // Progress and duration as "mm:ss"
+  const progressSeconds = Math.floor(timeProgressState % 60);
+  const progressMinutes = Math.floor(timeProgressState / 60);
+  const durationSeconds = Math.floor(timeDurationState % 60);
+  const durationMinutes = Math.floor(timeDurationState / 60);
+  const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
+  const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
+
+  // Handlers
   const handleValueChange = useCallback((value: number[]) => setSliderValue(value[0]), [setSliderValue]);
   const handleValueCommit = useCallback((value: number[]) => {
     const { actual, visual } = calculatePercentages(value[0]);
     setSliderValue(visual);
     setPercent(actual);
 
-    setProgressState(actual * durationState / 100);
+    setTimeProgressState(actual * timeDurationState / 100);
   }, [calculatePercentages]);
-
-  // Progress and duration as "mm:ss"
-  const progressSeconds = Math.floor(progressState % 60);
-  const progressMinutes = Math.floor(progressState / 60);
-  const durationSeconds = Math.floor(durationState % 60);
-  const durationMinutes = Math.floor(durationState / 60);
-  const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
-  const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
 
   const handlePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
@@ -61,17 +63,6 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
   return (
     <div className="w-full flex flex-col">
       <div className="w-full flex flex-row">
-        {/* Thumb style */}
-        <style>{`
-          *[data-slot='slider-thumb'] {
-            z-index: 20;
-            height: 64px;
-            width: 96px;
-            overflow: visible;
-            opacity: 0;
-          }`}
-        </style>
-
         <Slider
           value={[sliderPercent]}
           min={-sliderMargin}
@@ -80,6 +71,18 @@ export function AudioPlayer({ className = "", packet }: { className?: string, pa
           onValueCommit={handleValueCommit}
           onValueChange={handleValueChange}
         />
+        {/* Thumb style */}
+        <style>
+          {`
+            *[data-slot='slider-thumb'] {
+              z-index: 20;
+              height: 64px;
+              width: 96px;
+              overflow: visible;
+              opacity: 0;
+            }
+          `}
+        </style>
       </div>
 
       <div className="flex flex-col ps-3.5 pe-5 pt-3 pb-4">
