@@ -9,7 +9,7 @@ import { useAudioContext } from "./audio-context";
 export function AudioPlayer({ className = "" }: { className?: string }) {
   const { audioPacket: packet, setAudioPacket } = useAudioContext();
 
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(typeof window !== "undefined" ? new Audio(packet.url || "") : null);
 
   /** Separate the actual and visual values of the slider. This is to avoid it being really difficult to reach edge values on mobile. */
   const sliderMargin = 9;
@@ -21,7 +21,7 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
   };
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  
+
   const [progressPercent, setPercent] = useState<number>((packet.progress / packet.duration) * 100);
   const [sliderPercent, setSliderValue] = useState<number>(calculatePercentages(progressPercent).visual);
 
@@ -47,6 +47,22 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
   const handlePlay = useCallback(() => {
     if (!audioRef.current) return;
+
+    // Play/Pause
+    if (isPlaying) {
+      /* Pause it */
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+    else {
+      /* Play it */
+
+      // Load progress
+      audioRef.current.currentTime = (sliderPercent / 100) * packet.duration;
+
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
 
   }, []);
 
