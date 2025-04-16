@@ -6,19 +6,8 @@ import { Slider } from "@shadcn/slider";
 import { PlayButton } from "./play-button";
 import { useAudioContext } from "./audio-context";
 
-const nullPacket: AudioPlayerPacket = {
-  url: null,
-  image: null,
-  superTitle: null,
-  title: "Spelar inget",
-  subtitle: "Hitta ett avsnitt eller en kanal att lyssna på.",
-  duration: 0,
-  progress: 0,
-};
-
 export function AudioPlayer({ className = "" }: { className?: string }) {
-  const { audioPacket, setAudioPacket } = useAudioContext();
-  const packet = audioPacket || nullPacket;
+  const { audioPacket: packet, setAudioPacket } = useAudioContext();
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -32,17 +21,15 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
   };
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [timeProgressState, setTimeProgressState] = useState<number>(packet.progress);
-  const [timeDurationState, setTimeDurationState] = useState<number>(packet.duration);
-
-  const [progressPercent, setPercent] = useState<number>((timeProgressState / timeDurationState) * 100);
+  
+  const [progressPercent, setPercent] = useState<number>((packet.progress / packet.duration) * 100);
   const [sliderPercent, setSliderValue] = useState<number>(calculatePercentages(progressPercent).visual);
 
   // Progress and duration as "mm:ss"
-  const progressSeconds = Math.floor(timeProgressState % 60);
-  const progressMinutes = Math.floor(timeProgressState / 60);
-  const durationSeconds = Math.floor(timeDurationState % 60);
-  const durationMinutes = Math.floor(timeDurationState / 60);
+  const progressSeconds = Math.floor(packet.progress % 60);
+  const progressMinutes = Math.floor(packet.progress / 60);
+  const durationSeconds = Math.floor(packet.duration % 60);
+  const durationMinutes = Math.floor(packet.duration / 60);
   const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
   const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
 
@@ -53,15 +40,19 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     setSliderValue(visual);
     setPercent(actual);
 
-    setTimeProgressState(actual * timeDurationState / 100);
+    // Update the packet with the new progress value
+    const newProgress = (actual / 100) * packet.duration;
+    setAudioPacket({ ...packet, progress: newProgress });
   }, [calculatePercentages]);
 
   const handlePlay = useCallback(() => {
-    setIsPlaying((prev) => !prev);
+    if (!audioRef.current) return;
+
   }, []);
 
   return (
-    <div className="w-full flex flex-col">
+    <div className={`w-full flex flex-col ${className}`}>
+      {/* Progressbar & slider */}
       <div className="w-full flex flex-row">
         <Slider
           value={[sliderPercent]}
@@ -87,16 +78,19 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
       <div className="flex flex-col ps-3.5 pe-5 pt-3 pb-4">
         {/* Super title */}
-        <p className={`text-xs overflow-hidden transition-all duration-100 ease-in-out ${packet.superTitle ? "h-4" : "h-0"}`}>
-          <span className="text-xs font-light opacity-60">{packet.superTitle}</span>
+        <p className={`text-xs overflow-hidden transition-all duration-100 ease-in-out ${(packet?.superTitle || "") ? "h-4" : "h-0"}`}>
+          <span className="text-xs font-light opacity-60">{packet?.superTitle}</span>
         </p>
 
         <div className="flex flex-row items-center justify-between gap-x-5">
-          {/* Title and subtitle */}
-          <div>
-            <p className="text-base font-bold">{packet.title}</p>
+          <div className="overflow-hidden flex-1">
+            {/* Title */}
+            <p className="text-base font-bold">{packet?.title}</p>
+            {/* Subtitle */}
+            {/* <p></p> */}
           </div>
 
+          {/* Time */}
           <p className="text-sm opacity-80">
             {prettyProgress}&nbsp;/&nbsp;{prettyDuration}
           </p>

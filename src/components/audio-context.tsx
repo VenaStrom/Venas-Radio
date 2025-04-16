@@ -3,13 +3,22 @@
 import { AudioPlayerPacket } from "@/types";
 import { createContext, useContext, useState } from "react";
 
-// Check localstorage for audio packet
-const isServer = typeof window === "undefined";
-const savedPacket = !isServer ? localStorage.getItem("audioPacket") : null;
-const initialPacket: AudioPlayerPacket | null = savedPacket ? JSON.parse(savedPacket) : null;
+const nullPacket: AudioPlayerPacket = {
+  url: null,
+  image: null,
+  superTitle: null,
+  title: "Spelar inget",
+  subtitle: "Hitta ett avsnitt eller en kanal att lyssna på.",
+  duration: 0,
+  progress: 0,
+};
 
-export const AudioPacketContext = createContext<AudioPlayerPacket | null>(initialPacket);
-export const AudioPacketSetterContext = createContext<React.Dispatch<React.SetStateAction<AudioPlayerPacket | null>>>(() => { });
+// Check localstorage for audio packet
+const savedPacket = typeof window !== "undefined" && localStorage.getItem("audioPacket");
+const initialPacket: AudioPlayerPacket = savedPacket ? JSON.parse(savedPacket) : nullPacket;
+
+export const AudioPacketContext = createContext<AudioPlayerPacket>(initialPacket);
+export const AudioPacketSetterContext = createContext<React.Dispatch<React.SetStateAction<AudioPlayerPacket>>>(() => { });
 
 export function useAudioContext() {
   const audioPacket = useContext(AudioPacketContext);
@@ -19,7 +28,7 @@ export function useAudioContext() {
 }
 
 export function AudioContextProvider({ children }: { children: React.ReactNode }) {
-  const [packet, setPacket] = useState<AudioPlayerPacket | null>(null);
+  const [packet, setPacket] = useState<AudioPlayerPacket>(initialPacket);
   return (
     <AudioPacketContext.Provider value={packet}>
       <AudioPacketSetterContext.Provider value={setPacket}>
