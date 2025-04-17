@@ -101,7 +101,7 @@ model Episode {
   publishDateUTC DateTime
   imageSquare    String
   imageWideHD    String
-  podFile        PodFile  @relation(fields: [id], references: [id])
+  podfile        Podfile  @relation(fields: [id], references: [id])
 
   programId Int?
   program   Program? @relation(fields: [programId], references: [id])
@@ -111,7 +111,7 @@ model Episode {
   EpisodeProgress EpisodeProgress[]
 }
 
-model PodFile {
+model Podfile {
   // Every episode has one podfile
   id              Int      @id @unique @map("podfile_id")
   title           String
@@ -122,6 +122,7 @@ model PodFile {
   url             String
   programId       Int
   Episode         Episode?
+	@@map("PodFile")
 }
 
 model ServerMeta {

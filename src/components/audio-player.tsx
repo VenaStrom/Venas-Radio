@@ -1,56 +1,56 @@
 "use client";
 
-import type { AudioPlayerPacket } from "@/types";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Slider } from "@shadcn/slider";
 import { PlayButton } from "./play-button";
 import { useAudioContext } from "./audio-context";
+
+/** To make it easier to drag the progress slider to edge values, add some dead space at the start and end */
+const sliderMargin = 9;
 
 export function AudioPlayer({ className = "" }: { className?: string }) {
   const { audioPacket: packet, setAudioPacket } = useAudioContext();
 
   const audioRef = useRef<HTMLAudioElement>(typeof window !== "undefined" ? new Audio(packet.url || "") : null);
 
-  /** Separate the actual and visual values of the slider. This is to avoid it being really difficult to reach edge values on mobile. */
-  const sliderMargin = 9;
-  const calculatePercentages = (value: number): { actual: number, visual: number } => {
-    const clamped = Math.max(0, Math.min(value, 100));
-    if (clamped === 100) return { actual: 100, visual: 100 + sliderMargin };
-    if (clamped === 0) return { actual: 0, visual: -sliderMargin };
-    return { actual: clamped, visual: clamped };
-  };
-
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  /** When sliding the progress slider, use this to pause */
+  const [isSliding, setIsSliding] = useState<boolean>(false);
 
-  const [progressPercent, setPercent] = useState<number>((packet.progress / packet.duration) * 100);
-  const [sliderPercent, setSliderValue] = useState<number>(calculatePercentages(progressPercent).visual);
+  const [sliderPosition, setSliderPosition] = useState<number>(0);
 
   // Progress and duration as "mm:ss"
-  const progressSeconds = Math.floor(packet.progress % 60);
-  const progressMinutes = Math.floor(packet.progress / 60);
-  const durationSeconds = Math.floor(packet.duration % 60);
-  const durationMinutes = Math.floor(packet.duration / 60);
-  const prettyProgress = `${progressMinutes.toString().padStart(2, "0")}:${progressSeconds.toString().padStart(2, "0")}`;
-  const prettyDuration = `${durationMinutes.toString().padStart(2, "0")}:${durationSeconds.toString().padStart(2, "0")}`;
+  const prettyProgress = formatTime(packet.progress);
+  const prettyDuration = formatTime(packet.duration);
 
-  // Handlers
-  const handleValueChange = useCallback((value: number[]) => setSliderValue(value[0]), [setSliderValue]);
-  const handleValueCommit = useCallback((value: number[]) => {
-    const { actual, visual } = calculatePercentages(value[0]);
-    setSliderValue(visual);
-    setPercent(actual);
-
-    // Update the packet with the new progress value
-    const newProgress = (actual / 100) * packet.duration;
-    setAudioPacket({ ...packet, progress: newProgress });
+  /** On audio ref time update */
+  const handleTimeUpdate = useCallback(() => {
+    if (!audioRef.current) return;
+    const updatedProgress = audioRef.current.currentTime;
+    setAudioPacket({ ...packet, progress: updatedProgress });
   }, [packet, setAudioPacket]);
 
+  /* On progress change */
+  useEffect(() => {
+    if (isSliding) return; // Ignore change when sliding
+
+    const percent = (packet.progress / packet.duration) * 100;
+    setSliderPosition(calculatePosition(percent));
+
+    if (!audioRef.current) return;
+
+    const delta = packet.progress - audioRef.current.currentTime;
+    if (Math.abs(delta) < 0.1) return; // Avoid setting the time if it's already close enough
+
+    audioRef.current.currentTime = packet.progress;
+  }, [packet.progress, packet.duration, isSliding]);
+
+  /** On play button click */
   const handlePlay = useCallback(() => {
     if (!audioRef.current) return console.debug("No audio ref");;
-
     if (!packet.url) return console.debug("No url");;
 
-    if (!audioRef.current.src){
+    if (!audioRef.current.src) {
       console.debug("Setting url");
       audioRef.current.src = packet.url;
     }
@@ -60,28 +60,43 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
       /* Pause it */
       audioRef.current.pause();
       setIsPlaying(false);
-
-      // Update packet with latest time
-      setAudioPacket({ ...packet, progress: audioRef.current.currentTime * 1000 })
     }
     else {
       /* Play it */
-
-      // Load progress
-      audioRef.current.currentTime = packet.progress / 1000;
-
       audioRef.current.play();
       setIsPlaying(true);
     }
 
-  }, [isPlaying, packet, setAudioPacket]);
+  }, [isPlaying, packet]);
+
+  /** On slider change */
+  const handleValueChange = useCallback((value: number[]) => {
+    setIsSliding(true);
+
+    setSliderPosition(value[0]);
+  }, [setSliderPosition]);
+
+  /** On slider commit */
+  const handleValueCommit = useCallback((value: number[]) => {
+    setIsSliding(false);
+
+    const actual = clampPercent(value[0]);
+    const visual = calculatePosition(value[0]);
+    setSliderPosition(visual);
+
+    // Update the packet with the new progress value
+    const newProgress = (actual / 100) * packet.duration;
+    setAudioPacket({ ...packet, progress: newProgress });
+  }, [packet, setAudioPacket]);
 
   return (
     <div className={`w-full flex flex-col ${className}`}>
+      <audio className="hidden" ref={audioRef} onTimeUpdate={handleTimeUpdate} />
+
       {/* Progressbar & slider */}
       <div className="w-full flex flex-row">
         <Slider
-          value={[sliderPercent]}
+          value={[sliderPosition]}
           min={-sliderMargin}
           max={100 + sliderMargin}
           className="**:rounded-none z-20 brightness-90 h-1"
@@ -126,4 +141,21 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
       </div>
     </div>
   );
+}
+
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
+function clampPercent(percent: number): number {
+  return Math.max(0, Math.min(percent, 100));
+}
+
+function calculatePosition(percent: number): number {
+  const clamped = clampPercent(percent);
+  if (clamped === 100) return 100 + sliderMargin;
+  if (clamped === 0) return -sliderMargin;
+  return clamped;
 }

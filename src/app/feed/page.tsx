@@ -117,7 +117,7 @@ export default async function FeedPage() {
   await Promise.all(episodesData.map(async (episode) => {
     try {
       // First create the podfile
-      await prisma.podFile.upsert({
+      await prisma.podfile.upsert({
         where: { id: episode.podfile.id },
         update: {
           title: episode.podfile.title,
@@ -158,7 +158,7 @@ export default async function FeedPage() {
           imageSquare: episode.imageSquare,
           imageWideHD: episode.imageWideHD,
           publishDateUTC: episode.publishDateUTC,
-          podFile: {
+          podfile: {
             connect: { id: episode.podfile.id }
           },
         }

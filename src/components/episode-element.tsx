@@ -1,7 +1,6 @@
-import type { EpisodeProgress, User } from "@prisma/client";
-import type { Episode } from "@/types";
+import type { Episode, EpisodeProgress } from "@/types";
 import { SRAttribute } from "@/components/sr-attribute";
-import { PlayButton } from "@/components/play-button";
+import { EpisodePlayButton } from "@/components/episode-play-button";
 import { Progress } from "@shadcn/progress";
 import Image from "next/image";
 
@@ -26,7 +25,7 @@ export async function EpisodeElement(
     } as EpisodeProgress;
   }
   const progressSeconds = progress.progress || 0;
-  const progressMinutes = Math.floor(progressSeconds / 60);
+  // const progressMinutes = Math.floor(progressSeconds / 60);
 
   /* Duration and remaining */
   const durationSeconds = episode.podfile.duration;
@@ -75,7 +74,7 @@ export async function EpisodeElement(
           }
         </p>
 
-        <PlayButton />
+        <EpisodePlayButton episodeId={episode.id} progress={progress} />
       </div>
     </li>
   );

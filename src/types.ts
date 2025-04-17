@@ -1,6 +1,8 @@
-import type { Episode as PrismaEpisode, PodFile, Program } from "@prisma/client";
+import type { Episode as PrismaEpisode, Podfile as PrismaPodfile, Program as PrismaProgram, EpisodeProgress as PrismaEpisodeProgress } from "@prisma/client";
 
-export type Episode = PrismaEpisode & { podfile: PodFile } & { program: Program };
+// Modified prisma types
+export type Episode = PrismaEpisode & { podfile: PrismaPodfile } & { program: PrismaProgram };
+export type EpisodeProgress = PrismaEpisodeProgress;
 
 // eslint-disable-next-line no-unused-vars
 export type SortFunction = (a: Episode, b: Episode) => number;
