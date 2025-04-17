@@ -17,7 +17,7 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
   /** When sliding the progress slider, use this to pause */
   const [isSliding, setIsSliding] = useState<boolean>(false);
 
-  const [sliderPosition, setSliderPosition] = useState<number>(0);
+  const [sliderPosition, setSliderPosition] = useState<number>(-sliderMargin);
 
   // Progress and duration as "mm:ss"
   const prettyProgress = formatTime(packet.progress);
@@ -30,7 +30,7 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     setAudioPacket({ ...packet, progress: updatedProgress });
   }, [packet, setAudioPacket]);
 
-  /* On progress change */
+  /** On progress change */
   useEffect(() => {
     if (isSliding) return; // Ignore change when sliding
 
@@ -44,6 +44,25 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
     audioRef.current.currentTime = packet.progress;
   }, [packet.progress, packet.duration, isSliding]);
+
+  /** On url change */
+  useEffect(() => {
+    if (!audioRef.current) return console.debug("No audio ref");
+    if (!packet.url) return console.debug("No url");
+
+    audioRef.current.src = packet.url;
+
+    audioRef.current.play();
+    setIsPlaying(true);
+
+    const currentAudio = audioRef.current;
+    return () => {
+      if (!currentAudio) return;
+      currentAudio.pause();
+      currentAudio.src = "";
+      setIsPlaying(false);
+    }
+  }, [packet.url]);
 
   /** On play button click */
   const handlePlay = useCallback(() => {
@@ -88,6 +107,29 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     const newProgress = (actual / 100) * packet.duration;
     setAudioPacket({ ...packet, progress: newProgress });
   }, [packet, setAudioPacket]);
+
+  /** On unmount */
+  useEffect(() => {
+    const currentAudio = audioRef.current;
+    return () => {
+      if (currentAudio && isPlaying) {
+        // Save final position before unmounting
+        setAudioPacket({ ...packet, progress: currentAudio.currentTime });
+      }
+    };
+  }, [packet, setAudioPacket, isPlaying]);
+
+  /** Audio ref cleanup */
+  useEffect(() => {
+    const currentAudio = audioRef.current;
+
+    return () => {
+      if (!currentAudio) return;
+      currentAudio.pause();
+      currentAudio.src = "";
+      currentAudio.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  });
 
   return (
     <div className={`w-full flex flex-col ${className}`}>
@@ -136,7 +178,7 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
             {prettyProgress}&nbsp;/&nbsp;{prettyDuration}
           </p>
 
-          <PlayButton onClick={handlePlay} state={isPlaying ? "playing" : "paused"} className="size-7 z-30" />
+          <PlayButton onClick={handlePlay} isPlaying={isPlaying} className="size-7 z-30" />
         </div>
       </div>
     </div>

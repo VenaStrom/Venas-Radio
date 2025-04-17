@@ -3,7 +3,7 @@
 import type { Episode, EpisodeProgress } from "@/types";
 import { PlayButton, PlayButtonProps } from "@/components/play-button";
 import { useAudioContext } from "@/components/audio-context";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 export function EpisodePlayButton(
   {
@@ -18,6 +18,8 @@ export function EpisodePlayButton(
     }
 ) {
   const { audioPacket: _, setAudioPacket } = useAudioContext();
+  
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const handlePlay = useCallback(async () => {
     // Get episode data
@@ -44,6 +46,6 @@ export function EpisodePlayButton(
   }, [episodeId, progress?.progress, setAudioPacket]);
 
   return (
-    <PlayButton onClick={handlePlay} {...props} />
+    <PlayButton isPlaying={isPlaying} onClick={handlePlay} {...props} />
   );
 }
