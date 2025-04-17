@@ -2,6 +2,7 @@ import type { Episode as PrismaEpisode, PodFile, Program } from "@prisma/client"
 
 export type Episode = PrismaEpisode & { podfile: PodFile } & { program: Program };
 
+// eslint-disable-next-line no-unused-vars
 export type SortFunction = (a: Episode, b: Episode) => number;
 
 export type AudioPlayerPacket = {
@@ -21,6 +22,7 @@ export type AudioPlayerPacket = {
 /* 
  * SR API Types
  */
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace SR_API {
   export type Channel = SR_Channel;
   export type ProgramCategory = SR_ProgramCategory;
@@ -29,7 +31,6 @@ export namespace SR_API {
   export type PodEpisode = SR_EpisodePod;
   export type EpisodeBroadcast = SR_EpisodeBroadcast;
 }
-
 export type SR_SocialMediaPlatform = {
   platform: string;
   platformurl: string;

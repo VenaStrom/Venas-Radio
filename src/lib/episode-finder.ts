@@ -1,7 +1,7 @@
 import type { PlayStateStore } from "@/store/play-state-store";
 import type { ProgressStore } from "@/store/progress-store";
 import type { ContentStore } from "@/store/content-store";
-import type { Content } from "@/types/api/content";
+import type { Content } from "@/types-dir/api/content";
 
 export function getNextEpisode(
   contentStore: ContentStore,

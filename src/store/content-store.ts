@@ -1,4 +1,4 @@
-import { ContentMap } from "@/types/maps";
+import { ContentMap } from "@/types-dir/maps";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 

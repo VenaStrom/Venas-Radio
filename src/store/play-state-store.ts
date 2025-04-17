@@ -1,5 +1,5 @@
-import type { Content } from "@/types/api/content";
-import type { PlayPause } from "@/types/play-pause";
+import type { Content } from "@/types-dir/api/content";
+import type { PlayPause } from "@/types-dir/play-pause";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 

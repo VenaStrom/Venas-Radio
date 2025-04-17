@@ -43,28 +43,38 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     // Update the packet with the new progress value
     const newProgress = (actual / 100) * packet.duration;
     setAudioPacket({ ...packet, progress: newProgress });
-  }, [calculatePercentages]);
+  }, [packet, setAudioPacket]);
 
   const handlePlay = useCallback(() => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) return console.debug("No audio ref");;
+
+    if (!packet.url) return console.debug("No url");;
+
+    if (!audioRef.current.src){
+      console.debug("Setting url");
+      audioRef.current.src = packet.url;
+    }
 
     // Play/Pause
     if (isPlaying) {
       /* Pause it */
       audioRef.current.pause();
       setIsPlaying(false);
+
+      // Update packet with latest time
+      setAudioPacket({ ...packet, progress: audioRef.current.currentTime * 1000 })
     }
     else {
       /* Play it */
 
       // Load progress
-      audioRef.current.currentTime = (sliderPercent / 100) * packet.duration;
+      audioRef.current.currentTime = packet.progress / 1000;
 
       audioRef.current.play();
       setIsPlaying(true);
     }
 
-  }, []);
+  }, [isPlaying, packet, setAudioPacket]);
 
   return (
     <div className={`w-full flex flex-col ${className}`}>

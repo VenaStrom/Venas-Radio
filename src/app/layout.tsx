@@ -80,8 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <footer className="bg-zinc-950 flex flex-col self-end items-center">
               {/* Audio Controls */}
-              {/* <AudioControls className="" /> */}
-              <AudioPlayer packet={null} />
+              <AudioPlayer />
 
               {/* Navigation Buttons */}
               <nav className="w-2/3 flex flex-row justify-between items-center py-3">

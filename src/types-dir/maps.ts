@@ -1,6 +1,6 @@
-import { Channel } from "@/types/api/channel";
-import { Episode } from "@/types/api/episode";
-import { Content } from "@/types/api/content";
+import { Channel } from "@/types-dir/api/channel";
+import { Episode } from "@/types-dir/api/episode";
+import { Content } from "@/types-dir/api/content";
 
 export type ChannelMap = Record<string, Channel>;
 export type EpisodeMap = Record<string, Episode>;

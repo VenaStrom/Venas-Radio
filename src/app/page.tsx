@@ -1,8 +1,8 @@
 "use client";
 
 import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
-import { Channel } from "@/types/api/channel";
-import { ChannelMap } from "@/types/maps";
+import { Channel } from "@/types-dir/api/channel";
+import { ChannelMap } from "@/types-dir/maps";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 

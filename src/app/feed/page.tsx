@@ -1,5 +1,5 @@
 import type { Episode, SR_API } from "@/types";
-import type { EpisodeProgress, Program, User } from "@prisma/client";
+import type { Program, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { getDateFromString } from "@/lib/date-extractor";

@@ -1,4 +1,4 @@
-import type { EpisodeProgress, ProgressMap } from "@/types/maps";
+import type { EpisodeProgress, ProgressMap } from "@/types-dir/maps";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
