@@ -108,29 +108,6 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     setAudioPacket({ ...packet, progress: newProgress });
   }, [packet, setAudioPacket]);
 
-  /** On unmount */
-  useEffect(() => {
-    const currentAudio = audioRef.current;
-    return () => {
-      if (currentAudio && isPlaying) {
-        // Save final position before unmounting
-        setAudioPacket({ ...packet, progress: currentAudio.currentTime });
-      }
-    };
-  }, [packet, setAudioPacket, isPlaying]);
-
-  /** Audio ref cleanup */
-  useEffect(() => {
-    const currentAudio = audioRef.current;
-
-    return () => {
-      if (!currentAudio) return;
-      currentAudio.pause();
-      currentAudio.src = "";
-      currentAudio.removeEventListener("timeupdate", handleTimeUpdate);
-    };
-  });
-
   return (
     <div className={`w-full flex flex-col ${className}`}>
       <audio className="hidden" ref={audioRef} onTimeUpdate={handleTimeUpdate} />
