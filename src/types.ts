@@ -19,6 +19,9 @@ export type AudioPlayerPacket = {
 
   progress: number;
   duration: number;
+
+  // For telling episode and channel play buttons if they are playing
+  currentId?: number | null;
 };
 
 /* 

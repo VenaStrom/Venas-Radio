@@ -13,10 +13,10 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
   const audioRef = useRef<HTMLAudioElement>(typeof window !== "undefined" ? new Audio(packet.url || "") : null);
 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   /** When sliding the progress slider, use this to pause */
   const [isSliding, setIsSliding] = useState<boolean>(false);
-
   const [sliderPosition, setSliderPosition] = useState<number>(-sliderMargin);
 
   // Progress and duration as "mm:ss"
@@ -47,21 +47,56 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
   /** On url change */
   useEffect(() => {
-    if (!audioRef.current) return console.debug("No audio ref");
-    if (!packet.url) return console.debug("No url");
+    if (!audioRef.current) return;
+    if (!packet.url) return;
 
+    let isMounted = true;
+
+    // Loading visuals
+    setIsLoading(true);
+    audioRef.current.addEventListener("waiting", () => {
+      if (!isMounted || !audioRef.current) return;
+      setIsLoading(true);
+    });
+    audioRef.current.addEventListener("playing", () => {
+      if (!isMounted || !audioRef.current) return;
+      setIsLoading(false);
+    });
+
+    // On can play
+    audioRef.current.addEventListener("canplaythrough", () => {
+      if (!isMounted || !audioRef.current) return;
+
+      // Play new audio
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          if (error.name === "AbortError") return; // Ignore abort errors
+          console.error("Audio playback error:", error);
+        });
+    });
+
+    // Stop any current playback
+    audioRef.current.pause();
+    // Update the source
     audioRef.current.src = packet.url;
+    // When ready, the previously registered listener will play the audio
 
-    audioRef.current.play();
-    setIsPlaying(true);
-
+    // TODO: clean up event listeners
     const currentAudio = audioRef.current;
     return () => {
-      if (!currentAudio) return;
-      currentAudio.pause();
-      currentAudio.src = "";
-      setIsPlaying(false);
-    }
+      isMounted = false;
+      if (currentAudio) {
+        // Use promise handling for pause as well
+        try {
+          currentAudio.pause();
+        } catch (e) {
+          // Ignore pause errors
+        }
+        currentAudio.src = "";
+        if (isMounted) setIsPlaying(false);
+      }
+    };
   }, [packet.url]);
 
   /** On play button click */
@@ -118,7 +153,7 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
           value={[sliderPosition]}
           min={-sliderMargin}
           max={100 + sliderMargin}
-          className="**:rounded-none z-20 brightness-90 h-1"
+          className={`**:rounded-none z-20 brightness-90 h-1 ${isLoading ? "animate-pulse" : ""}`}
           onValueCommit={handleValueCommit}
           onValueChange={handleValueChange}
         />

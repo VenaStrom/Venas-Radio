@@ -3,7 +3,7 @@
 import type { Episode, EpisodeProgress } from "@/types";
 import { PlayButton, PlayButtonProps } from "@/components/play-button";
 import { useAudioContext } from "@/components/audio-context";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function EpisodePlayButton(
   {
@@ -17,11 +17,22 @@ export function EpisodePlayButton(
       progress: EpisodeProgress | null;
     }
 ) {
-  const { audioPacket: _, setAudioPacket } = useAudioContext();
-  
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const { audioPacket, setAudioPacket } = useAudioContext();
 
+  /** Sync play button state */
+  useEffect(() => {
+    if (audioPacket.currentId === episodeId) {
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
+  }, [audioPacket.currentId, episodeId]);
+
+  /** On starting this episode */
   const handlePlay = useCallback(async () => {
+    setIsPlaying(true);
+
     // Get episode data
     const [episodeData] = await Promise.all([
       fetch("/api/episode", {
@@ -42,6 +53,7 @@ export function EpisodePlayButton(
       image: episodeData.imageSquare,
       duration: episodeData.podfile.duration,
       progress: progress?.progress || 0,
+      currentId: episodeId,
     });
   }, [episodeId, progress?.progress, setAudioPacket]);
 
