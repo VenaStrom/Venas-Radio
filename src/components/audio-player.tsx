@@ -52,6 +52,9 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
     let isMounted = true;
 
+    // For the visuals
+    setIsPlaying(true);
+
     const handleWaiting = () => {
       if (!isMounted || !audioRef.current) return;
       setIsLoading(true);
@@ -85,6 +88,8 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     // Update the source
     audioRef.current.src = packet.url;
     // When ready, the previously registered listener will play the audio
+    audioRef.current.load();
+    audioRef.current.play();
 
     const currentAudio = audioRef.current;
     return () => {
