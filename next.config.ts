@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
+    config.module.rules.push({
+      // Ignore src/scripts
+      test: /src\/scripts/,
+      use: [{ loader: "ignore-loader" }],
+    });
+  },
+  turbopack: {
+    rules: {
+      "src/scripts": {
+        loaders: ["ignore-loader"],
+      }
+    },
+  }
 };
 
 export default nextConfig;
