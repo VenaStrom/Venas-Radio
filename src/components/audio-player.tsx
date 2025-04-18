@@ -52,19 +52,15 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
     let isMounted = true;
 
-    // Loading visuals
-    setIsLoading(true);
-    audioRef.current.addEventListener("waiting", () => {
+    const handleWaiting = () => {
       if (!isMounted || !audioRef.current) return;
       setIsLoading(true);
-    });
-    audioRef.current.addEventListener("playing", () => {
+    };
+    const handlePlaying = () => {
       if (!isMounted || !audioRef.current) return;
       setIsLoading(false);
-    });
-
-    // On can play
-    audioRef.current.addEventListener("canplaythrough", () => {
+    };
+    const handleCanPlay = () => {
       if (!isMounted || !audioRef.current) return;
 
       // Play new audio
@@ -74,7 +70,15 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
           if (error.name === "AbortError") return; // Ignore abort errors
           console.error("Audio playback error:", error);
         });
-    });
+    };
+
+    // Loading visuals
+    setIsLoading(true);
+    audioRef.current.addEventListener("waiting", handleWaiting);
+    audioRef.current.addEventListener("playing", handlePlaying);
+
+    // On can play
+    audioRef.current.addEventListener("canplaythrough", handleCanPlay);
 
     // Stop any current playback
     audioRef.current.pause();
@@ -82,21 +86,18 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     audioRef.current.src = packet.url;
     // When ready, the previously registered listener will play the audio
 
-    // TODO: clean up event listeners
     const currentAudio = audioRef.current;
     return () => {
       isMounted = false;
       if (currentAudio) {
-        // Use promise handling for pause as well
-        try {
-          currentAudio.pause();
-        } catch (e) {
-          // Ignore pause errors
-        }
+        currentAudio.removeEventListener("waiting", handleWaiting);
+        currentAudio.removeEventListener("playing", handlePlaying);
+        currentAudio.removeEventListener("canplaythrough", handleCanPlay);
+        currentAudio.pause();
         currentAudio.src = "";
-        if (isMounted) setIsPlaying(false);
+        setIsPlaying(false);
       }
-    };
+    }
   }, [packet.url]);
 
   /** On play button click */
