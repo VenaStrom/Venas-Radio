@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Slider } from "@shadcn/slider";
 import { PlayButton } from "./play-button";
 import { useAudioContext } from "./audio-context";
@@ -15,22 +15,38 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  /** When sliding the progress slider, use this to pause */
+  // To prevent state updating while dragging the slider
   const [isSliding, setIsSliding] = useState<boolean>(false);
   const [sliderPosition, setSliderPosition] = useState<number>(-sliderMargin);
 
   // Progress and duration as "mm:ss"
-  const prettyProgress = formatTime(packet.progress);
-  const prettyDuration = formatTime(packet.duration);
+  const prettyProgress = useMemo(() => formatTime(packet.progress), [packet.progress]);
+  const prettyDuration = useMemo(() => formatTime(packet.duration), [packet.duration]);
 
-  /** On audio ref time update */
+  /* Audio ref event handlers */
   const handleTimeUpdate = useCallback(() => {
     if (!audioRef.current) return;
     const updatedProgress = audioRef.current.currentTime;
     setAudioPacket({ ...packet, progress: updatedProgress });
   }, [packet, setAudioPacket]);
+  const handleWaiting = useCallback(() => {
+    setIsLoading(true);
+  }, []);
+  const handlePlaying = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+  const handleCanPlay = useCallback(() => {
+    if (!audioRef.current) return;
 
-  /** On progress change */
+    audioRef.current.play()
+      .then(() => setIsPlaying(true))
+      .catch((error) => {
+        if (error.name === "AbortError") return; // Ignore abort errors
+        console.error("Audio playback error:", error);
+      });
+  }, []);
+
+  /* On progress change */
   useEffect(() => {
     if (isSliding) return; // Ignore change when sliding
 
@@ -40,78 +56,44 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     if (!audioRef.current) return;
 
     const delta = packet.progress - audioRef.current.currentTime;
-    if (Math.abs(delta) < 0.1) return; // Avoid setting the time if it's already close enough
+    if (Math.abs(delta) < 0.1) return; // Avoid setting the time if it's already close enough to prevent skipping and jitter
 
     audioRef.current.currentTime = packet.progress;
   }, [packet.progress, packet.duration, isSliding]);
-
-  /** On url change */
+  /* On url change */
   useEffect(() => {
     if (!audioRef.current) return;
     if (!packet.url) return;
 
-    let isMounted = true;
+    const audio = audioRef.current;
 
     // For the visuals
     setIsPlaying(true);
-
-    const handleWaiting = () => {
-      if (!isMounted || !audioRef.current) return;
-      setIsLoading(true);
-    };
-    const handlePlaying = () => {
-      if (!isMounted || !audioRef.current) return;
-      setIsLoading(false);
-    };
-    const handleCanPlay = () => {
-      if (!isMounted || !audioRef.current) return;
-
-      // Play new audio
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch((error) => {
-          if (error.name === "AbortError") return; // Ignore abort errors
-          console.error("Audio playback error:", error);
-        });
-    };
-
-    // Loading visuals
     setIsLoading(true);
-    audioRef.current.addEventListener("waiting", handleWaiting);
-    audioRef.current.addEventListener("playing", handlePlaying);
-
-    // On can play
-    audioRef.current.addEventListener("canplaythrough", handleCanPlay);
 
     // Stop any current playback
-    audioRef.current.pause();
+    audio.pause();
     // Update the source
-    audioRef.current.src = packet.url;
+    audio.src = packet.url;
     // When ready, the previously registered listener will play the audio
-    audioRef.current.load();
-    audioRef.current.play();
+    audio.load();
 
-    const currentAudio = audioRef.current;
     return () => {
-      isMounted = false;
-      if (currentAudio) {
-        currentAudio.removeEventListener("waiting", handleWaiting);
-        currentAudio.removeEventListener("playing", handlePlaying);
-        currentAudio.removeEventListener("canplaythrough", handleCanPlay);
-        currentAudio.pause();
-        currentAudio.src = "";
+      if (audio) {
+        audio.pause();
+        audio.src = "";
         setIsPlaying(false);
       }
-    }
+    };
   }, [packet.url]);
 
   /** On play button click */
   const handlePlay = useCallback(() => {
-    if (!audioRef.current) return console.debug("No audio ref");;
-    if (!packet.url) return console.debug("No url");;
+    if (!audioRef.current) return console.info("No audio ref");
+    if (!packet.url) return console.info("No url");
 
     if (!audioRef.current.src) {
-      console.debug("Setting url");
+      console.info("Setting url");
       audioRef.current.src = packet.url;
     }
 
@@ -123,20 +105,17 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
     }
     else {
       /* Play it */
-      audioRef.current.play();
-      setIsPlaying(true);
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(err => console.error("Play error:", err));
     }
-
   }, [isPlaying, packet]);
-
-  /** On slider change */
+  /** When slider changes. To visually show where you're sliding. */
   const handleValueChange = useCallback((value: number[]) => {
     setIsSliding(true);
-
     setSliderPosition(value[0]);
-  }, [setSliderPosition]);
-
-  /** On slider commit */
+  }, []);
+  /** When slider is released */
   const handleValueCommit = useCallback((value: number[]) => {
     setIsSliding(false);
 
@@ -151,7 +130,12 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
 
   return (
     <div className={`w-full flex flex-col ${className}`}>
-      <audio className="hidden" ref={audioRef} onTimeUpdate={handleTimeUpdate} />
+      <audio className="hidden" ref={audioRef}
+        onTimeUpdate={handleTimeUpdate}
+        onPlaying={handlePlaying}
+        onWaiting={handleWaiting}
+        onCanPlay={handleCanPlay}
+      />
 
       {/* Progressbar & slider */}
       <div className="w-full flex flex-row">
