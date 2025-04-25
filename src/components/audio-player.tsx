@@ -186,7 +186,7 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
         <div className="flex flex-row items-center justify-between gap-x-5">
           <div className="overflow-hidden flex-1">
             {/* Title */}
-            <p className="text-base font-bold">{packet?.title}</p>
+            <p className="text-base font-bold max-h-[3.1em]">{packet?.title}</p>
             {/* Subtitle */}
             {/* <p></p> */}
           </div>
