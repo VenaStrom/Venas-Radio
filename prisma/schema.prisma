@@ -36,7 +36,7 @@ model User {
 }
 
 model EpisodeProgress {
-  progress Int @default(0)
+  progressMS Int @default(0)
 
   episodeId Int     @map("episode_id")
   episode   Episode @relation(fields: [episodeId], references: [id])

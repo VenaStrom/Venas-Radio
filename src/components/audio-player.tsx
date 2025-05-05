@@ -4,11 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Slider } from "@shadcn/slider";
 import { PlayButton } from "./play-button";
 import { useAudioContext } from "./audio-context";
+import { useDebounce } from "use-debounce";
+import { useSession } from "@clerk/nextjs";
 
 /** To make it easier to drag the progress slider to edge values, add some dead space at the start and end */
 const sliderMargin = 9;
 
 export function AudioPlayer({ className = "" }: { className?: string }) {
+  const { session } = useSession();
+  
   const { audioPacket: packet, setAudioPacket } = useAudioContext();
 
   const audioRef = useRef<HTMLAudioElement>(typeof window !== "undefined" ? new Audio(packet.url || "") : null);
@@ -18,6 +22,12 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
   // To prevent state updating while dragging the slider
   const [isSliding, setIsSliding] = useState<boolean>(false);
   const [sliderPosition, setSliderPosition] = useState<number>(-sliderMargin);
+
+  // Track last saved progress to avoid unnecessary saves
+  const lastSavedProgressRef = useRef<number>(0);
+
+  // Debounce progress updates to limit API calls
+  const debouncedProgress = useDebounce(packet.progress, 2000);
 
   // Progress and duration as "mm:ss"
   const prettyProgress = useMemo(() => formatTime(packet.progress), [packet.progress]);
@@ -45,6 +55,49 @@ export function AudioPlayer({ className = "" }: { className?: string }) {
         console.error("Audio playback error:", error);
       });
   }, []);
+
+  const saveProgressToServer = useCallback(async (progress: number) => {
+    if (!session?.user?.id || !packet.currentId) return;
+
+    // Only save if we've progressed at least 3 seconds or it's the first save
+    const progressDelta = Math.abs(progress - lastSavedProgressRef.current);
+    if (progressDelta < 3 && lastSavedProgressRef.current !== 0) return;
+
+    try {
+      const response = await fetch("/api/progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: session.user.id,
+          episodeId: packet.currentId,
+          progressMS: Math.floor(progress * 1000), // Convert to milliseconds
+        }),
+      });
+
+      if (response.ok) {
+        lastSavedProgressRef.current = progress;
+        console.debug("Progress saved:", progress);
+      }
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+    }
+  }, [session, packet.currentId]);
+
+  // Save progress when debounced progress changes and we're playing
+  useEffect(() => {
+    if (isPlaying && debouncedProgress[0] > 0) {
+      saveProgressToServer(debouncedProgress[0]);
+    }
+  }, [debouncedProgress, isPlaying, saveProgressToServer]);
+
+  // Save progress when playback stops
+  useEffect(() => {
+    if (!isPlaying && packet.progress > 0) {
+      saveProgressToServer(packet.progress);
+    }
+  }, [isPlaying, packet.progress, saveProgressToServer]);
 
   /* On progress change */
   useEffect(() => {

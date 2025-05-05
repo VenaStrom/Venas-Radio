@@ -52,10 +52,10 @@ export function EpisodePlayButton(
       url: episodeData.podfile.url,
       image: episodeData.imageSquare,
       duration: episodeData.podfile.duration,
-      progress: progress?.progress || 0,
+      progress: progress?.progressMS || 0,
       currentId: episodeId,
     });
-  }, [episodeId, progress?.progress, setAudioPacket]);
+  }, [episodeId, progress?.progressMS, setAudioPacket]);
 
   return (
     <PlayButton isPlaying={isPlaying} onClick={handlePlay} {...props} />

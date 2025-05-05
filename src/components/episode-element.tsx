@@ -21,10 +21,10 @@ export async function EpisodeElement(
     progress = {
       userId: userId,
       episodeId: episode.id,
-      progress: 0,
+      progressMS: 0,
     } as EpisodeProgress;
   }
-  const progressSeconds = progress.progress || 0;
+  const progressSeconds = progress.progressMS || 0;
   // const progressMinutes = Math.floor(progressSeconds / 60);
 
   /* Duration and remaining */
