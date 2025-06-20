@@ -35,7 +35,7 @@ export const useSettingsStore = create<SettingsStore>()(
         (set) => ({
             settings: {
                 fetchBack: 4,
-                fetchForward: 1,
+                fetchForward: 7,
                 programIDs: [4923, 178, 2778, 4540],
             },
             setSetting: (key, value) =>
