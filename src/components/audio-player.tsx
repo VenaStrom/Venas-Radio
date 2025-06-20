@@ -5,7 +5,7 @@ import PlayButton from "@/components/play-button";
 import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
 import { ProgressStore, useProgressStore } from "@/store/progress-store";
 import { ContentStore, useContentStore } from "@/store/content-store";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import type { Content } from "@/types/api/content";
 
 const getNextEpisode = (
@@ -75,99 +75,82 @@ export default function AudioControls({ className }: { className?: string }) {
   const contentStore = useContentStore();
   const progressStore = useProgressStore();
 
+  // Local state for error handling and loading
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
+
   // Define audio things
   const audioURL = playStateStore.currentEpisode?.url;
   const audioRef = useRef<HTMLAudioElement>(null);
   const previousEpisodeIdRef = useRef<number | null>(null);
   const preloadRef = useRef<HTMLAudioElement | null>(null);
+  const isPlayingRef = useRef(false);
+  const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle errors
+  // Stable audio element creation and event setup
   useEffect(() => {
     if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setError(null);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoading(false);
+      setError(null);
+      setRetryCount(0);
+    };
 
     const handleError = (e: Event) => {
       console.error("Audio playback error:", e);
-      // Optionally reset player state here
-    };
+      setIsLoading(false);
+      playStateStore.setPlayState("paused");
 
-    audioRef.current.addEventListener("error", handleError);
-    const currentRef = audioRef.current;
-
-    return () => {
-      if (currentRef) {
-        currentRef.removeEventListener("error", handleError);
-      }
-    };
-  }, []);
-
-  // Sync audio ref's state with global state
-  useEffect(() => {
-    if (!audioRef.current) return;
-
-    const playAudio = async () => {
-      if (playStateStore.currentEpisode && playStateStore.playState === "playing") {
-        try {
-          await audioRef.current?.play();
-        } catch (error) {
-          console.error("Failed to play audio:", error);
-          playStateStore.setPlayState("paused");
-        }
+      if (retryCount < maxRetries && playStateStore.currentEpisode) {
+        setError(`Nätverksproblem, prövar igen... (${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          if (audioRef.current && audioURL) {
+            audioRef.current.src = audioURL;
+            audioRef.current.load();
+          }
+        }, 2000);
       } else {
-        audioRef.current?.pause();
+        setError("Ljudhämtning misslyckades. Försök igen senare.");
       }
     };
 
-    playAudio();
-  }, [playStateStore]);
-
-  // Load progress on episode change
-  useEffect(() => {
-    if (
-      !audioRef.current ||
-      !playStateStore.currentEpisode ||
-      playStateStore.currentEpisode.id === previousEpisodeIdRef.current
-    ) return;
-
-    // Update episode reference
-    previousEpisodeIdRef.current = playStateStore.currentEpisode.id;
-
-    // Load progress if available
-    const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds;
-    if (storedProgress) audioRef.current.currentTime = storedProgress;
-
-    // Preload the next episode
-    const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
-    if (nextEpisode) playStateStore.setPreloadEpisode(nextEpisode);
-
-  }, [playStateStore, progressStore, contentStore]);
-
-  // Handle progress updates
-  useEffect(() => {
-    if (!audioRef.current || !playStateStore.currentEpisode) return;
-
-    const handleTimeUpdate = () => {
-      if (!audioRef.current || !playStateStore.currentEpisode) return;
-      if (!playStateStore.currentEpisode.meta.saveProgress) return;
-
-      progressStore.setEpisodeProgress(
-        playStateStore.currentEpisode.id.toString(),
-        { seconds: audioRef.current.currentTime, finished: false }
-      );
-    };
-
-    audioRef.current.addEventListener("timeupdate", handleTimeUpdate);
-    const currentRef = audioRef.current;
-
-    return () => {
-      if (currentRef) {
-        currentRef.removeEventListener("timeupdate", handleTimeUpdate);
+    const handleStalled = () => {
+      console.warn("Audio stalled, attempting to recover...");
+      setIsLoading(true);
+      // Try to recover by seeking to current time
+      if (audio.currentTime > 0) {
+        const currentTime = audio.currentTime;
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = currentTime;
+          }
+        }, 100);
       }
     };
-  }, [playStateStore.currentEpisode, progressStore]);
 
-  // Handle episode end
-  useEffect(() => {
-    if (!audioRef.current || !playStateStore.currentEpisode) return;
+    const handleWaiting = () => {
+      setIsLoading(true);
+    };
+
+    const handlePlaying = () => {
+      setIsLoading(false);
+      isPlayingRef.current = true;
+    };
+
+    const handlePause = () => {
+      isPlayingRef.current = false;
+    };
 
     const handleEnded = () => {
       if (!playStateStore.currentEpisode) return;
@@ -185,34 +168,146 @@ export default function AudioControls({ className }: { className?: string }) {
       } else {
         // No next episode found
         playStateStore.setCurrentEpisode(null);
+        playStateStore.setPlayState("paused");
         console.info("No next episode found");
       }
     };
 
-    audioRef.current.addEventListener("ended", handleEnded);
-    const currentRef = audioRef.current;
+    // Add event listeners
+    audio.addEventListener("loadstart", handleLoadStart);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("stalled", handleStalled);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("playing", handlePlaying);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+
+    // Cleanup function
+    return () => {
+      audio.removeEventListener("loadstart", handleLoadStart);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("stalled", handleStalled);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("playing", handlePlaying);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [retryCount, playStateStore, progressStore, contentStore, audioURL]);
+
+  // Sync audio ref's state with global state
+  const syncAudioState = useCallback(async () => {
+    if (!audioRef.current) return;
+
+    try {
+      if (playStateStore.currentEpisode && playStateStore.playState === "playing") {
+        setError(null);
+        await audioRef.current.play();
+      } else {
+        audioRef.current.pause();
+      }
+    } catch (error) {
+      console.error("Failed to play audio:", error);
+      playStateStore.setPlayState("paused");
+      setError("Misslyckades att starta uppspelning. Försök igen.");
+    }
+  }, [playStateStore]);
+
+  useEffect(() => {
+    syncAudioState();
+  }, [syncAudioState]);
+
+  // Load progress on episode change
+  useEffect(() => {
+    if (
+      !audioRef.current ||
+      !playStateStore.currentEpisode ||
+      playStateStore.currentEpisode.id === previousEpisodeIdRef.current
+    ) return;
+
+    // Clear any existing error
+    setError(null);
+    setRetryCount(0);
+
+    // Update episode reference
+    previousEpisodeIdRef.current = playStateStore.currentEpisode.id;
+
+    // Update audio source
+    const audio = audioRef.current;
+    const wasPlaying = playStateStore.playState === "playing";
+
+    audio.src = playStateStore.currentEpisode.url;
+    audio.load();
+
+    // Load progress if available
+    const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds;
+
+    const handleCanPlayThrough = () => {
+      if (storedProgress && audioRef.current) {
+        audioRef.current.currentTime = storedProgress;
+      }
+      if (wasPlaying) {
+        syncAudioState();
+      }
+      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+    };
+
+    audio.addEventListener("canplaythrough", handleCanPlayThrough);
+
+    // Preload the next episode
+    const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+    if (nextEpisode) playStateStore.setPreloadEpisode(nextEpisode);
 
     return () => {
-      if (currentRef) {
-        currentRef.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+    };
+  }, [playStateStore.currentEpisode, progressStore, contentStore, syncAudioState]);
+
+  // Handle progress updates with throttling
+  useEffect(() => {
+    if (!audioRef.current || !playStateStore.currentEpisode) return;
+
+    const updateProgress = () => {
+      if (!audioRef.current || !playStateStore.currentEpisode) return;
+      if (!playStateStore.currentEpisode.meta.saveProgress) return;
+      if (!isPlayingRef.current) return;
+
+      progressStore.setEpisodeProgress(
+        playStateStore.currentEpisode.id.toString(),
+        { seconds: audioRef.current.currentTime, finished: false }
+      );
+    };
+
+    // Update progress every second instead of on every timeupdate
+    progressUpdateIntervalRef.current = setInterval(updateProgress, 1000);
+
+    return () => {
+      if (progressUpdateIntervalRef.current) {
+        clearInterval(progressUpdateIntervalRef.current);
+        progressUpdateIntervalRef.current = null;
       }
     };
-  }, [playStateStore, progressStore, contentStore]);
+  }, [playStateStore.currentEpisode, progressStore]);
 
-  // Preload the next episode
+  // Preload the next episode with better cleanup
   useEffect(() => {
     // Clean up previous preload
     if (preloadRef.current) {
       preloadRef.current.src = "";
       preloadRef.current.load();
+      preloadRef.current = null;
     }
 
     // Create new preload if needed
     if (playStateStore.preloadEpisode) {
-      preloadRef.current = new Audio(playStateStore.preloadEpisode.url);
-      preloadRef.current.preload = "auto";
-    } else {
-      preloadRef.current = null;
+      try {
+        preloadRef.current = new Audio();
+        preloadRef.current.preload = "metadata";
+        preloadRef.current.src = playStateStore.preloadEpisode.url;
+      } catch (error) {
+        console.warn("Failed to preload next episode:", error);
+      }
     }
 
     // Cleanup function
@@ -225,7 +320,7 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [playStateStore.preloadEpisode]);
 
-  const onProgressDrag = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onProgressDrag = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (!playStateStore.currentEpisode ||
       playStateStore.currentEpisode.meta.disableDragProgress) return;
 
@@ -241,7 +336,7 @@ export default function AudioControls({ className }: { className?: string }) {
       playStateStore.currentEpisode.id.toString(),
       { seconds: newProgress, finished: false }
     );
-  };
+  }, [playStateStore.currentEpisode, progressStore]);
 
   // MediaSession API setup
   useEffect(() => {
@@ -303,50 +398,64 @@ export default function AudioControls({ className }: { className?: string }) {
 
     // Cleanup function to remove handlers when component unmounts or episode changes
     return () => {
-      navigator.mediaSession.setActionHandler("play", null);
-      navigator.mediaSession.setActionHandler("pause", null);
-      navigator.mediaSession.setActionHandler("seekbackward", null);
-      navigator.mediaSession.setActionHandler("seekforward", null);
-      navigator.mediaSession.setActionHandler("previoustrack", null);
-      navigator.mediaSession.setActionHandler("nexttrack", null);
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.setActionHandler("play", null);
+        navigator.mediaSession.setActionHandler("pause", null);
+        navigator.mediaSession.setActionHandler("seekbackward", null);
+        navigator.mediaSession.setActionHandler("seekforward", null);
+        navigator.mediaSession.setActionHandler("previoustrack", null);
+        navigator.mediaSession.setActionHandler("nexttrack", null);
+      }
     };
   }, [playStateStore, contentStore, progressStore]);
 
-  const episodeInfo = playStateStore.currentEpisode && {
-    programName: playStateStore.currentEpisode.program.name,
-    episodeTitle: playStateStore.currentEpisode.title,
-    progressSeconds: progressStore.episodeProgressMap[playStateStore.currentEpisode.id]?.seconds || 0,
-    durationSeconds: playStateStore.currentEpisode.duration,
-    percent: () => {
-      if (!playStateStore.currentEpisode || !episodeInfo) return 0;
-      if (episodeInfo.durationSeconds === 0) return 0;
-      return episodeInfo.progressSeconds / episodeInfo.durationSeconds * 100;
-    },
-    getHHMMSS: (seconds: number) => {
-      const hour = Math.floor(seconds / 3600);
-      const minute = Math.floor(seconds / 60) % 60;
-      const second = Math.floor(seconds % 60);
-      return [hour, minute, second];
-    },
-    progress: (() => {
-      if (!episodeInfo) return "00:00";
-
-      const [hour, minute, second] = episodeInfo.getHHMMSS(episodeInfo.progressSeconds);
-      if (hour > 0) {
-        return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:${second.toString().padStart(2, "0")}`;
+  const currentEpisode = playStateStore.currentEpisode;
+  const episodeInfo: {
+    programName: string;
+    episodeTitle: string;
+    progressSeconds: number;
+    durationSeconds: number;
+    percent: () => number;
+    getHHMMSS: (seconds: number) => [number, number, number];
+    progress: string;
+    duration: string;
+  } | null = currentEpisode
+      ? {
+        programName: currentEpisode.program.name,
+        episodeTitle: currentEpisode.title,
+        progressSeconds:
+          progressStore.episodeProgressMap[currentEpisode.id]?.seconds || 0,
+        durationSeconds: currentEpisode.duration,
+        percent: () => {
+          const progressSeconds =
+            progressStore.episodeProgressMap[currentEpisode.id]?.seconds || 0;
+          const durationSeconds = currentEpisode.duration;
+          return durationSeconds === 0 ? 0 : (progressSeconds / durationSeconds) * 100;
+        },
+        getHHMMSS: (seconds: number) => {
+          const hour = Math.floor(seconds / 3600);
+          const minute = Math.floor(seconds / 60) % 60;
+          const second = Math.floor(seconds % 60);
+          return [hour, minute, second];
+        },
+        progress: "",
+        duration: ""
       }
-      return `${minute.toString().padStart(2, "0")}:${second.toString().padStart(2, "0")}`;
-    }),
-    duration: (() => {
-      if (!episodeInfo) return "00:00";
+      : null;
 
-      const [hour, minute, second] = episodeInfo.getHHMMSS(episodeInfo.durationSeconds);
-      if (hour > 0) {
-        return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:${second.toString().padStart(2, "0")}`;
-      }
-      return `${minute.toString().padStart(2, "0")}:${second.toString().padStart(2, "0")}`;
-    })
-  };
+  if (episodeInfo) {
+    const { getHHMMSS, progressSeconds, durationSeconds } = episodeInfo;
+    const [pHour, pMinute, pSecond] = getHHMMSS(progressSeconds);
+    episodeInfo.progress =
+      pHour > 0
+        ? `${pHour.toString().padStart(2, "0")}:${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`
+        : `${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`;
+    const [dHour, dMinute, dSecond] = getHHMMSS(durationSeconds);
+    episodeInfo.duration =
+      dHour > 0
+        ? `${dHour.toString().padStart(2, "0")}:${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`
+        : `${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`;
+  }
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
@@ -361,17 +470,25 @@ export default function AudioControls({ className }: { className?: string }) {
       </div>
 
       {/* Audio element */}
-      <audio ref={audioRef} src={audioURL}></audio>
+      <audio ref={audioRef} preload="metadata"></audio>
 
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="font-light text-sm">{episodeInfo?.programName}</p>
-          <p className="font-bold max-h-[3rem] overflow-hidden text-ellipsis whitespace-break-spaces">{episodeInfo?.episodeTitle || "Spelar inget"}</p>
+          <p className="font-bold max-h-[3rem] overflow-hidden text-ellipsis whitespace-break-spaces">
+            {episodeInfo?.episodeTitle || "Spelar inget"}
+          </p>
+          {error && (
+            <p className="text-xs text-red-400 mt-1">{error}</p>
+          )}
+          {isLoading && !error && (
+            <p className="text-xs text-zinc-400 mt-1">Laddar...</p>
+          )}
         </div>
 
-        <p className="text-sm text-zinc-400">
-          {episodeInfo ? `${episodeInfo.progress()}\u00a0/\u00a0${episodeInfo.duration()}` : ""}
+        <p className="text-sm text-zinc-400 whitespace-nowrap">
+          {episodeInfo ? `${episodeInfo.progress}\u00a0/\u00a0${episodeInfo.duration}` : ""}
         </p>
 
         <PlayButton iconSize={30} role="controller" />
