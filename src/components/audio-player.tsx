@@ -94,62 +94,93 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioRef.current) return;
 
     const audio = audioRef.current;
+    let loadingTimeout: NodeJS.Timeout | null = null;
 
     const handleLoadStart = () => {
       setIsLoading(true);
       setError(null);
+      // Clear any existing loading timeout
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
     };
 
     const handleCanPlay = () => {
       setIsLoading(false);
       setError(null);
       setRetryCount(0);
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
     };
 
     const handleError = (e: Event) => {
-      console.error("Audio playback error:", e);
-      setIsLoading(false);
-      playStateStore.setPlayState("paused");
-
-      if (retryCount < maxRetries && playStateStore.currentEpisode) {
-        setError(`Nätverksproblem, prövar igen... (${retryCount + 1}/${maxRetries})`);
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          if (audioRef.current && audioURL) {
-            audioRef.current.src = audioURL;
-            audioRef.current.load();
-          }
-        }, 2000);
-      } else {
-        setError("Ljudhämtning misslyckades. Försök igen senare.");
+      // Only handle errors if we're not in the middle of loading a new track
+      if (!isLoading) {
+        console.error("Audio playback error:", e);
+        setIsLoading(false);
+        playStateStore.setPlayState("paused");
+        
+        if (retryCount < maxRetries && playStateStore.currentEpisode) {
+          setError(`Nätverksproblem, prövar igen... (${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            if (audioRef.current && playStateStore.currentEpisode) {
+              const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+              audioRef.current.src = proxyUrl;
+              audioRef.current.load();
+            }
+          }, 2000);
+        } else if (retryCount >= maxRetries) {
+          setError("Ljudhämtning misslyckades. Försök igen senare.");
+        }
       }
     };
 
     const handleStalled = () => {
-      console.warn("Audio stalled, attempting to recover...");
-      setIsLoading(true);
-      // Try to recover by seeking to current time
-      if (audio.currentTime > 0) {
-        const currentTime = audio.currentTime;
-        setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.currentTime = currentTime;
-          }
-        }, 100);
+      // Only handle stalls if we've been loading for more than 10 seconds
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
       }
+      
+      loadingTimeout = setTimeout(() => {
+        console.warn('Audio stalled, attempting to recover...');
+        if (audio.currentTime > 0) {
+          const currentTime = audio.currentTime;
+          setTimeout(() => {
+            if (audioRef.current) {
+              audioRef.current.currentTime = currentTime;
+            }
+          }, 100);
+        }
+      }, 10000); // Wait 10 seconds before considering it stalled
     };
 
     const handleWaiting = () => {
-      setIsLoading(true);
+      // Don't immediately show loading for brief buffering
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+      
+      loadingTimeout = setTimeout(() => {
+        setIsLoading(true);
+      }, 1000); // Only show loading after 1 second of waiting
     };
 
     const handlePlaying = () => {
       setIsLoading(false);
+      setError(null);
       isPlayingRef.current = true;
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        loadingTimeout = null;
+      }
     };
 
     const handlePause = () => {
       isPlayingRef.current = false;
+      // Don't change loading state on pause
     };
 
     const handleEnded = () => {
@@ -185,6 +216,9 @@ export default function AudioControls({ className }: { className?: string }) {
 
     // Cleanup function
     return () => {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
       audio.removeEventListener("loadstart", handleLoadStart);
       audio.removeEventListener("canplay", handleCanPlay);
       audio.removeEventListener("error", handleError);
@@ -194,7 +228,7 @@ export default function AudioControls({ className }: { className?: string }) {
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [retryCount, playStateStore, progressStore, contentStore, audioURL]);
+  }, [retryCount, playStateStore, progressStore, contentStore, audioURL, isLoading]);
 
   // Sync audio ref's state with global state - prevent unwanted resets
   const syncAudioState = useCallback(async () => {
@@ -203,17 +237,27 @@ export default function AudioControls({ className }: { className?: string }) {
     try {
       if (playStateStore.playState === "playing") {
         setError(null);
-        // Don't reset currentTime here - let the loaded metadata handler do it
-        await audioRef.current.play();
+        // Only try to play if we're not currently loading
+        if (!isLoading) {
+          // Don't reset currentTime if it's already set and we have stored progress
+          const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds || 0;
+          if (storedProgress > 0 && audioRef.current.currentTime === 0) {
+            audioRef.current.currentTime = storedProgress;
+          }
+          await audioRef.current.play();
+        }
       } else {
         audioRef.current.pause();
       }
-    } catch (error) {
-      console.error("Failed to play audio:", error);
-      playStateStore.setPlayState("paused");
-      setError("Unable to start playback. Please try again.");
+    } catch (error: any) {
+      // Only handle play errors, not loading errors
+      if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+        console.error("Failed to play audio:", error);
+        playStateStore.setPlayState("paused");
+        setError("Kunde inte starta uppspelning. Försök igen.");
+      }
     }
-  }, [playStateStore]);
+  }, [playStateStore, isLoading, progressStore]);
 
   useEffect(() => {
     syncAudioState();
@@ -230,6 +274,7 @@ export default function AudioControls({ className }: { className?: string }) {
     // Clear any existing error
     setError(null);
     setRetryCount(0);
+    setIsLoading(true); // Set loading immediately
 
     // Update episode reference
     previousEpisodeIdRef.current = playStateStore.currentEpisode.id;
@@ -242,27 +287,34 @@ export default function AudioControls({ className }: { className?: string }) {
     const wasPlaying = playStateStore.playState === "playing";
 
     const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+    
+    // Pause first to prevent any automatic playback
+    audio.pause();
     audio.src = proxyUrl;
 
     // Set up event handlers before loading
-    const handleLoadedMetadata = () => {
+    const handleLoadedData = () => {
+      // Set progress immediately when data is loaded
       if (storedProgress > 0 && audioRef.current) {
         audioRef.current.currentTime = storedProgress;
       }
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    };
-
-    const handleCanPlay = () => {
-      // Only start playing if it was playing before
-      if (wasPlaying) {
-        syncAudioState();
+      setIsLoading(false);
+      
+      // Only start playing if it was playing before AND we're not in an error state
+      if (wasPlaying && !error) {
+        // Small delay to ensure currentTime is set
+        setTimeout(() => {
+          if (!error && playStateStore.playState === "playing") {
+            syncAudioState();
+          }
+        }, 50);
       }
-      audio.removeEventListener('canplay', handleCanPlay);
+      
+      audio.removeEventListener('loadeddata', handleLoadedData);
     };
 
-    // Add event listeners before loading
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('canplay', handleCanPlay);
+    // Add event listener before loading
+    audio.addEventListener('loadeddata', handleLoadedData);
 
     // Now load the audio
     audio.load();
@@ -272,10 +324,9 @@ export default function AudioControls({ className }: { className?: string }) {
     if (nextEpisode) playStateStore.setPreloadEpisode(nextEpisode);
 
     return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('loadeddata', handleLoadedData);
     };
-  }, [playStateStore, progressStore, contentStore, syncAudioState]);
+  }, [playStateStore.currentEpisode, progressStore, contentStore, syncAudioState, error, playStateStore]);
   // Handle progress updates with throttling - ONLY update if actually playing
   useEffect(() => {
     if (!audioRef.current || !playStateStore.currentEpisode) return;
@@ -323,7 +374,8 @@ export default function AudioControls({ className }: { className?: string }) {
       try {
         preloadRef.current = new Audio();
         preloadRef.current.preload = "metadata";
-        preloadRef.current.src = playStateStore.preloadEpisode.url;
+        const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.preloadEpisode.url)}`;
+        preloadRef.current.src = proxyUrl;
       } catch (error) {
         console.warn("Failed to preload next episode:", error);
       }
