@@ -1,7 +1,7 @@
 {
-  "editor.detectIndentation": false,
-  "editor.tabSize": 2,
-  "cSpell.words": [
-    "viggos"
-  ]
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  }
 }
