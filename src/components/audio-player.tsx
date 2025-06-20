@@ -196,13 +196,14 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [retryCount, playStateStore, progressStore, contentStore, audioURL]);
 
-  // Sync audio ref's state with global state
+  // Sync audio ref's state with global state - prevent unwanted resets
   const syncAudioState = useCallback(async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !playStateStore.currentEpisode) return;
 
     try {
-      if (playStateStore.currentEpisode && playStateStore.playState === "playing") {
+      if (playStateStore.playState === "playing") {
         setError(null);
+        // Don't reset currentTime here - let the loaded metadata handler do it
         await audioRef.current.play();
       } else {
         audioRef.current.pause();
@@ -210,7 +211,7 @@ export default function AudioControls({ className }: { className?: string }) {
     } catch (error) {
       console.error("Failed to play audio:", error);
       playStateStore.setPlayState("paused");
-      setError("Misslyckades att starta uppspelning. Försök igen.");
+      setError("Unable to start playback. Please try again.");
     }
   }, [playStateStore]);
 
@@ -233,38 +234,49 @@ export default function AudioControls({ className }: { className?: string }) {
     // Update episode reference
     previousEpisodeIdRef.current = playStateStore.currentEpisode.id;
 
-    // Update audio source
+    // Get stored progress BEFORE loading
+    const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds || 0;
+
+    // Update audio source - use proxy for CORS
     const audio = audioRef.current;
     const wasPlaying = playStateStore.playState === "playing";
 
-    audio.src = playStateStore.currentEpisode.url;
-    audio.load();
+    const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+    audio.src = proxyUrl;
 
-    // Load progress if available
-    const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds;
-
-    const handleCanPlayThrough = () => {
-      if (storedProgress && audioRef.current) {
+    // Set up event handlers before loading
+    const handleLoadedMetadata = () => {
+      if (storedProgress > 0 && audioRef.current) {
         audioRef.current.currentTime = storedProgress;
       }
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+
+    const handleCanPlay = () => {
+      // Only start playing if it was playing before
       if (wasPlaying) {
         syncAudioState();
       }
-      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+      audio.removeEventListener('canplay', handleCanPlay);
     };
 
-    audio.addEventListener("canplaythrough", handleCanPlayThrough);
+    // Add event listeners before loading
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    // Now load the audio
+    audio.load();
 
     // Preload the next episode
     const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
     if (nextEpisode) playStateStore.setPreloadEpisode(nextEpisode);
 
     return () => {
-      audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
     };
-  }, [playStateStore.currentEpisode, progressStore, contentStore, syncAudioState]);
-
-  // Handle progress updates with throttling
+  }, [playStateStore, progressStore, contentStore, syncAudioState]);
+  // Handle progress updates with throttling - ONLY update if actually playing
   useEffect(() => {
     if (!audioRef.current || !playStateStore.currentEpisode) return;
 
@@ -272,15 +284,22 @@ export default function AudioControls({ className }: { className?: string }) {
       if (!audioRef.current || !playStateStore.currentEpisode) return;
       if (!playStateStore.currentEpisode.meta.saveProgress) return;
       if (!isPlayingRef.current) return;
+      if (playStateStore.playState !== "playing") return; // Double check play state
 
-      progressStore.setEpisodeProgress(
-        playStateStore.currentEpisode.id.toString(),
-        { seconds: audioRef.current.currentTime, finished: false }
-      );
+      const currentTime = audioRef.current.currentTime;
+      const existingProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds || 0;
+
+      // Only update if there's a meaningful change (avoid micro-updates)
+      if (Math.abs(currentTime - existingProgress) > 0.5) {
+        progressStore.setEpisodeProgress(
+          playStateStore.currentEpisode.id.toString(),
+          { seconds: currentTime, finished: false }
+        );
+      }
     };
 
-    // Update progress every second instead of on every timeupdate
-    progressUpdateIntervalRef.current = setInterval(updateProgress, 1000);
+    // Update progress every 2 seconds to reduce store updates
+    progressUpdateIntervalRef.current = setInterval(updateProgress, 2000);
 
     return () => {
       if (progressUpdateIntervalRef.current) {
@@ -288,7 +307,7 @@ export default function AudioControls({ className }: { className?: string }) {
         progressUpdateIntervalRef.current = null;
       }
     };
-  }, [playStateStore.currentEpisode, progressStore]);
+  }, [playStateStore.currentEpisode, progressStore, playStateStore.playState]);
 
   // Preload the next episode with better cleanup
   useEffect(() => {
@@ -326,12 +345,12 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const newProgress = parseInt(e.target.value) / 100 * playStateStore.currentEpisode.duration;
 
-    // Modify the audio element
+    // Modify the audio element first
     if (audioRef.current) {
       audioRef.current.currentTime = newProgress;
     }
 
-    // Save in global store
+    // Then save in global store
     progressStore.setEpisodeProgress(
       playStateStore.currentEpisode.id.toString(),
       { seconds: newProgress, finished: false }
