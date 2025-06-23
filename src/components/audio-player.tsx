@@ -121,7 +121,7 @@ export default function AudioControls({ className }: { className?: string }) {
         console.error("Audio playback error:", e);
         setIsLoading(false);
         playStateStore.setPlayState("paused");
-        
+
         if (retryCount < maxRetries && playStateStore.currentEpisode) {
           setError(`Nätverksproblem, prövar igen... (${retryCount + 1}/${maxRetries})`);
           setTimeout(() => {
@@ -143,7 +143,7 @@ export default function AudioControls({ className }: { className?: string }) {
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
       }
-      
+
       loadingTimeout = setTimeout(() => {
         console.warn('Audio stalled, attempting to recover...');
         if (audio.currentTime > 0) {
@@ -162,7 +162,7 @@ export default function AudioControls({ className }: { className?: string }) {
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
       }
-      
+
       loadingTimeout = setTimeout(() => {
         setIsLoading(true);
       }, 1000); // Only show loading after 1 second of waiting
@@ -287,7 +287,7 @@ export default function AudioControls({ className }: { className?: string }) {
     const wasPlaying = playStateStore.playState === "playing";
 
     const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
-    
+
     // Pause first to prevent any automatic playback
     audio.pause();
     audio.src = proxyUrl;
@@ -299,7 +299,7 @@ export default function AudioControls({ className }: { className?: string }) {
         audioRef.current.currentTime = storedProgress;
       }
       setIsLoading(false);
-      
+
       // Only start playing if it was playing before AND we're not in an error state
       if (wasPlaying && !error) {
         // Small delay to ensure currentTime is set
@@ -309,7 +309,7 @@ export default function AudioControls({ className }: { className?: string }) {
           }
         }, 50);
       }
-      
+
       audio.removeEventListener('loadeddata', handleLoadedData);
     };
 
@@ -411,24 +411,34 @@ export default function AudioControls({ className }: { className?: string }) {
 
   // MediaSession API setup
   useEffect(() => {
-    if (!("mediaSession" in navigator) || !playStateStore.currentEpisode) return;
+    if (
+      typeof window === "undefined" ||
+      !("mediaSession" in navigator) ||
+      !playStateStore.currentEpisode
+    ) {
+      return;
+    }
 
-    // Setup MediaSession metadata
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: playStateStore.currentEpisode.title,
-      artist: playStateStore.currentEpisode.program.name,
+    const episode = playStateStore.currentEpisode;
+    const programName = episode.program.name;
+    const artwork = [
+      { src: episode.image.square, sizes: "96x96", type: "image/png" },
+      { src: episode.image.square, sizes: "128x128", type: "image/png" },
+      { src: episode.image.square, sizes: "192x192", type: "image/png" },
+      { src: episode.image.square, sizes: "256x256", type: "image/png" },
+      { src: episode.image.square, sizes: "384x384", type: "image/png" },
+      { src: episode.image.square, sizes: "512x512", type: "image/png" },
+    ];
+
+    // Only set metadata if the episode changes
+    navigator.mediaSession.metadata = new window.MediaMetadata({
+      title: episode.title,
+      artist: programName,
       album: "Podcast",
-      artwork: [
-        { src: playStateStore.currentEpisode.image.square, sizes: "96x96", type: "image/png" },
-        { src: playStateStore.currentEpisode.image.square, sizes: "128x128", type: "image/png" },
-        { src: playStateStore.currentEpisode.image.square, sizes: "192x192", type: "image/png" },
-        { src: playStateStore.currentEpisode.image.square, sizes: "256x256", type: "image/png" },
-        { src: playStateStore.currentEpisode.image.square, sizes: "384x384", type: "image/png" },
-        { src: playStateStore.currentEpisode.image.square, sizes: "512x512", type: "image/png" },
-      ]
+      artwork,
     });
 
-    // Define action handlers
+    // Handler functions
     const playHandler = () => playStateStore.setPlayState("playing");
     const pauseHandler = () => playStateStore.setPlayState("paused");
     const seekBackwardHandler = (details: any) => {
@@ -467,7 +477,7 @@ export default function AudioControls({ className }: { className?: string }) {
     navigator.mediaSession.setActionHandler("previoustrack", prevTrackHandler);
     navigator.mediaSession.setActionHandler("nexttrack", nextTrackHandler);
 
-    // Cleanup function to remove handlers when component unmounts or episode changes
+    // Cleanup function
     return () => {
       if ("mediaSession" in navigator) {
         navigator.mediaSession.setActionHandler("play", null);
@@ -478,7 +488,9 @@ export default function AudioControls({ className }: { className?: string }) {
         navigator.mediaSession.setActionHandler("nexttrack", null);
       }
     };
-  }, [playStateStore, contentStore, progressStore]);
+    // Dependency ONLY on actual episode metadata!
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playStateStore.currentEpisode?.id, playStateStore.currentEpisode?.title, playStateStore.currentEpisode?.program.name, playStateStore.currentEpisode?.image.square]);
 
   const currentEpisode = playStateStore.currentEpisode;
   const episodeInfo: {
