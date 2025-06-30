@@ -15,7 +15,6 @@ I was growing tired of the SR Play app on android since it had a bunch of bugs t
 - Next.js
 - React
 - TailwindCSS
-- SCSS / SASS
 - TypeScript
 - Web API
 

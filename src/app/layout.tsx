@@ -1,4 +1,4 @@
-import "./global.scss";
+import "./global.tw.css";
 import { Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import * as Icon from "lucide-react";

@@ -176,6 +176,12 @@ export default function AudioControls({ className }: { className?: string }) {
         clearTimeout(loadingTimeout);
         loadingTimeout = null;
       }
+      
+      // Start preloading the next episode as soon as current one starts playing
+      const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+      if (nextEpisode && nextEpisode.id !== playStateStore.preloadEpisode?.id) {
+        playStateStore.setPreloadEpisode(nextEpisode);
+      }
     };
 
     const handlePause = () => {
@@ -195,7 +201,17 @@ export default function AudioControls({ className }: { className?: string }) {
       // Find the next episode
       const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
       if (nextEpisode) {
+        // If we have a preloaded episode and it matches, use it immediately
+        if (preloadRef.current && playStateStore.preloadEpisode?.id === nextEpisode.id) {
+          // Transfer the preloaded audio to the main player
+          if (audioRef.current) {
+            audioRef.current.src = preloadRef.current.src;
+            audioRef.current.load();
+          }
+        }
         playStateStore.setCurrentEpisode(nextEpisode);
+        // Maintain playing state for seamless transition
+        playStateStore.setPlayState("playing");
       } else {
         // No next episode found
         playStateStore.setCurrentEpisode(null);
@@ -319,9 +335,11 @@ export default function AudioControls({ className }: { className?: string }) {
     // Now load the audio
     audio.load();
 
-    // Preload the next episode
+    // Start preloading the next episode immediately
     const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
-    if (nextEpisode) playStateStore.setPreloadEpisode(nextEpisode);
+    if (nextEpisode && nextEpisode.id !== playStateStore.preloadEpisode?.id) {
+      playStateStore.setPreloadEpisode(nextEpisode);
+    }
 
     return () => {
       audio.removeEventListener('loadeddata', handleLoadedData);
@@ -360,7 +378,7 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [playStateStore.currentEpisode, progressStore, playStateStore.playState]);
 
-  // Preload the next episode with better cleanup
+  // Preload the next episode with better cleanup and more aggressive preloading
   useEffect(() => {
     // Clean up previous preload
     if (preloadRef.current) {
@@ -373,11 +391,26 @@ export default function AudioControls({ className }: { className?: string }) {
     if (playStateStore.preloadEpisode) {
       try {
         preloadRef.current = new Audio();
-        preloadRef.current.preload = "metadata";
+        preloadRef.current.preload = "auto"; // Changed from "metadata" to "auto" for faster loading
         const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.preloadEpisode.url)}`;
         preloadRef.current.src = proxyUrl;
+        
+        // Add error handling for preload
+        const handlePreloadError = (e: Event) => {
+          console.warn("Failed to preload next episode:", e);
+        };
+        
+        const handlePreloadCanPlay = () => {
+          console.log("Next episode preloaded successfully:", playStateStore.preloadEpisode?.title);
+        };
+        
+        preloadRef.current.addEventListener('error', handlePreloadError);
+        preloadRef.current.addEventListener('canplay', handlePreloadCanPlay);
+        
+        // Start loading immediately
+        preloadRef.current.load();
       } catch (error) {
-        console.warn("Failed to preload next episode:", error);
+        console.warn("Failed to create preload audio element:", error);
       }
     }
 
@@ -390,6 +423,49 @@ export default function AudioControls({ className }: { className?: string }) {
       }
     };
   }, [playStateStore.preloadEpisode]);
+
+  // Aggressively preload next episode when current episode or play state changes
+  useEffect(() => {
+    if (playStateStore.currentEpisode) {
+      const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+      if (nextEpisode && nextEpisode.id !== playStateStore.preloadEpisode?.id) {
+        // Small delay to not interfere with current episode loading
+        const preloadTimeout = setTimeout(() => {
+          playStateStore.setPreloadEpisode(nextEpisode);
+        }, 1000);
+        
+        return () => clearTimeout(preloadTimeout);
+      }
+    }
+  }, [playStateStore.currentEpisode?.id, playStateStore.playState, contentStore, progressStore, playStateStore]);
+
+  // Monitor progress and preload more aggressively when nearing end
+  useEffect(() => {
+    if (!audioRef.current || !playStateStore.currentEpisode) return;
+
+    const checkForPreload = () => {
+      if (!audioRef.current || !playStateStore.currentEpisode) return;
+      
+      const currentTime = audioRef.current.currentTime;
+      const duration = playStateStore.currentEpisode.duration;
+      
+      // If we're in the last 30 seconds, ensure next episode is preloaded
+      if (duration && currentTime > duration - 30) {
+        const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
+        if (nextEpisode && nextEpisode.id !== playStateStore.preloadEpisode?.id) {
+          console.log("Approaching end, preloading next episode:", nextEpisode.title);
+          playStateStore.setPreloadEpisode(nextEpisode);
+        }
+      }
+    };
+
+    // Check every 5 seconds during playback
+    const preloadCheckInterval = setInterval(checkForPreload, 5000);
+
+    return () => {
+      clearInterval(preloadCheckInterval);
+    };
+  }, [playStateStore.currentEpisode, contentStore, progressStore, playStateStore]);
 
   const onProgressDrag = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (!playStateStore.currentEpisode ||

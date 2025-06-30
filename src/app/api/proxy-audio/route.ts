@@ -9,12 +9,22 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get range header from client request
+    const range = request.headers.get('range');
+    
     // Fetch the audio stream from SR API
+    const fetchHeaders: HeadersInit = {
+      'User-Agent': 'VR-Radio/1.0',
+      'Accept': 'audio/*',
+    };
+    
+    // Forward range requests for seeking and partial content
+    if (range) {
+      fetchHeaders['Range'] = range;
+    }
+    
     const response = await fetch(audioUrl, {
-      headers: {
-        'User-Agent': 'VR-Radio/1.0',
-        'Accept': 'audio/*',
-      },
+      headers: fetchHeaders,
     });
 
     if (!response.ok) {
