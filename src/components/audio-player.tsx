@@ -176,7 +176,7 @@ export default function AudioControls({ className }: { className?: string }) {
         clearTimeout(loadingTimeout);
         loadingTimeout = null;
       }
-      
+
       // Start preloading the next episode as soon as current one starts playing
       const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
       if (nextEpisode && nextEpisode.id !== playStateStore.preloadEpisode?.id) {
@@ -394,19 +394,19 @@ export default function AudioControls({ className }: { className?: string }) {
         preloadRef.current.preload = "auto"; // Changed from "metadata" to "auto" for faster loading
         const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.preloadEpisode.url)}`;
         preloadRef.current.src = proxyUrl;
-        
+
         // Add error handling for preload
         const handlePreloadError = (e: Event) => {
           console.warn("Failed to preload next episode:", e);
         };
-        
+
         const handlePreloadCanPlay = () => {
           console.log("Next episode preloaded successfully:", playStateStore.preloadEpisode?.title);
         };
-        
+
         preloadRef.current.addEventListener('error', handlePreloadError);
         preloadRef.current.addEventListener('canplay', handlePreloadCanPlay);
-        
+
         // Start loading immediately
         preloadRef.current.load();
       } catch (error) {
@@ -433,7 +433,7 @@ export default function AudioControls({ className }: { className?: string }) {
         const preloadTimeout = setTimeout(() => {
           playStateStore.setPreloadEpisode(nextEpisode);
         }, 1000);
-        
+
         return () => clearTimeout(preloadTimeout);
       }
     }
@@ -445,10 +445,10 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const checkForPreload = () => {
       if (!audioRef.current || !playStateStore.currentEpisode) return;
-      
+
       const currentTime = audioRef.current.currentTime;
       const duration = playStateStore.currentEpisode.duration;
-      
+
       // If we're in the last 30 seconds, ensure next episode is preloaded
       if (duration && currentTime > duration - 30) {
         const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
