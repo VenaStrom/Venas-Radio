@@ -12,10 +12,12 @@ export async function GET(request: NextRequest) {
     // Get range header from client request
     const range = request.headers.get('range');
     
-    // Fetch the audio stream from SR API
+    // Fetch the audio stream from SR API with better connection handling
     const fetchHeaders: HeadersInit = {
       'User-Agent': 'VR-Radio/1.0',
       'Accept': 'audio/*',
+      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache',
     };
     
     // Forward range requests for seeking and partial content
@@ -37,10 +39,12 @@ export async function GET(request: NextRequest) {
       statusText: response.statusText,
     });
 
-    // Set CORS headers
+    // Set CORS headers and connection handling
     audioResponse.headers.set('Access-Control-Allow-Origin', '*');
     audioResponse.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
     audioResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Range');
+    audioResponse.headers.set('Connection', 'keep-alive');
+    audioResponse.headers.set('Keep-Alive', 'timeout=300, max=1000');
     
     // Copy important headers from the original response
     const headersToForward = [

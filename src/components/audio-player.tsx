@@ -148,13 +148,23 @@ export default function AudioControls({ className }: { className?: string }) {
         console.warn('Audio stalled, attempting to recover...');
         if (audio.currentTime > 0) {
           const currentTime = audio.currentTime;
-          setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.currentTime = currentTime;
-            }
-          }, 100);
+          // For long playback sessions, recreate the audio source to refresh connection
+          if (playStateStore.currentEpisode) {
+            console.log('Refreshing audio connection due to stall');
+            const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+            audio.src = proxyUrl;
+            audio.load();
+            setTimeout(() => {
+              if (audioRef.current) {
+                audioRef.current.currentTime = currentTime;
+                if (playStateStore.playState === "playing") {
+                  audioRef.current.play().catch(console.error);
+                }
+              }
+            }, 100);
+          }
         }
-      }, 10000); // Wait 10 seconds before considering it stalled
+      }, 5000); // Reduced from 10 seconds to 5 seconds for quicker recovery
     };
 
     const handleWaiting = () => {
@@ -615,6 +625,55 @@ export default function AudioControls({ className }: { className?: string }) {
         ? `${dHour.toString().padStart(2, "0")}:${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`
         : `${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`;
   }
+
+  // Heartbeat to detect unexpected playback stops
+  useEffect(() => {
+    if (!audioRef.current || !playStateStore.currentEpisode || playStateStore.playState !== "playing") return;
+
+    let lastCurrentTime = 0;
+    let stuckCount = 0;
+
+    const heartbeatInterval = setInterval(() => {
+      if (audioRef.current && playStateStore.playState === "playing" && !audioRef.current.paused) {
+        const currentTime = audioRef.current.currentTime;
+        
+        // Check if audio is stuck (not progressing)
+        if (Math.abs(currentTime - lastCurrentTime) < 0.1) {
+          stuckCount++;
+          console.warn(`Audio appears stuck, count: ${stuckCount}`);
+          
+          // If stuck for more than 3 checks (15 seconds), attempt recovery
+          if (stuckCount >= 3) {
+            console.log('Audio stuck detected, attempting recovery');
+            if (playStateStore.currentEpisode) {
+              const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+              audioRef.current.src = proxyUrl;
+              audioRef.current.load();
+              
+              const handleRecoveryCanPlay = () => {
+                if (audioRef.current) {
+                  audioRef.current.currentTime = currentTime;
+                  audioRef.current.play().catch(console.error);
+                  audioRef.current.removeEventListener('canplay', handleRecoveryCanPlay);
+                }
+              };
+              
+              audioRef.current.addEventListener('canplay', handleRecoveryCanPlay);
+            }
+            stuckCount = 0;
+          }
+        } else {
+          stuckCount = 0; // Reset if audio is progressing
+        }
+        
+        lastCurrentTime = currentTime;
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => {
+      clearInterval(heartbeatInterval);
+    };
+  }, [playStateStore.currentEpisode, playStateStore.playState]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
