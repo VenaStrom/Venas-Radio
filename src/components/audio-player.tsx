@@ -88,6 +88,50 @@ export default function AudioControls({ className }: { className?: string }) {
   const preloadRef = useRef<HTMLAudioElement | null>(null);
   const isPlayingRef = useRef(false);
   const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Refresh audio connection without losing progress
+  const refreshAudioConnection = useCallback(() => {
+    if (!audioRef.current || !playStateStore.currentEpisode || !isPlayingRef.current) return;
+
+    const audio = audioRef.current;
+    const currentTime = audio.currentTime;
+
+    // Only refresh if we have a valid time
+    if (currentTime > 0) {
+      console.log(`Refreshing audio connection at ${currentTime}s`);
+      setIsLoading(true);
+
+      const wasPlaying = playStateStore.playState === "playing";
+      const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}&_t=${Date.now()}`;
+
+      const handleCanPlay = () => {
+        if (audioRef.current) {
+          // Use a small timeout to ensure the audio element is ready for seeking
+          setTimeout(() => {
+            if (audioRef.current) {
+              console.log(`Restoring time to ${currentTime}s after refresh`);
+              audioRef.current.currentTime = currentTime;
+              setIsLoading(false);
+              if (wasPlaying) {
+                audioRef.current.play().catch(e => {
+                  console.error("Failed to play after refresh:", e);
+                  playStateStore.setPlayState("paused");
+                });
+              }
+            }
+          }, 50); // 50ms delay
+        }
+        audio.removeEventListener('canplay', handleCanPlay);
+      };
+
+      // Pause before changing src to ensure a clean state
+      audio.pause();
+      audio.addEventListener('canplay', handleCanPlay);
+      audio.src = proxyUrl;
+      audio.load();
+    }
+  }, [playStateStore]);
 
   // Stable audio element creation and event setup
   useEffect(() => {
@@ -127,7 +171,7 @@ export default function AudioControls({ className }: { className?: string }) {
           setTimeout(() => {
             setRetryCount(prev => prev + 1);
             if (audioRef.current && playStateStore.currentEpisode) {
-              const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+              const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}&_t=${Date.now()}`;
               audioRef.current.src = proxyUrl;
               audioRef.current.load();
             }
@@ -139,32 +183,17 @@ export default function AudioControls({ className }: { className?: string }) {
     };
 
     const handleStalled = () => {
-      // Only handle stalls if we've been loading for more than 10 seconds
+      // Only handle stalls if we've been loading for more than 5 seconds
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
       }
 
       loadingTimeout = setTimeout(() => {
         console.warn('Audio stalled, attempting to recover...');
-        if (audio.currentTime > 0) {
-          const currentTime = audio.currentTime;
-          // For long playback sessions, recreate the audio source to refresh connection
-          if (playStateStore.currentEpisode) {
-            console.log('Refreshing audio connection due to stall');
-            const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
-            audio.src = proxyUrl;
-            audio.load();
-            setTimeout(() => {
-              if (audioRef.current) {
-                audioRef.current.currentTime = currentTime;
-                if (playStateStore.playState === "playing") {
-                  audioRef.current.play().catch(console.error);
-                }
-              }
-            }, 100);
-          }
+        if (audioRef.current && audioRef.current.currentTime > 0) {
+          refreshAudioConnection();
         }
-      }, 5000); // Reduced from 10 seconds to 5 seconds for quicker recovery
+      }, 5000);
     };
 
     const handleWaiting = () => {
@@ -254,7 +283,7 @@ export default function AudioControls({ className }: { className?: string }) {
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [retryCount, playStateStore, progressStore, contentStore, audioURL, isLoading]);
+  }, [retryCount, playStateStore, progressStore, contentStore, audioURL, isLoading, refreshAudioConnection]);
 
   // Sync audio ref's state with global state - prevent unwanted resets
   const syncAudioState = useCallback(async () => {
@@ -312,7 +341,7 @@ export default function AudioControls({ className }: { className?: string }) {
     const audio = audioRef.current;
     const wasPlaying = playStateStore.playState === "playing";
 
-    const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
+    const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}&_t=${Date.now()}`;
 
     // Pause first to prevent any automatic playback
     audio.pause();
@@ -355,6 +384,30 @@ export default function AudioControls({ className }: { className?: string }) {
       audio.removeEventListener('loadeddata', handleLoadedData);
     };
   }, [playStateStore.currentEpisode, progressStore, contentStore, syncAudioState, error, playStateStore]);
+
+  // Periodic connection refresh to prevent stream timeouts (e.g., 25-min issue)
+  useEffect(() => {
+    // Clear any existing interval
+    if (connectionRefreshIntervalRef.current) {
+      clearInterval(connectionRefreshIntervalRef.current);
+    }
+
+    if (playStateStore.playState === "playing") {
+      // Refresh connection every 20 minutes
+      connectionRefreshIntervalRef.current = setInterval(() => {
+        console.log("Triggering periodic connection refresh.");
+        refreshAudioConnection();
+      }, 20 * 60 * 1000); // 20 minutes
+    }
+
+    return () => {
+      if (connectionRefreshIntervalRef.current) {
+        clearInterval(connectionRefreshIntervalRef.current);
+        connectionRefreshIntervalRef.current = null;
+      }
+    };
+  }, [playStateStore.playState, refreshAudioConnection]);
+
   // Handle progress updates with throttling - ONLY update if actually playing
   useEffect(() => {
     if (!audioRef.current || !playStateStore.currentEpisode) return;
