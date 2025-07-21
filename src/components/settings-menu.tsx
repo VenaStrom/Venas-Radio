@@ -5,7 +5,7 @@ import { useSettingsStore } from "@/store/settings-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import * as Icon from "lucide-react";
+import { SettingsIcon } from "lucide-react";
 import { useState } from "react";
 
 export default function SettingsMenu() {
@@ -25,7 +25,7 @@ export default function SettingsMenu() {
             }
         }}>
             <DialogTrigger>
-                <Icon.Settings />
+                <SettingsIcon />
             </DialogTrigger>
 
             <DialogContent className="w-[90%] bg-zinc-900 rounded-lg border-none">

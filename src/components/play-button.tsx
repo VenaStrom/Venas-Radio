@@ -4,7 +4,7 @@ import { usePlayStateStore } from "@/store/play-state-store";
 import { useProgressStore } from "@/store/progress-store";
 import type { Content } from "@/types/api/content";
 import type { PlayPause } from "@/types/play-pause";
-import * as Icon from "lucide-react";
+import { PauseIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
 
 /**
@@ -87,8 +87,8 @@ export default function PlayButton({
 
     const getIcon = () => {
         return buttonState === "paused"
-            ? <Icon.Play size={iconSize} className="fill-zinc-100" />
-            : <Icon.Pause size={iconSize} className="fill-zinc-100" />;
+            ? <PlayIcon size={iconSize} className="fill-zinc-100" />
+            : <PauseIcon size={iconSize} className="fill-zinc-100" />;
     };
 
     return (
