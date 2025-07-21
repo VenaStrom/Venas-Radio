@@ -1,45 +1,49 @@
 "use client";
 
 import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
+import { useContentStore } from "@/store/content-store";
 import { Channel } from "@/types/api/channel";
-import { ChannelMap } from "@/types/maps";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export default function HomePage() {
-    const [channelData, setChannelData] = useState<ChannelMap>({});
+    const { channels, setChannels, lastFetchedChannels } = useContentStore();
     const [isLoading, setIsLoading] = useState(true);
     const [renderCount, setRenderCount] = useState(6);
 
     useEffect(() => {
         const fetchChannels = async () => {
+            const now = Date.now();
+            if (channels.length > 0 && lastFetchedChannels && (now - lastFetchedChannels < CACHE_DURATION)) {
+                setIsLoading(false);
+                return;
+            }
+
             const response = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false");
             const data = await response.json();
 
-            const allChannels: ChannelMap = {};
-
-            data.channels.forEach((channel: Channel) => {
-                allChannels[channel.id] = channel;
-            });
+            const allChannels: Channel[] = data.channels;
 
             // Save
-            setChannelData(allChannels);
+            setChannels(allChannels);
             setIsLoading(false);
         };
 
         fetchChannels();
-    }, []);
+    }, [channels, setChannels, lastFetchedChannels]);
 
     useEffect(() => {
         // Janky staggard loading for performance reasons
-        if (!isLoading && renderCount < Object.keys(channelData).length - 6) {
+        if (!isLoading && renderCount < channels.length - 6) {
             const interval = setInterval(() => {
                 setRenderCount(prevCount => prevCount + 1);
             }, 100); 
 
             return () => clearInterval(interval);
         }
-    }, [isLoading, renderCount, channelData]);
+    }, [isLoading, renderCount, channels]);
 
     return (
         <main>
@@ -64,7 +68,7 @@ export default function HomePage() {
                             ))}
                         </>
                     ) : (
-                        Object.values(channelData).slice(0, renderCount).map((channel) => (
+                        channels.slice(0, renderCount).map((channel) => (
                             <ChannelDOM channelData={channel} key={channel.id} />
                         ))
                     )}

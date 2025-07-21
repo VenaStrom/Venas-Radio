@@ -1,10 +1,17 @@
+import { Channel } from "@/types/api/channel";
+import { Program } from "@/types/api/program";
 import { ContentMap } from "@/types/maps";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 export type ContentStore = {
   contentData: ContentMap;
-  lastFetched: number | null;
+  programs: Program[];
+  channels: Channel[];
+  lastFetchedPrograms: number | null;
+  lastFetchedChannels: number | null;
+  setPrograms: (programs: Program[]) => void;
+  setChannels: (channels: Channel[]) => void;
   setContentData: (contentData: ContentMap) => void;
   appendContentData: (contentData: ContentMap) => void;
 }
@@ -31,11 +38,15 @@ export const useContentStore = create<ContentStore>()(
   persist(
     (set) => ({
       contentData: {},
-      lastFetched: null,
-      setContentData: (contentData: ContentMap) => set({ contentData: contentData, lastFetched: Date.now() }),
+      programs: [],
+      channels: [],
+      lastFetchedPrograms: null,
+      lastFetchedChannels: null,
+      setPrograms: (programs: Program[]) => set({ programs, lastFetchedPrograms: Date.now() }),
+      setChannels: (channels: Channel[]) => set({ channels, lastFetchedChannels: Date.now() }),
+      setContentData: (contentData: ContentMap) => set({ contentData: contentData }),
       appendContentData: (contentData: ContentMap) => set((state) => ({
         contentData: { ...state.contentData, ...contentData },
-        lastFetched: Date.now()
       })),
     }),
     {
