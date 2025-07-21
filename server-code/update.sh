@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/vr/Viggos-radio
+cd /home/vr/Viggos-Radio
 
 git fetch --all
 git checkout origin/main --force
