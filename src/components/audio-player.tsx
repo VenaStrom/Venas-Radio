@@ -88,7 +88,6 @@ export default function AudioControls({ className }: { className?: string }) {
   const preloadRef = useRef<HTMLAudioElement | null>(null);
   const isPlayingRef = useRef(false);
   const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const connectionRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refresh audio connection without losing progress
   const refreshAudioConnection = useCallback(() => {
@@ -97,13 +96,14 @@ export default function AudioControls({ className }: { className?: string }) {
     const audio = audioRef.current;
     const currentTime = audio.currentTime;
 
-    // Only refresh if we have a valid time
+    // Only refresh if we have a valid time and we're actually having connection issues
     if (currentTime > 0) {
       console.log(`Refreshing audio connection at ${currentTime}s`);
       setIsLoading(true);
 
       const wasPlaying = playStateStore.playState === "playing";
-      const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}&_t=${Date.now()}`;
+      // Use direct URL instead of proxy
+      const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
 
       const handleCanPlay = () => {
         if (audioRef.current) {
@@ -122,13 +122,13 @@ export default function AudioControls({ className }: { className?: string }) {
             }
           }, 50); // 50ms delay
         }
-        audio.removeEventListener('canplay', handleCanPlay);
+        audio.removeEventListener("canplay", handleCanPlay);
       };
 
       // Pause before changing src to ensure a clean state
       audio.pause();
-      audio.addEventListener('canplay', handleCanPlay);
-      audio.src = proxyUrl;
+      audio.addEventListener("canplay", handleCanPlay);
+      audio.src = directUrl;
       audio.load();
     }
   }, [playStateStore]);
@@ -171,8 +171,9 @@ export default function AudioControls({ className }: { className?: string }) {
           setTimeout(() => {
             setRetryCount(prev => prev + 1);
             if (audioRef.current && playStateStore.currentEpisode) {
-              const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}&_t=${Date.now()}`;
-              audioRef.current.src = proxyUrl;
+              // Use direct URL instead of proxy
+              const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
+              audioRef.current.src = directUrl;
               audioRef.current.load();
             }
           }, 2000);
@@ -189,7 +190,7 @@ export default function AudioControls({ className }: { className?: string }) {
       }
 
       loadingTimeout = setTimeout(() => {
-        console.warn('Audio stalled, attempting to recover...');
+        console.warn("Audio stalled, attempting to recover...");
         if (audioRef.current && audioRef.current.currentTime > 0) {
           refreshAudioConnection();
         }
@@ -306,7 +307,7 @@ export default function AudioControls({ className }: { className?: string }) {
       }
     } catch (error: any) {
       // Only handle play errors, not loading errors
-      if (error.name !== 'AbortError' && error.name !== 'NotAllowedError') {
+      if (error.name !== "AbortError" && error.name !== "NotAllowedError") {
         console.error("Failed to play audio:", error);
         playStateStore.setPlayState("paused");
         setError("Kunde inte starta uppspelning. Försök igen.");
@@ -334,18 +335,29 @@ export default function AudioControls({ className }: { className?: string }) {
     // Update episode reference
     previousEpisodeIdRef.current = playStateStore.currentEpisode.id;
 
-    // Get stored progress BEFORE loading
-    const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds || 0;
+    // Get stored progress BEFORE loading - but reset if episode is finished
+    const progressData = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()];
+    const isFinished = progressData?.finished || false;
+    const storedProgress = isFinished ? 0 : (progressData?.seconds || 0);
 
-    // Update audio source - use proxy for CORS
+    // If episode was finished, reset it in the store
+    if (isFinished) {
+      progressStore.setEpisodeProgress(
+        playStateStore.currentEpisode.id.toString(),
+        { seconds: 0, finished: false }
+      );
+    }
+
+    // Update audio source - use direct URL
     const audio = audioRef.current;
     const wasPlaying = playStateStore.playState === "playing";
 
-    const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}&_t=${Date.now()}`;
+    // Use direct URL instead of proxy for better connection stability
+    const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
 
     // Pause first to prevent any automatic playback
     audio.pause();
-    audio.src = proxyUrl;
+    audio.src = directUrl;
 
     // Set up event handlers before loading
     const handleLoadedData = () => {
@@ -365,11 +377,11 @@ export default function AudioControls({ className }: { className?: string }) {
         }, 50);
       }
 
-      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener("loadeddata", handleLoadedData);
     };
 
     // Add event listener before loading
-    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener("loadeddata", handleLoadedData);
 
     // Now load the audio
     audio.load();
@@ -381,32 +393,9 @@ export default function AudioControls({ className }: { className?: string }) {
     }
 
     return () => {
-      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener("loadeddata", handleLoadedData);
     };
   }, [playStateStore.currentEpisode, progressStore, contentStore, syncAudioState, error, playStateStore]);
-
-  // Periodic connection refresh to prevent stream timeouts (e.g., 25-min issue)
-  useEffect(() => {
-    // Clear any existing interval
-    if (connectionRefreshIntervalRef.current) {
-      clearInterval(connectionRefreshIntervalRef.current);
-    }
-
-    if (playStateStore.playState === "playing") {
-      // Refresh connection every 20 minutes
-      connectionRefreshIntervalRef.current = setInterval(() => {
-        console.log("Triggering periodic connection refresh.");
-        refreshAudioConnection();
-      }, 20 * 60 * 1000); // 20 minutes
-    }
-
-    return () => {
-      if (connectionRefreshIntervalRef.current) {
-        clearInterval(connectionRefreshIntervalRef.current);
-        connectionRefreshIntervalRef.current = null;
-      }
-    };
-  }, [playStateStore.playState, refreshAudioConnection]);
 
   // Handle progress updates with throttling - ONLY update if actually playing
   useEffect(() => {
@@ -455,8 +444,8 @@ export default function AudioControls({ className }: { className?: string }) {
       try {
         preloadRef.current = new Audio();
         preloadRef.current.preload = "auto"; // Changed from "metadata" to "auto" for faster loading
-        const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.preloadEpisode.url)}`;
-        preloadRef.current.src = proxyUrl;
+        // Use direct URL for preloading too
+        preloadRef.current.src = playStateStore.preloadEpisode.url;
 
         // Add error handling for preload
         const handlePreloadError = (e: Event) => {
@@ -467,8 +456,8 @@ export default function AudioControls({ className }: { className?: string }) {
           console.log("Next episode preloaded successfully:", playStateStore.preloadEpisode?.title);
         };
 
-        preloadRef.current.addEventListener('error', handlePreloadError);
-        preloadRef.current.addEventListener('canplay', handlePreloadCanPlay);
+        preloadRef.current.addEventListener("error", handlePreloadError);
+        preloadRef.current.addEventListener("canplay", handlePreloadCanPlay);
 
         // Start loading immediately
         preloadRef.current.load();
@@ -689,36 +678,37 @@ export default function AudioControls({ className }: { className?: string }) {
     const heartbeatInterval = setInterval(() => {
       if (audioRef.current && playStateStore.playState === "playing" && !audioRef.current.paused) {
         const currentTime = audioRef.current.currentTime;
-        
+
         // Check if audio is stuck (not progressing)
         if (Math.abs(currentTime - lastCurrentTime) < 0.1) {
           stuckCount++;
           console.warn(`Audio appears stuck, count: ${stuckCount}`);
-          
+
           // If stuck for more than 3 checks (15 seconds), attempt recovery
           if (stuckCount >= 3) {
-            console.log('Audio stuck detected, attempting recovery');
+            console.log("Audio stuck detected, attempting recovery");
             if (playStateStore.currentEpisode) {
-              const proxyUrl = `/api/proxy-audio?url=${encodeURIComponent(playStateStore.currentEpisode.url)}`;
-              audioRef.current.src = proxyUrl;
+              // Use direct URL for recovery too
+              const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
+              audioRef.current.src = directUrl;
               audioRef.current.load();
-              
+
               const handleRecoveryCanPlay = () => {
                 if (audioRef.current) {
                   audioRef.current.currentTime = currentTime;
                   audioRef.current.play().catch(console.error);
-                  audioRef.current.removeEventListener('canplay', handleRecoveryCanPlay);
+                  audioRef.current.removeEventListener("canplay", handleRecoveryCanPlay);
                 }
               };
-              
-              audioRef.current.addEventListener('canplay', handleRecoveryCanPlay);
+
+              audioRef.current.addEventListener("canplay", handleRecoveryCanPlay);
             }
             stuckCount = 0;
           }
         } else {
           stuckCount = 0; // Reset if audio is progressing
         }
-        
+
         lastCurrentTime = currentTime;
       }
     }, 5000); // Check every 5 seconds
