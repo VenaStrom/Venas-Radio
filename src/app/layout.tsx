@@ -8,7 +8,7 @@ import SettingsMenu from "@/components/settings-menu";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
-  description: "En radiospelare gjord av och för Viggo.",
+  description: "En radiospelare gjord av och för Vena.",
   icons: {
     icon: "/icons/audio-lines.svg",
   },
@@ -20,12 +20,12 @@ export const metadata: Metadata = {
     url: "https://vr-radio.tailad6f63.ts.net/",
     images: [
       {
-        url: "https://raw.githubusercontent.com/viggoStrom/Viggos-Radio/refs/heads/main/public/icons/audio-lines.svg",
-        secureUrl: "https://raw.githubusercontent.com/viggoStrom/Viggos-Radio/refs/heads/main/public/icons/audio-lines.svg",
+        url: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/main/public/icons/audio-lines.svg",
+        secureUrl: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/main/public/icons/audio-lines.svg",
       },
     ],
   },
-  creator: "Viggo Ström <ViggoStrom05+vr@gmail.com>",
+  creator: "Vena Ström <strom.vena+vr@gmail.com>",
   keywords: ["radio", "radiospelare", "audio", "ljud", "musik", "podcast", "streaming"],
   category: "Music",
   robots: "index, follow",

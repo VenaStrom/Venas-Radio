@@ -49,10 +49,10 @@ export default function HomePage() {
         <main>
             {/* Intro section */}
             <section className="w-full flex flex-col items-center text-center mt-10">
-                <h1 className="text-2xl">Välkommen till Viggos Radio</h1>
+                <h1 className="text-2xl">Välkommen till Venas Radio</h1>
 
                 <p>
-                    Viggos Radio är en webbaserad radioapp som låter dig lyssna på radiokaneler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"}>öppna API</Link>.
+                    Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokaneler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"}>öppna API</Link>.
                 </p>
             </section>
 
