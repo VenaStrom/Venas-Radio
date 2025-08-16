@@ -1,11 +1,7 @@
 {
-  "name": "viggos-radio",
+  "name": "venas-radio",
   "version": "0.1.0",
-  "description": "A radio player by and for Viggo.",
-  "author": {
-    "name": "Viggo",
-    "email": "ViggoStrom05+vr@gmail.com"
-  },
+  "description": "A radio player by and for Vena.",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
