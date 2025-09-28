@@ -110,7 +110,6 @@ export default function EpisodeDOM({
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">
         <p className="text-xs text-zinc-400">
-          {/* {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining !== null && remaining >= 0 ? `\u00a0\u00a0\u00b7\u00a0\u00a0${remaining} min kvar` : ""} */}
           {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min{"\u00a0\u00a0\u00b7\u00a0\u00a0"}{remaining}
         </p>
 
