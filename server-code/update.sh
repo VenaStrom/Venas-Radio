@@ -11,7 +11,7 @@ yarn install
 yarn build
 
 # Make /server-code executable
-chmod +x server-code/*
+chmod +x server-code/
 
 # Restart
 reboot
