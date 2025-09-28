@@ -5,7 +5,7 @@ import PlayButton from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
 import { useProgressStore } from "@/store/progress-store";
-import { CSSProperties, use, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useMemo } from "react";
 import type { Content } from "@/types/api/content";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
