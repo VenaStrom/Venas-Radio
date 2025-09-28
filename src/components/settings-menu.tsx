@@ -21,7 +21,7 @@ export default function SettingsMenu() {
       else if (!isOpen) {
         setAllSettings({ ...uncommittedSettings, programIDs: uncommittedSettings.programIDsString.split(",").map((id) => parseInt(id.trim())).filter((id) => !isNaN(id)) });
         // Reload page
-        window.location.reload();
+        // window.location.reload();
       }
     }}>
       <DialogTrigger>
@@ -38,10 +38,10 @@ export default function SettingsMenu() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-y-2">
+        <div className="flex flex-col gap-y-6">
           {/* Compact view */}
-          <Label className="leading-4 flex flex-row gap-x-2 items-center mb-4" htmlFor="compact-view">
-            <Input className="h-5 w-fit" id="compact-view" type="checkbox" autoFocus={false}
+          <Label className="leading-4 flex flex-row gap-x-2 items-center">
+            <Input className="h-5 w-fit" type="checkbox" autoFocus={false}
               checked={uncommittedSettings.compactView}
               onChange={(e) => setUncommittedSettings({ ...uncommittedSettings, compactView: e.target.checked })}
             />
@@ -49,18 +49,22 @@ export default function SettingsMenu() {
           </Label>
 
           {/* Back day */}
-          <Label htmlFor="days-fetch-back">Antal dagar tillbaka program ska hämtas ifrån.</Label>
-          <Input className="mb-4" id="days-fetch-back" placeholder="Antal dagar ex. 7" type="number" autoFocus={false}
-            value={uncommittedSettings.fetchBack || ""}
-            onChange={(e) => setUncommittedSettings({ ...uncommittedSettings, fetchBack: Math.max(0, parseInt(e.target.value)) })}
-          />
+          <Label>
+            Antal dagar tillbaka program ska hämtas ifrån.
+            <Input className="mt-1" placeholder="Antal dagar ex. 7" type="number" autoFocus={false}
+              value={uncommittedSettings.fetchBack || ""}
+              onChange={(e) => setUncommittedSettings({ ...uncommittedSettings, fetchBack: Math.max(0, parseInt(e.target.value)) })}
+            />
+          </Label>
 
           {/* Followed programs */}
-          {/* <Label className="leading-4" htmlFor="followed-programs">Program att hämta. <span className="text-zinc-400">OBS! Detta är inte den slutgiltiga lösningen för den här funktionen.</span></Label>
-          <Input id="followed-programs" placeholder="Program ID ex. 4923, 178" type="text" autoFocus={false}
-            value={uncommittedSettings.programIDsString || ""}
-            onChange={(e) => setUncommittedSettings({ ...uncommittedSettings, programIDsString: e.target.value })}
-          /> */}
+          {/* <Label className="leading-4">
+            Program att hämta. <span className="text-zinc-400">OBS! Detta är inte den slutgiltiga lösningen för den här funktionen.</span>
+            <Input className="mt-1" placeholder="Program ID ex. 4923, 178" type="text" autoFocus={false}
+              value={uncommittedSettings.programIDsString || ""}
+              onChange={(e) => setUncommittedSettings({ ...uncommittedSettings, programIDsString: e.target.value })}
+            />
+          </Label> */}
         </div>
 
         <DialogFooter>

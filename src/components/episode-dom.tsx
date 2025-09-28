@@ -5,53 +5,87 @@ import PlayButton from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
 import { useProgressStore } from "@/store/progress-store";
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, use, useEffect, useMemo, useState } from "react";
 import type { Content } from "@/types/api/content";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
 
-export default function EpisodeDOM({ episode, className, style }: { episode: Content, className?: string, style?: CSSProperties }) {
-  const progressStore = useProgressStore();
-  const [elapsed, setElapsed] = useState(0);
-  const [percent, setPercent] = useState(0);
-
-  const episodeProgress = progressStore.episodeProgressMap[episode.id]?.seconds || 0;
-
-  useEffect(() => {
-    if (episodeProgress) {
-      setElapsed(episodeProgress / 60);
-    }
-  }, [episodeProgress]);
-
-  useEffect(() => {
+export default function EpisodeDOM({
+  episode,
+  className,
+  style,
+  compact = false,
+}: {
+  episode: Content;
+  className?: string;
+  style?: CSSProperties;
+  compact?: boolean;
+}) {
+  const progressStore = useProgressStore().episodeProgressMap[episode.id];
+  const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
+  const percent = useMemo(() => {
     const duration = Math.floor(episode.duration / 60);
-    const newPercent = duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
-    setPercent(newPercent);
+    return duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
   }, [elapsed, episode]);
 
   // Date and time formatting
-  let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
-  switch (formattedDate) {
-    case new Date().toISOString().slice(0, 10): // Today
+  const formattedDate = useMemo(() => {
+    let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
+
+    if (formattedDate === today) {
       formattedDate = "Idag";
-      break;
-
-    case new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10): // Yesterday
+    } else if (formattedDate === yesterday) {
       formattedDate = "Igår";
-      break;
-
-    default:
+    } else {
       formattedDate = episode.publishDate.toLocaleString(...dateLocale);
-      break;
-  }
-  const formattedTime = episode.publishDate.toLocaleString(...timeLocale);
+    }
+    return formattedDate;
+  }, [episode.publishDate]);
+  const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
 
-  const duration = Math.round(episode.duration / 60);
-  const remainingMin = elapsed ? Math.ceil(duration - elapsed) : null;
-  const remaining =
-    remainingMin === 0 ? "\u00a0\u00a0\u00b7\u00a0\u00a0Lyssnad" :
-      remainingMin !== null ? `\u00a0\u00a0\u00b7\u00a0\u00a0${remainingMin} min kvar` : "";
+  const duration = useMemo(() => Math.round(episode.duration / 60), [episode.duration]);
+  const remainingMin = useMemo(() => elapsed ? Math.ceil(duration - elapsed) : null, [elapsed, duration]);
+  const remaining = useMemo(() => {
+    if (remainingMin === 0) return "Lyssnad";
+    if (remainingMin !== null && remainingMin > 0) return `${remainingMin} min kvar`;
+    return "";
+  }, [remainingMin]);
+
+  if (compact) {
+    return (
+      <li className="w-full flex flex-row items-center gap-x-3" style={style} id={episode.id.toString()}>
+        {/* Thumbnail */}
+        <Image width={48} height={48} src={""} overrideSrc={episode.image.square} alt="Avsnittsbild" className="bg-zinc-600 rounded-md flex-shrink-0" fetchPriority="low"></Image>
+
+        <div className="flex flex-col flex-3">
+          {/* Program */}
+          <p className="text-sm font-light overflow-hidden flex-shrink-0">{episode.program.name}</p>
+
+          {/* Title */}
+          <p className="text-sm font-bold overflow-hidden whitespace-pre overflow-ellipsis overflow-x-auto max-w-[14ch]">{episode.title}</p>
+        </div>
+
+        <div className="flex flex-col flex-2">
+          {/* Release */}
+          <p className="text-xs text-zinc-400 text-right flex-shrink-0">{formattedDate} {formattedTime}</p>
+
+          {/* Time left */}
+          <p className="text-xs text-zinc-400 text-right flex-shrink-0">{duration} min <span className="italic">{remaining}</span></p>
+        </div>
+
+        <div>
+          {/* Play button */}
+          <PlayButton episodeData={episode} className="w-fit" />
+
+          {/* Progress */}
+          <ProgressBar progress={percent} className="flex-1 rounded-sm max-w-[130px]" innerClassName="rounded-sm" />
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className || ""}`} style={style} id={episode.id.toString()}>
@@ -77,7 +111,7 @@ export default function EpisodeDOM({ episode, className, style }: { episode: Con
       <div className="col-span-2 flex flex-row justify-between items-center">
         <p className="text-xs text-zinc-400">
           {/* {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining !== null && remaining >= 0 ? `\u00a0\u00a0\u00b7\u00a0\u00a0${remaining} min kvar` : ""} */}
-          {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min {remaining}
+          {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min{"\u00a0\u00a0\u00b7\u00a0\u00a0"}{remaining}
         </p>
 
         <PlayButton episodeData={episode} />
