@@ -4,15 +4,34 @@ import { useSettingsStore } from "@/store/settings-store";
 import { HeartIcon } from "lucide-react";
 import { CSSProperties, useState } from "react";
 
-export default function LikeButton(
-  { programID, className, style }: { programID: number, className?: string, style?: CSSProperties }
+export default function LikeButton({
+  programID,
+  channelID,
+  className = "",
+  style,
+}: {
+  programID?: number;
+  channelID?: number;
+  className?: string;
+  style?: CSSProperties;
+}
 ) {
   const [liked, setLiked] = useState(false);
   const settingsStore = useSettingsStore();
 
+  const id = programID || channelID || 0;
+
   // Load state
   useState(() => {
-    setLiked(settingsStore.settings.programIDs.includes(programID));
+    if (channelID) {
+      setLiked(settingsStore.settings.likedChannels?.includes(id) || false);
+    }
+    else if (programID) {
+      setLiked(settingsStore.settings.programIDs.includes(id));
+    }
+    else {
+      setLiked(false);
+    }
   });
 
   // Save state
@@ -21,11 +40,26 @@ export default function LikeButton(
 
     setLiked(newState);
 
+    // If likedChannels isn't defined, set it to an empty array
+    if (!settingsStore.settings?.likedChannels) {
+      settingsStore.setSetting("likedChannels", []);
+    }
+
     if (newState) {
-      settingsStore.setSetting("programIDs", Array.from(new Set([...settingsStore.settings.programIDs, programID])));
+      if (channelID) {
+        settingsStore.setSetting("likedChannels", Array.from(new Set([...settingsStore.settings.likedChannels, id])));
+      }
+      else if (programID) {
+        settingsStore.setSetting("programIDs", Array.from(new Set([...settingsStore.settings.programIDs, id])));
+      }
     }
     else {
-      settingsStore.setSetting("programIDs", settingsStore.settings.programIDs.filter(id => id !== programID));
+      if (channelID) {
+        settingsStore.setSetting("likedChannels", settingsStore.settings.likedChannels.filter(cid => cid !== id));
+      }
+      else if (programID) {
+        settingsStore.setSetting("programIDs", settingsStore.settings.programIDs.filter(pid => pid !== id));
+      }
     }
   };
 

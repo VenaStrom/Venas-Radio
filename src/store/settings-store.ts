@@ -6,6 +6,7 @@ type Settings = {
   fetchForward: number;
   programIDs: number[];
   compactView: boolean;
+  likedChannels: number[];
 }
 
 export type SettingsStore = {
@@ -39,6 +40,7 @@ export const useSettingsStore = create<SettingsStore>()(
         fetchForward: 7,
         programIDs: [4923, 178, 2778, 4540],
         compactView: false,
+        likedChannels: [],
       },
       setSetting: (key, value) =>
         set((state) => ({

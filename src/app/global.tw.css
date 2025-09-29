@@ -78,4 +78,12 @@
   h4 {
     @apply text-base font-bold;
   }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  a {
+    @apply cursor-pointer;
+  }
 }
