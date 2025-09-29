@@ -5,7 +5,7 @@ import PlayButton from "@/components/play-button";
 import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
 import { ProgressStore, useProgressStore } from "@/store/progress-store";
 import { ContentStore, useContentStore } from "@/store/content-store";
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import type { Content } from "@/types/api/content";
 
 const getNextEpisode = (
@@ -430,7 +430,7 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [playStateStore.currentEpisode, progressStore, playStateStore.playState]);
 
-  // Preload the next episode with better cleanup and more aggressive preloading
+  // Preload the next episode
   useEffect(() => {
     // Clean up previous preload
     if (preloadRef.current) {
@@ -620,53 +620,42 @@ export default function AudioControls({ className }: { className?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playStateStore.currentEpisode?.id, playStateStore.currentEpisode?.title, playStateStore.currentEpisode?.program.name, playStateStore.currentEpisode?.image.square]);
 
-  const currentEpisode = playStateStore.currentEpisode;
-  const episodeInfo: {
-    programName: string;
-    episodeTitle: string;
-    progressSeconds: number;
-    durationSeconds: number;
-    percent: () => number;
-    getHHMMSS: (seconds: number) => [number, number, number];
-    progress: string;
-    duration: string;
-  } | null = currentEpisode
-      ? {
-        programName: currentEpisode.program.name,
-        episodeTitle: currentEpisode.title,
-        progressSeconds:
-          progressStore.episodeProgressMap[currentEpisode.id]?.seconds || 0,
-        durationSeconds: currentEpisode.duration,
-        percent: () => {
-          const progressSeconds =
-            progressStore.episodeProgressMap[currentEpisode.id]?.seconds || 0;
-          const durationSeconds = currentEpisode.duration;
-          return durationSeconds === 0 ? 0 : (progressSeconds / durationSeconds) * 100;
-        },
-        getHHMMSS: (seconds: number) => {
-          const hour = Math.floor(seconds / 3600);
-          const minute = Math.floor(seconds / 60) % 60;
-          const second = Math.floor(seconds % 60);
-          return [hour, minute, second];
-        },
-        progress: "",
-        duration: ""
-      }
-      : null;
+  const episodeInfo = useMemo(() => {
+    const currentEpisode = playStateStore.currentEpisode;
+    if (!currentEpisode) return null;
 
-  if (episodeInfo) {
-    const { getHHMMSS, progressSeconds, durationSeconds } = episodeInfo;
+    const progressSeconds = progressStore.episodeProgressMap[currentEpisode.id]?.seconds || 0;
+    const durationSeconds = currentEpisode.duration || 0;
+
+    const percent = durationSeconds === 0 ? 0 : (progressSeconds / durationSeconds) * 100;
+
+    const getHHMMSS = (seconds: number) => {
+      const hour = Math.floor(seconds / 3600);
+      const minute = Math.floor(seconds / 60) % 60;
+      const second = Math.floor(seconds % 60);
+      return [hour, minute, second] as [number, number, number];
+    };
+
     const [pHour, pMinute, pSecond] = getHHMMSS(progressSeconds);
-    episodeInfo.progress =
-      pHour > 0
-        ? `${pHour.toString().padStart(2, "0")}:${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`
-        : `${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`;
+    const progress = pHour > 0
+      ? `${pHour.toString().padStart(2, "0")}:${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`
+      : `${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`;
+
     const [dHour, dMinute, dSecond] = getHHMMSS(durationSeconds);
-    episodeInfo.duration =
-      dHour > 0
-        ? `${dHour.toString().padStart(2, "0")}:${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`
-        : `${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`;
-  }
+    const duration = dHour > 0
+      ? `${dHour.toString().padStart(2, "0")}:${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`
+      : `${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`;
+
+    return {
+      programName: currentEpisode.program.name,
+      episodeTitle: currentEpisode.title,
+      progressSeconds,
+      durationSeconds,
+      percent,
+      progress,
+      duration,
+    } as const;
+  }, [playStateStore.currentEpisode, progressStore.episodeProgressMap]);
 
   // Heartbeat to detect unexpected playback stops
   useEffect(() => {
@@ -722,11 +711,11 @@ export default function AudioControls({ className }: { className?: string }) {
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
       <div className="w-full">
         {/* Progress bar */}
-        <ProgressBar className="block top-0" progress={episodeInfo?.percent() || 0} />
+        <ProgressBar className="block top-0" progress={episodeInfo?.percent || 0} />
 
         {/* Invisible thumb to progress */}
         <input className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0" type="range" min="0" max="100"
-          value={episodeInfo?.percent() || 0}
+          value={episodeInfo?.percent || 0}
           onChange={onProgressDrag} />
       </div>
 
