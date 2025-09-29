@@ -14,11 +14,11 @@ export default function ProgressBar({ progress, className, innerClassName }: { p
   const offset = 3;
   const clamped = useMemo(() => Math.min(100, Math.max(0, Number(progress))), [progress]);
   const normalized = useMemo(() => clamped / 100 * (100 - offset), [clamped]);
-  progress = useMemo(() => offset + normalized, [normalized]);
+  const adjustedProgress = useMemo(() => offset + normalized, [normalized]);
 
   return (
     <div className={`h-1 w-full bg-zinc-800 flex flex-col justify-start items-start ${className || ""}`}>
-      <div className={`h-full bg-zinc-100 rounded-e-sm ${innerClassName}`} style={{ width: progress + "%" }}></div>
+      <div className={`h-full bg-zinc-100 rounded-e-sm ${innerClassName}`} style={{ width: adjustedProgress + "%" }}></div>
     </div>
   )
 }
