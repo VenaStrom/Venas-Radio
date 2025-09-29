@@ -7,6 +7,7 @@ import SRAttribute from "./sr-attribute";
 import { useProgressStore } from "@/store/progress-store";
 import { CSSProperties, useMemo } from "react";
 import type { Content } from "@/types/api/content";
+import { useSettingsStore } from "@/store/settings-store";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
@@ -15,12 +16,10 @@ export default function EpisodeDOM({
   episode,
   className,
   style,
-  compact = false,
 }: {
   episode: Content;
   className?: string;
   style?: CSSProperties;
-  compact?: boolean;
 }) {
   const progressStore = useProgressStore().episodeProgressMap[episode.id];
   const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
@@ -54,18 +53,20 @@ export default function EpisodeDOM({
     return "";
   }, [remainingMin]);
 
+  const compact = useSettingsStore((state) => state.settings.compactView);
+
   if (compact) {
     return (
       <li className="w-full flex flex-row items-center gap-x-3" style={style} id={episode.id.toString()}>
         {/* Thumbnail */}
         <Image width={48} height={48} src={""} overrideSrc={episode.image.square} alt="Avsnittsbild" className="bg-zinc-600 rounded-md flex-shrink-0" fetchPriority="low"></Image>
 
-        <div className="flex flex-col flex-3">
+        <div className="flex flex-col flex-3 overflow-hidden max-w-[16ch]">
           {/* Program */}
-          <p className="text-sm font-light overflow-hidden flex-shrink-0">{episode.program.name}</p>
+          <p className="text-sm font-light overflow-ellipsis">{episode.program.name}</p>
 
           {/* Title */}
-          <p className="text-sm font-bold overflow-hidden whitespace-pre overflow-ellipsis overflow-x-auto max-w-[14ch]">{episode.title}</p>
+          <p className="text-sm font-bold whitespace-pre overflow-x-auto">{episode.title}</p>
         </div>
 
         <div className="flex flex-col flex-2">
@@ -120,6 +121,34 @@ export default function EpisodeDOM({
 }
 
 export function EpisodeSkeleton() {
+  const compact = useSettingsStore((state) => state.settings.compactView);
+
+  if (compact) {
+    return (
+      <li className="w-full flex flex-row items-center gap-x-3 h-[48px] max-h-[48px]">
+        {/* Thumbnail */}
+        <div className="bg-zinc-600 rounded-md w-[48px] h-[48px] flex-shrink-0 animate-pulse"></div>
+
+        <div className="flex flex-col flex-3">
+          {/* Program */}
+          <div className="bg-zinc-600 rounded-md h-3 w-1/2 mb-1 animate-pulse"></div>
+
+          {/* Title */}
+          <div className="bg-zinc-600 rounded-md h-3 w-3/4 animate-pulse"></div>
+        </div>
+
+        <div className="flex flex-col flex-2"></div>
+
+        <div className="flex flex-col items-center gap-y-2">
+          {/* Play button */}
+          <div className="bg-zinc-600 rounded-full size-6 animate-pulse"></div>
+
+          {/* Progress */}
+          <div className="rounded-sm bg-zinc-600 h-1 w-6 animate-pulse"></div>
+        </div>
+      </li>
+    );
+  }
   return (
     <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2">
       {/* SR Attribute */}

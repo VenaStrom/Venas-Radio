@@ -8,7 +8,6 @@ import type { ContentMap } from "@/types/maps";
 import type { Content } from "@/types/api/content";
 import type { Episode } from "@/types/api/episode";
 
-
 export default function FeedPage() {
   const [episodeData, setEpisodeData] = useState<ContentMap>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +19,7 @@ export default function FeedPage() {
     date.setDate(date.getDate() - userSettings.fetchBack);
     return date;
   }, [userSettings.fetchBack]);
+
   const toDate = useMemo(() => {
     const date = new Date();
     date.setDate(date.getDate() + userSettings.fetchForward);
@@ -79,15 +79,15 @@ export default function FeedPage() {
       <ul className={`flex flex-col mt-2 mb-4 ${userSettings.compactView ? "gap-y-2" : "gap-y-10"}`}>
         {isLoading ? (
           <>
-            {new Array(10).fill(0).map((_, index) => (
-              <EpisodeSkeleton key={index} />
+            {new Array(30).fill(0).map((_, index) => (
+              <EpisodeSkeleton key={"episode-skeleton-" + index} />
             ))}
           </>
         ) : (
           Object.values(episodeData)
             .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())
             .map((episode: Content, i: number) => (
-              <EpisodeDOM episode={episode} style={{ order: i }} key={episode.id} compact={userSettings.compactView} />
+              <EpisodeDOM episode={episode} style={{ order: i }} key={episode.id} />
             ))
         )}
       </ul>

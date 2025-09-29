@@ -20,8 +20,6 @@ export default function SettingsMenu() {
       }
       else if (!isOpen) {
         setAllSettings({ ...uncommittedSettings, programIDs: uncommittedSettings.programIDsString.split(",").map((id) => parseInt(id.trim())).filter((id) => !isNaN(id)) });
-        // Reload page
-        // window.location.reload();
       }
     }}>
       <DialogTrigger>
