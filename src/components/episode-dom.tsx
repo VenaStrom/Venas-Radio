@@ -131,10 +131,10 @@ export function EpisodeSkeleton() {
 
         <div className="flex flex-col flex-3">
           {/* Program */}
-          <div className="bg-zinc-600 rounded-md h-3 w-1/2 mb-1 animate-pulse"></div>
+          <div className="bg-zinc-600 rounded-md h-3 w-[11ch] mb-1 animate-pulse"></div>
 
           {/* Title */}
-          <div className="bg-zinc-600 rounded-md h-3 w-3/4 animate-pulse"></div>
+          <div className="bg-zinc-600 rounded-md h-3 w-[13ch] animate-pulse"></div>
         </div>
 
         <div className="flex flex-col flex-2"></div>

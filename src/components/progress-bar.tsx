@@ -14,7 +14,7 @@ export default function ProgressBar({ progress, className, innerClassName }: { p
   const offset = 3;
   const clamped = useMemo(() => Math.min(100, Math.max(0, Number(progress))), [progress]);
   const normalized = useMemo(() => clamped / 100 * (100 - offset), [clamped]);
-  const adjustedProgress = useMemo(() => offset + normalized, [normalized]);
+  const adjustedProgress = useMemo(() => parseFloat(progress.toString()) ? offset + normalized : 0, [normalized, progress]);
 
   return (
     <div className={`h-1 w-full bg-zinc-800 flex flex-col justify-start items-start ${className || ""}`}>
