@@ -5,8 +5,8 @@ type Settings = {
   fetchBack: number;
   fetchForward: number;
   programIDs: number[];
-  compactView: boolean;
-  likedChannels: number[];
+  compactView: boolean | undefined;
+  likedChannels: number[] | undefined;
 }
 
 export type SettingsStore = {

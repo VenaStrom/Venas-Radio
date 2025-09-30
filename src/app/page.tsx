@@ -71,8 +71,13 @@ export default function HomePage() {
             </>
           ) : (
             channels.sort((a, b) => {
-              const aFav = userSettings.settings.likedChannels.includes(a.id);
-              const bFav = userSettings.settings.likedChannels.includes(b.id);
+              // If user is missing likedChannels, make them
+              if (!userSettings.settings?.likedChannels) {
+                userSettings.setSetting("likedChannels", []);
+              }
+
+              const aFav = userSettings.settings?.likedChannels?.includes(a.id) || false;
+              const bFav = userSettings.settings?.likedChannels?.includes(b.id) || false;
 
               if (aFav && !bFav) return -1;
               if (!aFav && bFav) return 1;

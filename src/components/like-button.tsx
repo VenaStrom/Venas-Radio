@@ -24,7 +24,7 @@ export default function LikeButton({
   // Load state
   useState(() => {
     if (channelID) {
-      setLiked(settingsStore.settings.likedChannels?.includes(id) || false);
+      setLiked(settingsStore.settings?.likedChannels?.includes(id) || false);
     }
     else if (programID) {
       setLiked(settingsStore.settings.programIDs.includes(id));
@@ -47,7 +47,7 @@ export default function LikeButton({
 
     if (newState) {
       if (channelID) {
-        settingsStore.setSetting("likedChannels", Array.from(new Set([...settingsStore.settings.likedChannels, id])));
+        settingsStore.setSetting("likedChannels", Array.from(new Set([...settingsStore?.settings?.likedChannels || [], id])));
       }
       else if (programID) {
         settingsStore.setSetting("programIDs", Array.from(new Set([...settingsStore.settings.programIDs, id])));
@@ -55,7 +55,7 @@ export default function LikeButton({
     }
     else {
       if (channelID) {
-        settingsStore.setSetting("likedChannels", settingsStore.settings.likedChannels.filter(cid => cid !== id));
+        settingsStore.setSetting("likedChannels", (settingsStore?.settings?.likedChannels || []).filter(cid => cid !== id));
       }
       else if (programID) {
         settingsStore.setSetting("programIDs", settingsStore.settings.programIDs.filter(pid => pid !== id));
