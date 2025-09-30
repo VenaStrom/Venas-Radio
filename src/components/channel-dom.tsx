@@ -37,7 +37,7 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
     <li className={`w-full flex flex-row h-24 gap-x-4 ${className}`} style={style} id={channelData.id.toString()}>
 
       {/* Thumbnail */}
-      <Image className="bg-zinc-600 rounded-md h-24" width={96} height={96} src={""} overrideSrc={channelData.image} alt="Kanalbild" fetchPriority="low"></Image>
+      <Image className="bg-zinc-600 rounded-md size-24" width={96} height={96} src={""} overrideSrc={channelData.image} alt="Kanalbild" fetchPriority="low"></Image>
 
       <div className="flex flex-col justify-start items-start gap-y-1 flex-1">
         <div className="flex flex-row justify-between items-center w-full">

@@ -125,9 +125,9 @@ export function EpisodeSkeleton() {
 
   if (compact) {
     return (
-      <li className="w-full flex flex-row items-center gap-x-3 h-[48px] max-h-[48px]">
+      <li className="w-full flex flex-row items-center gap-x-3 h-12 max-h-12">
         {/* Thumbnail */}
-        <div className="bg-zinc-600 rounded-md w-[48px] h-[48px] flex-shrink-0 animate-pulse"></div>
+        <div className="bg-zinc-600 rounded-md size-12 flex-shrink-0 animate-pulse"></div>
 
         <div className="flex flex-col flex-3">
           {/* Program */}
