@@ -34,10 +34,10 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
   }
 
   return (
-    <li className={`w-full flex flex-row h-24 gap-x-4 ${className}`} style={style} id={channelData.id.toString()}>
+    <li className={`w-full flex flex-row h-28 gap-x-4 ${className}`} style={style} id={channelData.id.toString()}>
 
       {/* Thumbnail */}
-      <Image className="bg-zinc-600 rounded-md size-24" width={96} height={96} src={""} overrideSrc={channelData.image} alt="Kanalbild" fetchPriority="low"></Image>
+      <Image className="bg-zinc-600 rounded-md h-24 w-24 min-h-24 min-w-24" width={96} height={96} src={""} overrideSrc={channelData.image} alt="Kanalbild" fetchPriority="low"></Image>
 
       <div className="flex flex-col justify-start items-start gap-y-1 flex-1">
         <div className="flex flex-row justify-between items-center w-full">
@@ -46,7 +46,7 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
             {channelData.name}
           </p>
 
-          <div className="flex flex-row gap-x-4 items-center translate-y-1">
+          <div className="flex flex-row gap-x-4 items-center">
             <LikeButton channelID={channelData.id} />
             <PlayButton episodeData={contentData} iconSize={28} />
           </div>
@@ -70,7 +70,7 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
 
 export function ChannelSkeleton() {
   return (
-    <li className="grid grid-cols-[96px_1fr] grid-rows-[min_96px_min_min] gap-y-2 gap-x-3">
+    <li className="grid grid-cols-[96px_1fr] grid-rows-[min_112px_min_min] h-28 gap-y-2 gap-x-3">
       {/* Thumbnail */}
       <div className="bg-zinc-600 rounded-md w-[96px] h-[96px] animate-pulse"></div>
 
