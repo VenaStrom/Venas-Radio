@@ -71,9 +71,6 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
 export function ChannelSkeleton() {
   return (
     <li className="grid grid-cols-[96px_1fr] grid-rows-[min_96px_min_min] gap-y-2 gap-x-3">
-      {/* SR Attribute */}
-      <div className="col-span-2 h-5"></div>
-
       {/* Thumbnail */}
       <div className="bg-zinc-600 rounded-md w-[96px] h-[96px] animate-pulse"></div>
 
@@ -84,11 +81,8 @@ export function ChannelSkeleton() {
 
         {/* Other info */}
         <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div>
-        {/* <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div> */}
+        <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div>
       </div>
-
-      {/* Description */}
-      <div className="bg-zinc-600 rounded-md col-span-2 h-10 text-s pt-1 font-normal overflow-hidden animate-pulse"></div>
     </li>
   );
 }
