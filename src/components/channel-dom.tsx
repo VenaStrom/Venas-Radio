@@ -70,18 +70,18 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
 
 export function ChannelSkeleton() {
   return (
-    <li className="grid grid-cols-[96px_1fr] grid-rows-[min_112px_min_min] h-28 gap-y-2 gap-x-3">
+    <li className="flex flex-row h-28 items-center gap-x-4 w-full">
       {/* Thumbnail */}
-      <div className="bg-zinc-600 rounded-md w-[96px] h-[96px] animate-pulse"></div>
+      <div className="bg-zinc-600 rounded-md size-24 animate-pulse"></div>
 
       {/* Header Text */}
-      <div className="col-start-2 grid grid-cols-[1fr_auto] gap-x-2 gap-y-1">
+      <div className="h-full flex-1 flex flex-col gap-y-1 pt-1">
         {/* Program name */}
-        <div className="bg-zinc-600 rounded-md col-start-1 h-5 animate-pulse"></div>
+        <div className="bg-zinc-600 rounded-md h-4 w-28 animate-pulse"></div>
 
         {/* Other info */}
-        <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div>
-        <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div>
+        <div className="bg-zinc-600 rounded-sm h-3 animate-pulse w-36 mt-3"></div>
+        <div className="bg-zinc-600 rounded-md h-6 animate-pulse w-36 mt-1"></div>
       </div>
     </li>
   );
