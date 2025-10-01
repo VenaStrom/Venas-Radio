@@ -26,7 +26,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@next/bundle-analyzer": "^15.5.4",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^24.6.1",
     "@types/react": "^19.1.16",
