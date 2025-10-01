@@ -50,25 +50,23 @@ export default function HomePage() {
   return (
     <main>
       {/* Intro section */}
-      <section className="w-full flex flex-col items-center text-center mt-10">
+      <section className="w-full flex flex-col items-center text-center mt-12">
         <h1 className="text-2xl">Välkommen till Venas Radio</h1>
 
         <p>
-          Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokaneler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"}>öppna API</Link>.
+          Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokaneler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</Link>.
         </p>
       </section>
 
       {/* Live Channels */}
-      <section className="w-full flex flex-col items-center mt-20">
+      <section className="w-full flex flex-col items-center mt-16">
         <h2 className="mb-5">Lyssna live</h2>
 
-        <ul className="w-full flex flex-col gap-y-9 last:pb-10">
+        <ul className="w-full flex flex-col gap-y-4 last:pb-10">
           {isLoading ? (
-            <>
-              {new Array(10).fill(0).map((_, i) => (
-                <ChannelSkeleton key={i} />
-              ))}
-            </>
+            new Array(10).fill(0).map((_, i) => (
+              <ChannelSkeleton key={i} />
+            ))
           ) : (
             channels.sort((a, b) => {
               // If user is missing likedChannels, make them

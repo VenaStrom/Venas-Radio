@@ -84,6 +84,6 @@
   }
 
   a {
-    @apply cursor-pointer;
+    @apply cursor-pointer text-blue-400 hover:underline hover:text-blue-500;
   }
 }
