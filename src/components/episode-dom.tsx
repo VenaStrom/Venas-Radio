@@ -21,6 +21,8 @@ export default function EpisodeDOM({
   className?: string;
   style?: CSSProperties;
 }) {
+  const compact = useSettingsStore((state) => state.settings.compactView);
+
   const progressStore = useProgressStore().episodeProgressMap[episode.id];
   const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
   const percent = useMemo(() => {
@@ -52,8 +54,6 @@ export default function EpisodeDOM({
     if (remainingMin !== null && remainingMin > 0) return `${remainingMin} min kvar`;
     return "";
   }, [remainingMin]);
-
-  const compact = useSettingsStore((state) => state.settings.compactView);
 
   if (compact) {
     return (

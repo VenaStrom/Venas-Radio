@@ -7,13 +7,13 @@ type Settings = {
   programIDs: number[];
   compactView: boolean | undefined;
   likedChannels: number[] | undefined;
-}
+};
 
 export type SettingsStore = {
   settings: Settings;
   setSetting: (key: keyof Settings, value: any) => void;
   setAllSettings: (settings: Settings) => void;
-}
+};
 
 const safeLocalStorage = {
   getItem: (name: string) =>

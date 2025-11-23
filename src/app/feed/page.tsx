@@ -78,7 +78,7 @@ export default function FeedPage() {
 
   return (
     <main>
-      <ul className={`flex flex-col mt-2 mb-4 ${userSettings.compactView ? "gap-y-2" : "gap-y-10"}`}>
+      <ul className={`flex flex-col mt-2 mb-4 ${userSettings.compactView ? "gap-y-2" : "gap-y-8"} ${isLoading ? "mt-14" : ""}`}>
         {isLoading ? (
           <>
             {new Array(30).fill(0).map((_, index) => (
@@ -99,7 +99,8 @@ export default function FeedPage() {
                 <li className="w-full text-sm  text-zinc-400" key={"date-header-" + thisDate + "-" + prevDate}>
                   {thisDate === new Date().toISOString().slice(0, 10)
                     ? "Idag"
-                    : thisDate === new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10)
+                    :
+                    thisDate === new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10)
                       ? "Igår"
                       : episode.publishDate.toLocaleDateString("sv-SE", { weekday: "long", month: "short", day: "numeric" })}
                 </li>
