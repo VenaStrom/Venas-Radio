@@ -10,9 +10,6 @@ export type PlayStateStore = {
 
     currentEpisode: Content | null;
     setCurrentEpisode: (episode: Content | null) => void;
-
-    preloadEpisode: Content | null;
-    setPreloadEpisode: (episode: Content | null) => void;
 }
 
 const safeLocalStorage = {
@@ -41,16 +38,12 @@ export const usePlayStateStore = create<PlayStateStore>()(
 
             currentEpisode: null,
             setCurrentEpisode: (episode) => set({ currentEpisode: episode }),
-
-            preloadEpisode: null,
-            setPreloadEpisode: (episode) => set({ preloadEpisode: episode }),
         }),
         {
             name: "play-state-store",
             storage: createJSONStorage(() => safeLocalStorage),
             partialize: (state) => ({
                 currentEpisode: state.currentEpisode,
-                preloadEpisode: state.preloadEpisode,
             }),
         }
     )

@@ -74,7 +74,8 @@ export default function EpisodeDOM({
           <p className="text-xs text-zinc-400 text-right flex-shrink-0">{formattedDate} {formattedTime}</p>
 
           {/* Time left */}
-          <p className="text-xs text-zinc-400 text-right flex-shrink-0">{duration} min <span className="italic">{remaining}</span></p>
+          <p className="text-xs text-zinc-400 text-right flex-shrink-0">{remainingMin ? <span className="italic">{remaining}</span> : <>{duration} min</>}</p>
+          {/* If started, show remaining, else, duration */}
         </div>
 
         <div>
