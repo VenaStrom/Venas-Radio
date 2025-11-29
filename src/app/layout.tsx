@@ -5,10 +5,11 @@ import { AudioLinesIcon, HomeIcon, SearchIcon, HeartIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import SettingsMenu from "@/components/settings-menu";
+import packageJson from "../../package.json" with { type: "json" };
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
-  description: "En radiospelare gjord av och för Vena.",
+  description: packageJson.description,
   icons: {
     icon: "/icons/audio-lines.svg",
   },

@@ -7,3 +7,5 @@ export type EpisodeMap = Record<string, Episode>;
 export type EpisodeProgress = { seconds: number; finished: boolean };
 export type ProgressMap = Record<string, EpisodeProgress>;
 export type ContentMap = Record<string, Content>;
+
+export type PlayPause = "playing" | "paused";
