@@ -1,11 +1,11 @@
 "use client";
 
-import { Program } from "@/types/api/program";
+import { SR_Program } from "@/types/api/program";
 import SRAttribute from "./sr-attribute";
 import Image from "next/image";
 import LikeButton from "./like-button";
 
-export default function ProgramDOM({ programData, className }: { programData: Program, className?: string }) {
+export default function ProgramDOM({ programData, className }: { programData: SR_Program, className?: string }) {
     return (
         <li className={`grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3 ${className || ""}`}>
             {/* SR Attribute */}

@@ -1,4 +1,4 @@
-export type Program = {
+export type SR_Program = {
     description: string;
     broadcastinfo: string;
     email: string;

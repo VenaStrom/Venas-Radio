@@ -6,7 +6,7 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useContentStore } from "@/store/content-store";
 import type { ContentMap } from "@/types/maps";
 import type { Content } from "@/types/api/content";
-import type { Episode } from "@/types/api/episode";
+import type { SR_Episode } from "@/types/api/episode";
 
 export default function FeedPage() {
   const [episodeData, setEpisodeData] = useState<ContentMap>({});
@@ -40,8 +40,8 @@ export default function FeedPage() {
       for (const data of results) {
         // Convert to Content
         data.episodes
-          .filter((episode: Episode) => episode.listenpodfile || episode.downloadpodfile) // TODO handle streams
-          .forEach((episode: Episode) => {
+          .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile) // TODO handle streams
+          .forEach((episode: SR_Episode) => {
             allEpisodes[episode.id] = {
               id: episode.id,
               title: episode.title,

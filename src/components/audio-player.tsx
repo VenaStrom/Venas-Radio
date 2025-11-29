@@ -2,10 +2,6 @@
 
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
-import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
-import { ProgressStore, useProgressStore } from "@/store/progress-store";
-import { ContentStore, useContentStore } from "@/store/content-store";
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import type { Content } from "@/types/api/content";
 
 const getNextEpisode = (

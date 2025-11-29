@@ -1,4 +1,4 @@
-export type Channel = {
+export type SR_Channel = {
     image: string;
     imagetemplate: string;
     color: string;

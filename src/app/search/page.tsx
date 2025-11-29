@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import React, { useEffect, useState } from "react";
 import Fuse from "fuse.js";
 import { SearchIcon, XIcon } from "lucide-react";
-import { Program } from "@/types/api/program";
+import { SR_Program } from "@/types/api/program";
 import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
 import { useContentStore } from "@/store/content-store";
 import { useSettingsStore } from "@/store/settings-store";
@@ -29,7 +29,7 @@ export default function SearchPage() {
 	const { programs, setPrograms, lastFetchedPrograms } = useContentStore();
 	const [isLoading, setIsLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
-	const [sortedResults, setSortedResults] = useState<Program[]>([]);
+	const [sortedResults, setSortedResults] = useState<SR_Program[]>([]);
 	const [renderCount, setRenderCount] = useState(6);
 
 	// Fetch programs

@@ -4,11 +4,11 @@ import Image from "next/image";
 import PlayButton from "./play-button";
 import SRAttribute from "./sr-attribute";
 import { CSSProperties } from "react";
-import type { Channel } from "@/types/api/channel";
+import type { SR_Channel } from "@/types/api/channel";
 import type { Content } from "@/types/api/content";
 import LikeButton from "./like-button";
 
-export default function ChannelDOM({ channelData, className = "", style }: { channelData: Channel, className?: string, style?: CSSProperties }) {
+export default function ChannelDOM({ channelData, className = "", style }: { channelData: SR_Channel, className?: string, style?: CSSProperties }) {
 
   // It's hacky but... Let's squeeze the channelData into a Content structure
   // so we can use the PlayButton component without modifications

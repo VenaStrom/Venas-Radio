@@ -3,7 +3,7 @@
 import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
 import { useContentStore } from "@/store/content-store";
 import { useSettingsStore } from "@/store/settings-store";
-import { Channel } from "@/types/api/channel";
+import { SR_Channel } from "@/types/api/channel";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -26,7 +26,7 @@ export default function HomePage() {
       const response = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false");
       const data = await response.json();
 
-      const allChannels: Channel[] = data.channels;
+      const allChannels: SR_Channel[] = data.channels;
 
       // Save
       setChannels(allChannels);

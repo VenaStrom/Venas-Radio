@@ -1,4 +1,4 @@
-export type Episode = {
+export type SR_Episode = {
     id: number;
     title: string;
     description: string;
