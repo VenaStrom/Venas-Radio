@@ -40,11 +40,11 @@
   }
 
   html {
-    @apply flex flex-col items-center w-full h-[100svh] bg-zinc-800;
+    @apply flex flex-col items-center w-full h-svh bg-zinc-800;
   }
 
   body {
-    @apply flex flex-col w-full lg:max-w-2xl h-[100svh] bg-background text-foreground;
+    @apply flex flex-col w-full lg:max-w-2xl h-svh bg-background text-foreground;
 
     & > header {
       @apply w-full overflow-hidden;
