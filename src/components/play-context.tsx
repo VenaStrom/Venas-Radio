@@ -1,3 +1,4 @@
+import { SR_Episode } from "@/types/api/episode";
 import { Episode } from "@/types/types";
 import { createContext, useState, useContext, ReactNode, useEffect, useMemo } from "react";
 
@@ -59,6 +60,7 @@ export const PlayProvider = ({ children }: { children: ReactNode }) => {
     // const savedProgressMap = localStorage.getItem("episodeProgressMap");
     Promise.all([
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
+      async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
     ]);
   }, []);
 
@@ -71,12 +73,36 @@ export const PlayProvider = ({ children }: { children: ReactNode }) => {
     const toDate = new Date();
     toDate.setDate(toDate.getDate() + 7);
 
-    const fetchPrograms = async (programIds: string[]) => {
+    const fetchEpisodes = async (programIds: string[]) => {
       const programLinks = programIds.map((programID) => `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`);
 
       const responses = await Promise.all(programLinks.map((link) => fetch(link).then((res) => res.json())));
-    };
 
+      const allEpisodes: Record<Episode["id"], Episode> = {};
+
+      for (const data of responses) {
+        data.episodes
+          .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
+          .forEach((episode: SR_Episode) => {
+            allEpisodes[episode.id] = {
+              id: episode.id,
+              title: episode.title,
+              description: episode.description,
+              url: episode?.listenpodfile?.url || episode?.downloadpodfile?.url,
+              program: {
+                id: episode.program.id,
+                name: episode.program.name,
+              },
+              publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
+              duration: episode.listenpodfile.duration || episode.downloadpodfile.duration || 0,
+              image: {
+                square: episode.imageurl,
+                wide: episode.imageurltemplate,
+              },
+            };
+          });
+      };
+    };
   }, [followedPrograms]);
 
   return (
@@ -86,17 +112,7 @@ export const PlayProvider = ({ children }: { children: ReactNode }) => {
         play: () => setIsPlaying(true),
         pause: () => setIsPlaying(false),
 
-        currentStreamUrl,
-        setStreamUrl: setCurrentStreamUrl,
 
-        currentProgress,
-        setCurrentProgress,
-
-        currentEpisode,
-        setCurrentEpisode,
-
-        episodeProgressMap,
-        updateEpisodeProgressMap: updateEpisodeProgressMap,
       }}
     >
       {children}
