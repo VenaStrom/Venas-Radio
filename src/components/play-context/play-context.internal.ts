@@ -1,4 +1,4 @@
-import { Episode } from "@/types/types";
+import { Episode, EpisodeDB } from "@/types/types";
 import { createContext } from "react";
 
 export type PlayContextType = {
@@ -19,6 +19,10 @@ export type PlayContextType = {
 
   episodeProgressMap: Record<Episode["id"], number>;
   updateEpisodeProgressMap: (episodeId: Episode["id"], progress: number) => void;
+
+  episodeDB: EpisodeDB;
+
+  isFetching: boolean;
 };
 
 export const PlayContext = createContext<PlayContextType | undefined>(undefined);

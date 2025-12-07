@@ -4,6 +4,8 @@ import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
+  const [isFetching, setIsFetching] = useState(true);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
   const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     ]);
   }, []);
 
-  // Fetch programs and episodes
+  // Fetch episodes on mount and when followedPrograms changes
   useEffect(() => {
     if (followedPrograms.length === 0) return;
 
@@ -71,6 +73,9 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       })
       .catch((error) => {
         console.error("Error fetching episodes:", error);
+      })
+      .finally(() => {
+        setIsFetching(false);
       });
   }, [followedPrograms]);
 
@@ -89,6 +94,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         playEpisode,
         setCurrentEpisode,
         updateEpisodeProgressMap,
+        episodeDB,
+        isFetching,
       }}
     >
       {children}
