@@ -2,7 +2,7 @@ import { SR_Episode } from "@/types/api/episode";
 import { EpisodeDB } from "@/types/types";
 
 export async function fetchEpisodes(
-  programIds: string[],
+  programIds: number[],
   options: {
     fromDate: Date;
     toDate: Date;
@@ -22,7 +22,7 @@ export async function fetchEpisodes(
   // Construct program-specific links
   const programLinks = programIds.map((programID) => {
     const url = new URL(baseURL.toString());
-    url.searchParams.append("programid", programID);
+    url.searchParams.append("programid", programID.toString());
     return url.toString();
   });
 

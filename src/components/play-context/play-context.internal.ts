@@ -1,4 +1,4 @@
-import { Episode, EpisodeDB } from "@/types/types";
+import { ChannelDB, Episode, EpisodeDB } from "@/types/types";
 import { createContext } from "react";
 
 export type PlayContextType = {
@@ -21,8 +21,15 @@ export type PlayContextType = {
   updateEpisodeProgressMap: (episodeId: Episode["id"], progress: number) => void;
 
   episodeDB: EpisodeDB;
+  isFetchingEpisodes: boolean;
 
-  isFetching: boolean;
+  channelDB: ChannelDB;
+  isFetchingChannels: boolean;
+
+  followedPrograms: number[];
+  setFollowedPrograms: (programIDs: number[]) => void;
+  followedChannels: number[];
+  setFollowedChannels: (channelIDs: number[]) => void;
 };
 
 export const PlayContext = createContext<PlayContextType | undefined>(undefined);

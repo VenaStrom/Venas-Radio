@@ -1,17 +1,17 @@
 export type SR_Channel = {
-    image: string;
-    imagetemplate: string;
-    color: string;
-    tagline: string;
-    siteurl: string;
-    liveaudio: {
-        id: number;
-        url: string;
-        statkey: string;
-    };
-    scheduleurl: string;
-    channeltype: string;
-    xmltvid: string;
+  image: string;
+  imagetemplate: string;
+  color: string;
+  tagline: string;
+  siteurl: string;
+  liveaudio: {
     id: number;
-    name: string;
-}
+    url: string;
+    statkey: string;
+  };
+  scheduleurl: string;
+  channeltype: string;
+  xmltvid: string;
+  id: number;
+  name: string;
+};

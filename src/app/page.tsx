@@ -1,51 +1,31 @@
 "use client";
 
 import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
-import { useContentStore } from "@/store/content-store";
-import { useSettingsStore } from "@/store/settings-store";
-import { SR_Channel } from "@/types/api/channel";
+import { usePlayContext } from "@/components/play-context/play-context-use";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+import { useEffect, useMemo, useState } from "react";
 
 export default function HomePage() {
-  const { channels, setChannels, lastFetchedChannels } = useContentStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const { channelDB, isFetchingChannels } = usePlayContext();
+
   const [renderCount, setRenderCount] = useState(6);
-  const userSettings = useSettingsStore();
+  const channels = useMemo(() => {
+    const sliced = Object.values(channelDB).slice(0, renderCount);
+    const sorted = sliced.sort((a, b) => a.name.localeCompare(b.name));
+    return sorted;
+  }, [channelDB, renderCount]);
 
-  useEffect(() => {
-    const fetchChannels = async () => {
-      const now = Date.now();
-      if (channels.length > 0 && lastFetchedChannels && (now - lastFetchedChannels < CACHE_DURATION)) {
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false");
-      const data = await response.json();
-
-      const allChannels: SR_Channel[] = data.channels;
-
-      // Save
-      setChannels(allChannels);
-      setIsLoading(false);
-    };
-
-    fetchChannels();
-  }, [channels, setChannels, lastFetchedChannels]);
-
+  // Staggard rendering
   useEffect(() => {
     // Janky staggard loading for performance reasons
-    if (!isLoading && renderCount < channels.length - 6) {
+    if (!isFetchingChannels && renderCount < Object.keys(channelDB).length - 6) {
       const interval = setInterval(() => {
         setRenderCount(prevCount => prevCount + 1);
       }, 100);
 
       return () => clearInterval(interval);
     }
-  }, [isLoading, renderCount, channels]);
+  }, [isFetchingChannels, channelDB, renderCount]);
 
   return (
     <main>
@@ -63,25 +43,12 @@ export default function HomePage() {
         <h2 className="mb-5">Lyssna live</h2>
 
         <ul className="w-full flex flex-col gap-y-4 last:pb-10">
-          {isLoading ? (
+          {isFetchingChannels ? (
             new Array(10).fill(0).map((_, i) => (
               <ChannelSkeleton key={i} />
             ))
           ) : (
-            channels.sort((a, b) => {
-              // If user is missing likedChannels, make them
-              if (!userSettings.settings?.likedChannels) {
-                userSettings.setSetting("likedChannels", []);
-              }
-
-              const aFav = userSettings.settings?.likedChannels?.includes(a.id) || false;
-              const bFav = userSettings.settings?.likedChannels?.includes(b.id) || false;
-
-              if (aFav && !bFav) return -1;
-              if (!aFav && bFav) return 1;
-
-              return 0;
-            }).map((channel) => (
+            channels.map((channel) => (
               <ChannelDOM channelData={channel} key={channel.id} />
             ))
           )}

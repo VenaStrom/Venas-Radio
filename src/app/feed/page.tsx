@@ -5,7 +5,7 @@ import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode-dom";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 
 export default function FeedPage() {
-  const { episodeDB, isFetching } = usePlayContext();
+  const { episodeDB, isFetchingEpisodes: isFetching } = usePlayContext();
 
   const episodes = useMemo(() => {
     const allEpisodes = Object.values(episodeDB);

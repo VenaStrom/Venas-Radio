@@ -1,17 +1,22 @@
-import { Episode, EpisodeDB } from "@/types/types";
+import { ChannelDB, Episode, EpisodeDB } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo } from "react";
 import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
+import { fetchChannels } from "@/functions/channel-getter";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);
+  const [isFetchingChannels, setIsFetchingChannels] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
   const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(null);
 
-  const [followedPrograms, setFollowedPrograms] = useState<string[]>([]);
+  const [followedPrograms, setFollowedPrograms] = useState<number[]>([]);
   const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
+
+  const [followedChannels, setFollowedChannels] = useState<number[]>([]);
+  const [channelDB, setChannelDB] = useState<ChannelDB>({});
 
   const [episodeProgressMap, setEpisodeProgressMap] = useState<Record<Episode["id"], number>>({});
   const updateEpisodeProgressMap = (episodeId: Episode["id"], progress: number) => {
@@ -51,6 +56,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     Promise.all([
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
       async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
+      async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
     ]);
   }, []);
 
@@ -75,9 +81,27 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         console.error("Error fetching episodes:", error);
       })
       .finally(() => {
-        setIsFetching(false);
+        setIsFetchingEpisodes(false);
       });
   }, [followedPrograms]);
+
+  // Fetch channels on mount
+  useEffect(() => {
+    fetchChannels()
+      .then((allChannels) => {
+        setChannelDB(prev => {
+          const updatedDB = { ...prev, ...allChannels };
+          sessionStorage.setItem("channelDB", JSON.stringify(updatedDB));
+          return updatedDB;
+        });
+      })
+      .catch((error) => {
+        console.error("Error fetching channels:", error);
+      })
+      .finally(() => {
+        setIsFetchingChannels(false);
+      });
+  }, []);
 
   return (
     <PlayContext.Provider
@@ -95,7 +119,13 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         setCurrentEpisode,
         updateEpisodeProgressMap,
         episodeDB,
-        isFetching,
+        isFetchingEpisodes,
+        channelDB,
+        isFetchingChannels,
+        followedPrograms,
+        setFollowedPrograms,
+        followedChannels,
+        setFollowedChannels,
       }}
     >
       {children}
