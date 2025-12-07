@@ -6,6 +6,7 @@ import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
 import { fetchChannels } from "@/functions/channel-getter";
 import { fetchPrograms } from "@/functions/program-getter";
+import { episodeDBDeserializer } from "../storage-parser/episode-parser";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);
@@ -82,7 +83,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       async () => setProgressDB(JSON.parse(localStorage.getItem("progressDB") || "{}")), // Serialized Seconds as number
 
       // SessionStorageF
-      async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
+      async () => setEpisodeDB(episodeDBDeserializer(sessionStorage.getItem("episodeDB"))),
       async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
       async () => setProgramDB(JSON.parse(sessionStorage.getItem("programDB") || "{}")),
     ].map(fn => fn()));
