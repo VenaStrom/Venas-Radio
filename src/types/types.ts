@@ -1,5 +1,8 @@
 
-export type PlayPause = "playing" | "paused";
+export type Seconds = number;
+export type Minutes = number;
+
+export type ProgressDB = Record<Episode["id"], Seconds>;
 
 export type Episode = {
   id: number;
@@ -15,7 +18,7 @@ export type Episode = {
     name: string;
   }
   publishDate: Date;
-  duration: number;
+  duration: Seconds;
 };
 export type EpisodeDB = Record<Episode["id"], Episode>;
 

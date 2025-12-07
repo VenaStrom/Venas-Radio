@@ -1,4 +1,4 @@
-import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB } from "@/types/types";
+import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB, Seconds } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo } from "react";
 import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
@@ -24,23 +24,26 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
   const [programDB, setProgramDB] = useState<ProgramDB>({});
 
-  const [episodeProgressMap, setEpisodeProgressMap] = useState<Record<Episode["id"], number>>({});
-  const updateEpisodeProgressMap = (episodeId: Episode["id"], progress: number) => {
-    setEpisodeProgressMap((prev) => ({
+  const [progressDB, setProgressDB] = useState<ProgressDB>({});
+  const updateEpisodeProgress = (episodeID: Episode["id"], progress: Seconds) => {
+    setProgressDB((prev) => ({
       ...prev,
-      [episodeId]: progress,
+      [episodeID]: progress,
     }));
   };
 
   const currentProgress = useMemo(() => {
     if (currentEpisode) {
-      return episodeProgressMap[currentEpisode.id] || 0;
+      return progressDB[currentEpisode.id] || 0;
     }
     return null;
-  }, [currentEpisode, episodeProgressMap]);
+  }, [currentEpisode, progressDB]);
   const setCurrentProgress = (progress: number) => {
     if (currentEpisode) {
-      updateEpisodeProgressMap(currentEpisode.id, progress);
+      updateEpisodeProgress(currentEpisode.id, progress);
+    }
+    else {
+      console.warn("No current episode set; cannot set progress.");
     }
   };
 
@@ -146,16 +149,16 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         play: () => setIsPlaying(true),
         pause: () => setIsPlaying(false),
         currentStreamUrl,
-        setStreamUrl: (url: string) => setCurrentStreamUrl(url),
         currentProgress,
+        setCurrentStreamUrl,
         setCurrentProgress,
         currentEpisode,
         currentChannel,
         setCurrentChannel,
-        episodeProgressMap,
+        progressDB,
         playEpisode,
         setCurrentEpisode,
-        updateEpisodeProgressMap,
+        updateEpisodeProgress,
         episodeDB,
         isFetchingEpisodes,
         channelDB,

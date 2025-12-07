@@ -85,3 +85,11 @@ export default function PlayButton({
     </button>
   );
 }
+
+export function PlayButtonSkeleton({ iconSize = 32 }: { iconSize?: number; }) {
+  return (
+    <button role="none">
+      <PlayIcon size={iconSize} className="fill-zinc-100" />
+    </button>
+  );
+}

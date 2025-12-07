@@ -1,96 +1,56 @@
 "use client";
 
 import Image from "next/image";
-import PlayButton from "./play-button";
+import PlayButton, { PlayButtonSkeleton } from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
-import { useProgressStore } from "@/store/progress-store";
-import { CSSProperties, useMemo } from "react";
-import type { Content } from "@/types/api/content";
-import { useSettingsStore } from "@/store/settings-store";
+import { Episode, Seconds } from "@/types/types";
+import { usePlayContext } from "./play-context/play-context-use";
+import { useMemo } from "react";
 
 const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
 const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
 
-export default function EpisodeDOM({
-  episode,
-  className,
-  style,
-}: {
-  episode: Content;
-  className?: string;
-  style?: CSSProperties;
-}) {
-  const progressStore = useProgressStore().episodeProgressMap[episode.id];
-  const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
-  const percent = useMemo(() => {
-    const duration = Math.floor(episode.duration / 60);
-    return duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
-  }, [elapsed, episode]);
+export default function EpisodeDOM({ episode }: { episode: Episode; }) {
+  const { progressDB } = usePlayContext();
 
-  // Date and time formatting
-  const formattedDate = useMemo(() => {
-    let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
+  const progress: Seconds = useMemo(() => progressDB[episode.id], [progressDB, episode.id]);
+  const duration: Seconds = useMemo(() => episode.duration, [episode.duration]);
 
-    if (formattedDate === today) {
-      formattedDate = "Idag";
-    } else if (formattedDate === yesterday) {
-      formattedDate = "Igår";
-    } else {
-      formattedDate = episode.publishDate.toLocaleString(...dateLocale);
-    }
-    return formattedDate;
-  }, [episode.publishDate]);
-  const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
+  // const progressStore = useProgressStore().episodeProgressMap[episode.id];
+  // const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
+  // const percent = useMemo(() => {
+  //   const duration = Math.floor(episode.duration / 60);
+  //   return duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
+  // }, [elapsed, episode]);
 
-  const duration = useMemo(() => Math.round(episode.duration / 60), [episode.duration]);
-  const remainingMin = useMemo(() => elapsed ? Math.ceil(duration - elapsed) : null, [elapsed, duration]);
-  const remaining = useMemo(() => {
-    if (remainingMin === 0) return "Lyssnad";
-    if (remainingMin !== null && remainingMin > 0) return `${remainingMin} min kvar`;
-    return "";
-  }, [remainingMin]);
+  // // Date and time formatting
+  // const formattedDate = useMemo(() => {
+  //   let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
+  //   const today = new Date().toISOString().slice(0, 10);
+  //   const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
 
-  const compact = useSettingsStore((state) => state.settings.compactView);
+  //   if (formattedDate === today) {
+  //     formattedDate = "Idag";
+  //   } else if (formattedDate === yesterday) {
+  //     formattedDate = "Igår";
+  //   } else {
+  //     formattedDate = episode.publishDate.toLocaleString(...dateLocale);
+  //   }
+  //   return formattedDate;
+  // }, [episode.publishDate]);
+  // const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
 
-  if (compact) {
-    return (
-      <li className="w-full flex flex-row items-center gap-x-3" style={style} id={episode.id.toString()}>
-        {/* Thumbnail */}
-        <Image width={48} height={48} src={""} overrideSrc={episode.image.square} alt="Avsnittsbild" className="bg-zinc-600 rounded-md flex-shrink-0" fetchPriority="low"></Image>
-
-        <div className="flex flex-col flex-3 overflow-hidden max-w-[16ch]">
-          {/* Program */}
-          <p className="text-sm font-light overflow-ellipsis">{episode.program.name}</p>
-
-          {/* Title */}
-          <p className="text-sm font-bold whitespace-pre overflow-x-auto">{episode.title}</p>
-        </div>
-
-        <div className="flex flex-col flex-2">
-          {/* Release */}
-          <p className="text-xs text-zinc-400 text-right flex-shrink-0">{formattedDate} {formattedTime}</p>
-
-          {/* Time left */}
-          <p className="text-xs text-zinc-400 text-right flex-shrink-0">{remainingMin ? <span className="italic">{remaining}</span> : <>{duration} min</>}</p>
-          {/* If started, show remaining, else, duration */}
-        </div>
-
-        <div>
-          {/* Play button */}
-          <PlayButton episodeData={episode} className="w-fit" />
-
-          {/* Progress */}
-          <ProgressBar progress={percent} className="flex-1 rounded-sm max-w-[130px]" innerClassName="rounded-sm" />
-        </div>
-      </li>
-    );
-  }
+  // const duration = useMemo(() => Math.round(episode.duration / 60), [episode.duration]);
+  // const remainingMin = useMemo(() => elapsed ? Math.ceil(duration - elapsed) : null, [elapsed, duration]);
+  // const remaining = useMemo(() => {
+  //   if (remainingMin === 0) return "Lyssnad";
+  //   if (remainingMin !== null && remainingMin > 0) return `${remainingMin} min kvar`;
+  //   return "";
+  // }, [remainingMin]);
 
   return (
-    <li className={`w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2 ${className || ""}`} style={style} id={episode.id.toString()}>
+    <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>
       {/* SR Attribute */}
       <SRAttribute className="col-span-2" />
 
@@ -122,34 +82,6 @@ export default function EpisodeDOM({
 }
 
 export function EpisodeSkeleton() {
-  const compact = useSettingsStore((state) => state.settings.compactView);
-
-  if (compact) {
-    return (
-      <li className="w-full flex flex-row items-center gap-x-3 h-12 max-h-12">
-        {/* Thumbnail */}
-        <div className="bg-zinc-600 rounded-md size-12 flex-shrink-0 animate-pulse"></div>
-
-        <div className="flex flex-col flex-3">
-          {/* Program */}
-          <div className="bg-zinc-600 rounded-md h-3 w-[11ch] mb-1 animate-pulse"></div>
-
-          {/* Title */}
-          <div className="bg-zinc-600 rounded-md h-3 w-[13ch] animate-pulse"></div>
-        </div>
-
-        <div className="flex flex-col flex-2"></div>
-
-        <div className="flex flex-col items-center gap-y-2">
-          {/* Play button */}
-          <div className="bg-zinc-600 rounded-full size-6 animate-pulse"></div>
-
-          {/* Progress */}
-          <div className="rounded-sm bg-zinc-600 h-1 w-6 animate-pulse"></div>
-        </div>
-      </li>
-    );
-  }
   return (
     <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2">
       {/* SR Attribute */}
@@ -173,7 +105,7 @@ export function EpisodeSkeleton() {
       <div className="col-span-2 flex flex-row justify-between items-center">
         <div></div>
 
-        <PlayButton />
+        <PlayButtonSkeleton />
       </div>
     </li>
   );
