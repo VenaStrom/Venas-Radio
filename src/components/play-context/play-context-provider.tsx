@@ -74,9 +74,12 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   // On mount, read localStorage for saved state (if any)
   useEffect(() => {
     Promise.all([
+      // LocalStorage
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
       async () => setFollowedChannels(JSON.parse(localStorage.getItem("followedChannels") || "[]")),
-      async () => setProgressDB(JSON.parse(sessionStorage.getItem("progressDB") || "{}")), // Serialized Seconds as number
+      async () => setProgressDB(JSON.parse(localStorage.getItem("progressDB") || "{}")), // Serialized Seconds as number
+
+      // SessionStorageF
       async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
       async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
       async () => setProgramDB(JSON.parse(sessionStorage.getItem("programDB") || "{}")),
@@ -143,6 +146,15 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         setIsFetchingPrograms(false);
       });
   }, []);
+
+  // Save progressDB to localStorage on change
+  useEffect(() => {
+    const serializedProgressDB: Record<string, number> = {};
+    for (const [episodeID, seconds] of Object.entries(progressDB)) {
+      serializedProgressDB[episodeID] = seconds.toNumber();
+    }
+    localStorage.setItem("progressDB", JSON.stringify(serializedProgressDB));
+  }, [progressDB]);
 
   return (
     <PlayContext.Provider
