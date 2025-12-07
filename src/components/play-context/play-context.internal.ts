@@ -27,9 +27,9 @@ export type PlayContextType = {
   isFetchingChannels: boolean;
 
   followedPrograms: number[];
-  setFollowedPrograms: (programIDs: number[]) => void;
+  setFollowedPrograms: React.Dispatch<React.SetStateAction<number[]>>;
   followedChannels: number[];
-  setFollowedChannels: (channelIDs: number[]) => void;
+  setFollowedChannels: React.Dispatch<React.SetStateAction<number[]>>;
 };
 
 export const PlayContext = createContext<PlayContextType | undefined>(undefined);

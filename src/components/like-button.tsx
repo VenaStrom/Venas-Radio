@@ -1,72 +1,51 @@
 "use client";
 
-import { useSettingsStore } from "@/store/settings-store";
 import { HeartIcon } from "lucide-react";
-import { CSSProperties, useState } from "react";
+import { useMemo, useState } from "react";
+import { usePlayContext } from "./play-context/play-context-use";
 
 export default function LikeButton({
   programID,
   channelID,
-  className = "",
-  style,
 }: {
   programID?: number;
   channelID?: number;
-  className?: string;
-  style?: CSSProperties;
 }
 ) {
-  const [liked, setLiked] = useState(false);
-  const settingsStore = useSettingsStore();
+  const { followedPrograms, setFollowedPrograms, followedChannels, setFollowedChannels } = usePlayContext();
+  const liked = useMemo(() => {
+    return programID ? followedPrograms[programID] || false :
+      channelID ? followedChannels[channelID] || false :
+        false;
+  }, [programID, channelID, followedPrograms, followedChannels]);
 
-  const id = programID || channelID || 0;
-
-  // Load state
-  useState(() => {
-    if (channelID) {
-      setLiked(settingsStore.settings?.likedChannels?.includes(id) || false);
-    }
-    else if (programID) {
-      setLiked(settingsStore.settings.programIDs.includes(id));
-    }
-    else {
-      setLiked(false);
-    }
-  });
+  const [highlighted, setHighlighted] = useState(false); // Local UI state for immediate feedbackf
 
   // Save state
   const toggleLike = () => {
     const newState = !liked;
+    setHighlighted(newState);
 
-    setLiked(newState);
-
-    // If likedChannels isn't defined, set it to an empty array
-    if (!settingsStore.settings?.likedChannels) {
-      settingsStore.setSetting("likedChannels", []);
+    if (programID) {
+      setFollowedPrograms(prev =>
+        [...newState
+          ? new Set([...prev, programID])
+          : new Set([...prev].filter(id => id !== programID))
+        ]);
     }
-
-    if (newState) {
-      if (channelID) {
-        settingsStore.setSetting("likedChannels", Array.from(new Set([...settingsStore?.settings?.likedChannels || [], id])));
-      }
-      else if (programID) {
-        settingsStore.setSetting("programIDs", Array.from(new Set([...settingsStore.settings.programIDs, id])));
-      }
-    }
-    else {
-      if (channelID) {
-        settingsStore.setSetting("likedChannels", (settingsStore?.settings?.likedChannels || []).filter(cid => cid !== id));
-      }
-      else if (programID) {
-        settingsStore.setSetting("programIDs", settingsStore.settings.programIDs.filter(pid => pid !== id));
-      }
+    else if (channelID) {
+      setFollowedChannels(prev =>
+        [...newState
+          ? new Set([...prev, channelID])
+          : new Set([...prev].filter(id => id !== channelID))
+        ]);
     }
   };
 
   return (
-    <button className={`size-min ${className || ""}`} style={style}>
+    <button className="size-min">
       <HeartIcon
-        className={liked ? "fill-[red] !text-[red]" : "none"}
+        className={highlighted ? "fill-[red] text-[red]" : "none"}
         size={28}
         onClick={toggleLike}
       />
