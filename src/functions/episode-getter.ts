@@ -1,5 +1,5 @@
 import { SR_Episode } from "@/types/api/episode";
-import { EpisodeDB } from "@/types/types";
+import { EpisodeDB, Seconds } from "@/types/types";
 
 export async function fetchEpisodes(
   programIds: number[],
@@ -44,7 +44,7 @@ export async function fetchEpisodes(
             name: episode.program.name,
           },
           publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
-          duration: episode.listenpodfile.duration || episode.downloadpodfile.duration || 0,
+          duration: Seconds.from(episode.listenpodfile.duration || episode.downloadpodfile.duration || 0),
           image: {
             square: episode.imageurl,
             wide: episode.imageurltemplate,
