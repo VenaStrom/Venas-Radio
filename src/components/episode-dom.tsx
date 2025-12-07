@@ -4,7 +4,7 @@ import Image from "next/image";
 import PlayButton, { PlayButtonSkeleton } from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
-import { Episode } from "@/types/types";
+import { Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
 import { useMemo } from "react";
 
@@ -14,40 +14,32 @@ const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE",
 export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   const { progressDB } = usePlayContext();
 
-  const progress_s = useMemo(() => progressDB[episode.id], [progressDB, episode.id]);
-  const duration_s = useMemo(() => episode.duration, [episode.duration]);
+  const progress = useMemo(() => {
+    return new PlaybackProgress(episode.duration, progressDB[episode.id] || Seconds.from(0));
+  }, [episode.id, episode.duration, progressDB]);
 
-  // const progressStore = useProgressStore().episodeProgressMap[episode.id];
-  // const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
-  // const percent = useMemo(() => {
-  //   const duration = Math.floor(episode.duration / 60);
-  //   return duration && elapsed ? Math.floor((elapsed / duration) * 100) : 0;
-  // }, [elapsed, episode]);
+  const duration: Timestamp = useMemo(() => progress.durationTimestamp(), [progress]);
+  const remaining: Timestamp = useMemo(() => progress.remainingTimestamp(), [progress]);
+  const percent: number = useMemo(() => progress.elapsedPercentage, [progress]);
 
-  // // Date and time formatting
-  // const formattedDate = useMemo(() => {
-  //   let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
-  //   const today = new Date().toISOString().slice(0, 10);
-  //   const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
+  // Date and time formatting
+  const formattedDate = useMemo(() => {
+    let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
 
-  //   if (formattedDate === today) {
-  //     formattedDate = "Idag";
-  //   } else if (formattedDate === yesterday) {
-  //     formattedDate = "Igår";
-  //   } else {
-  //     formattedDate = episode.publishDate.toLocaleString(...dateLocale);
-  //   }
-  //   return formattedDate;
-  // }, [episode.publishDate]);
-  // const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
-
-  // const duration = useMemo(() => Math.round(episode.duration / 60), [episode.duration]);
-  // const remainingMin = useMemo(() => elapsed ? Math.ceil(duration - elapsed) : null, [elapsed, duration]);
-  // const remaining = useMemo(() => {
-  //   if (remainingMin === 0) return "Lyssnad";
-  //   if (remainingMin !== null && remainingMin > 0) return `${remainingMin} min kvar`;
-  //   return "";
-  // }, [remainingMin]);
+    if (formattedDate === today) {
+      formattedDate = "Idag";
+    }
+    else if (formattedDate === yesterday) {
+      formattedDate = "Igår";
+    }
+    else {
+      formattedDate = episode.publishDate.toLocaleString(...dateLocale);
+    }
+    return formattedDate;
+  }, [episode.publishDate]);
+  const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
 
   return (
     <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>
@@ -72,10 +64,12 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">
         <p className="text-xs text-zinc-400">
-          {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration_s} min{"\u00a0\u00a0\u00b7\u00a0\u00a0"}{remaining}
+          {formattedDate} {formattedTime}
+          &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+          {duration.toFormattedString({ secondUnit: "hide" })} {remaining.toFormattedString()}
         </p>
 
-        <PlayButton episodeData={episode} />
+        <PlayButton episodeID={episode.id} />
       </div>
     </li>
   );

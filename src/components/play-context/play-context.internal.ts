@@ -11,14 +11,14 @@ export type PlayContextType = {
 
   /** Number if there's a current episode or null if not and infinity if streaming  */
   currentProgress: Seconds | null;
-  setCurrentProgress: (progress: Seconds) => void;
+  setCurrentProgress: (elapsed: Seconds) => void;
 
   currentEpisode: Episode | null;
   setCurrentEpisode: (episode: Episode | null) => void;
   playEpisode: (episodeId: Episode["id"]) => void;
 
   progressDB: ProgressDB;
-  updateEpisodeProgress: (episodeId: Episode["id"], progress: Seconds) => void;
+  updateEpisodeProgress: (episodeId: Episode["id"], elapsed: Seconds) => void;
 
   episodeDB: EpisodeDB;
   isFetchingEpisodes: boolean;

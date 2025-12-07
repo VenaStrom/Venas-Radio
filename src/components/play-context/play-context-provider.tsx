@@ -25,10 +25,10 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [programDB, setProgramDB] = useState<ProgramDB>({});
 
   const [progressDB, setProgressDB] = useState<ProgressDB>({});
-  const updateEpisodeProgress = (episodeID: Episode["id"], progress: Seconds) => {
+  const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds) => {
     setProgressDB((prev) => ({
       ...prev,
-      [episodeID]: progress,
+      [episodeID]: elapsed,
     }));
   };
 
@@ -38,9 +38,9 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     }
     return null;
   }, [currentEpisode, progressDB]);
-  const setCurrentProgress = (progress: Seconds) => {
+  const setCurrentProgress = (elapsed: Seconds) => {
     if (currentEpisode) {
-      updateEpisodeProgress(currentEpisode.id, progress);
+      updateEpisodeProgress(currentEpisode.id, elapsed);
     }
     else {
       console.warn("No current episode set; cannot set progress.");
@@ -75,6 +75,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   useEffect(() => {
     Promise.all([
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
+      async () => setFollowedChannels(JSON.parse(localStorage.getItem("followedChannels") || "[]")),
+      async () => setProgressDB(JSON.parse(sessionStorage.getItem("progressDB") || "{}")), // Serialized Seconds as number
       async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
       async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
       async () => setProgramDB(JSON.parse(sessionStorage.getItem("programDB") || "{}")),

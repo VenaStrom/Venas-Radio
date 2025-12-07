@@ -1,14 +1,17 @@
 import { Minutes, Seconds, Timestamp } from "./types";
 
 export class __PlaybackProgress {
-  private elapsed: Seconds;
-  private duration: Seconds;
+  public duration: Seconds;
+  public elapsed: Seconds;
 
-  constructor(elapsed: Seconds, duration: Seconds) {
-    this.elapsed = elapsed;
+  constructor(duration: Seconds, elapsed: Seconds) {
     this.duration = duration;
+    this.elapsed = elapsed;
   }
 
+  /** 
+   * Whole number 0 to 100 (%)
+   */
   get elapsedPercentage(): number {
     if (this.duration.toNumber() === 0) return 0;
     return (this.elapsed.toNumber() / this.duration.toNumber()) * 100;
@@ -37,10 +40,14 @@ export class __PlaybackProgress {
     return Seconds.from(Math.max(0, remaining));
   }
 
-  toString(): string {
-    const elapsed = Timestamp.fromSeconds(this.elapsed);
-    const duration = Timestamp.fromSeconds(this.duration);
-    return `${elapsed.toString()}/${duration.toString()}`;
+  durationTimestamp(): Timestamp {
+    return Timestamp.fromSeconds(this.duration);
+  }
+  elapsedTimestamp(): Timestamp {
+    return Timestamp.fromSeconds(this.elapsed);
+  }
+  remainingTimestamp(): Timestamp {
+    return Timestamp.fromSeconds(this.remainingSeconds);
   }
 }
 
@@ -57,6 +64,48 @@ export class __Timestamp {
     const min = this.minutes.toNumber();
     const sec = this.seconds.toNumber();
     return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  toFormattedString(
+    options:
+      {
+        minuteUnit?: "none" | "short" | "long" | "hide";
+        secondUnit?: "none" | "short" | "long" | "hide";
+      } = {
+        minuteUnit: "short",
+        secondUnit: "short",
+      },
+  ): string {
+    const parts: string[] = [];
+    switch (options.minuteUnit) {
+      case "long":
+        parts.push(`${this.minutes.toNumber()} minuter`);
+        break;
+      case "short":
+        parts.push(`${this.minutes.toNumber()} min`);
+        break;
+      case "none":
+        parts.push(this.minutes.toString());
+        break;
+      case "hide":
+        break;
+    }
+
+    switch (options.secondUnit) {
+      case "long":
+        parts.push(`${this.seconds.toNumber()} sekunder`);
+        break;
+      case "short":
+        parts.push(`${this.seconds.toNumber()} sek`);
+        break;
+      case "none":
+        parts.push(this.seconds.toString());
+        break;
+      case "hide":
+        break;
+    }
+
+    return parts.join(" ");
   }
 
   static fromSeconds(totalSeconds: Seconds): Timestamp {
@@ -87,8 +136,20 @@ export class __Seconds {
     return Minutes.fromSeconds(this);
   }
 
+  toString(): string {
+    return this.value.toString();
+  }
+
   static from(value: number): Seconds {
     return new Seconds(value);
+  }
+
+  static add(a: Seconds, b: Seconds): Seconds {
+    return new Seconds(a.toNumber() + b.toNumber());
+  }
+
+  static subtract(a: Seconds, b: Seconds): Seconds {
+    return new Seconds(a.toNumber() - b.toNumber());
   }
 }
 
@@ -107,6 +168,10 @@ export class __Minutes {
     return Seconds.from(this.value * 60);
   }
 
+  toString(): string {
+    return this.value.toString();
+  }
+
   static from(value: number): Minutes {
     return new Minutes(value);
   }
@@ -114,5 +179,13 @@ export class __Minutes {
   /** !! WARNING Truncates !! */
   static fromSeconds(seconds: Seconds): Minutes {
     return new Minutes(Math.floor(seconds.toNumber() / 60));
+  }
+
+  static add(a: Minutes, b: Minutes): Minutes {
+    return new Minutes(a.toNumber() + b.toNumber());
+  }
+
+  static subtract(a: Minutes, b: Minutes): Minutes {
+    return new Minutes(a.toNumber() - b.toNumber());
   }
 }
