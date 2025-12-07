@@ -29,7 +29,7 @@ export default function ChannelDOM({ channelData }: { channelData: Channel }) {
 
           <div className="flex flex-row gap-x-4 items-center">
             <LikeButton channelID={channelData.id} />
-            <PlayButton episodeData={contentData} iconSize={28} />
+            <PlayButton channelID={channelData.id} iconSize={28} />
           </div>
         </div>
 

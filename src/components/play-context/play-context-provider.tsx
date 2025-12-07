@@ -1,4 +1,4 @@
-import { ChannelDB, Episode, EpisodeDB } from "@/types/types";
+import { Channel, ChannelDB, Episode, EpisodeDB } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo } from "react";
 import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
@@ -9,13 +9,16 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isFetchingChannels, setIsFetchingChannels] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
+
   const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(null);
 
-  const [followedPrograms, setFollowedPrograms] = useState<number[]>([]);
-  const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
+  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
+  const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
 
+  const [followedPrograms, setFollowedPrograms] = useState<number[]>([]);
   const [followedChannels, setFollowedChannels] = useState<number[]>([]);
+
+  const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
 
   const [episodeProgressMap, setEpisodeProgressMap] = useState<Record<Episode["id"], number>>({});
@@ -32,7 +35,6 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     }
     return null;
   }, [currentEpisode, episodeProgressMap]);
-
   const setCurrentProgress = (progress: number) => {
     if (currentEpisode) {
       updateEpisodeProgressMap(currentEpisode.id, progress);
@@ -48,6 +50,18 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     }
     else {
       console.warn(`Episode with ID ${episodeId} not found in episodeDB.`);
+    }
+  };
+
+  const playChannel = (channelId: Channel["id"]) => {
+    const channel = channelDB[channelId];
+    if (channel) {
+      setCurrentChannel(channel);
+      setCurrentStreamUrl(channel.url);
+      setIsPlaying(true);
+    }
+    else {
+      console.warn(`Channel with ID ${channelId} not found in channelDB.`);
     }
   };
 
@@ -114,6 +128,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         currentProgress,
         setCurrentProgress,
         currentEpisode,
+        currentChannel,
+        setCurrentChannel,
         episodeProgressMap,
         playEpisode,
         setCurrentEpisode,
@@ -126,6 +142,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         setFollowedPrograms,
         followedChannels,
         setFollowedChannels,
+        playChannel,
       }}
     >
       {children}

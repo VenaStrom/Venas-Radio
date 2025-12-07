@@ -1,99 +1,87 @@
 "use client";
 
-import { usePlayStateStore } from "@/store/play-state-store";
-import { useProgressStore } from "@/store/progress-store";
-import type { Content } from "@/types/api/content";
-import type { PlayPause } from "@/types/play-pause";
 import { PauseIcon, PlayIcon } from "lucide-react";
-import { useState } from "react";
+import { useMemo } from "react";
+import { usePlayContext } from "./play-context/play-context-use";
 
-/**
- * A play button component. It has some feature that initiate playing an episode.
- * @param episodeData The Episode object associated with the play button that is used for playback
- * @param role         What the button does on click. "starter" is the default role, and "controller" is used for controlling playback in the audio player for example.
- * @param className    Is passed on the outer most element in this component for styling purposes.
- * @param iconSize     The size of the icon in pixels.
- */
 export default function PlayButton({
-  episodeData,
-  role = "starter",
-  className = "",
-  iconSize = 24
+  episodeID,
+  channelID,
+  iconSize = 32,
 }: {
-  episodeData?: Content,
-  role?: "starter" | "controller",
-  className?: string,
-  iconSize?: number
+  episodeID?: number;
+  channelID?: number;
+  iconSize?: number;
 }) {
-  const [buttonState, setButtonState] = useState<PlayPause>("paused");
-  const playStateStore = usePlayStateStore();
-  const progressStore = useProgressStore();
+  const { isPlaying: globalIsPlaying, currentEpisode, currentChannel, pause, play, playEpisode, playChannel } = usePlayContext();
+
+  const interactionType = useMemo<"episode" | "channel" | "controller" | null>(() => {
+    if (typeof episodeID !== "undefined") {
+      return "episode";
+    }
+    if (typeof channelID !== "undefined") {
+      return "channel";
+    }
+    return "controller";
+  }, [episodeID, channelID]);
+
+  const id: number | "controller" = useMemo(() => {
+    if (typeof episodeID !== "undefined") {
+      return episodeID;
+    }
+    if (typeof channelID !== "undefined") {
+      return channelID;
+    }
+    return "controller";
+  }, [episodeID, channelID]);
+
+  const isPlaying = useMemo(() => {
+    switch (interactionType) {
+      case "episode":
+        return globalIsPlaying && currentEpisode?.id === id;
+
+      case "channel":
+        return globalIsPlaying && currentChannel?.id === id;
+
+      default:
+        return false;
+    }
+  }, [currentChannel?.id, currentEpisode?.id, globalIsPlaying, id, interactionType]);
 
   const click = () => {
-    if (role === "controller") {
-      const currentState = playStateStore.playState;
-      const invertedState = currentState === "paused" ? "playing" : "paused";
-
-      playStateStore.setPlayState(invertedState);
-      setButtonState(invertedState);
-      return;
-    }
-
-    if (role === "starter" && episodeData) {
-      if (buttonState === "paused") {
-        // If the episode is finished, reset the progress
-        const episodeProgress = progressStore.episodeProgressMap[episodeData.id];
-        if (episodeProgress?.finished) {
-          progressStore.setEpisodeProgress(episodeData.id.toString(), { seconds: 0, finished: false });
-        }
-
-        // Set the current episode and play it
-        playStateStore.setCurrentEpisode(episodeData);
-        playStateStore.setPlayState("playing");
-        setButtonState("playing");
+    // Determine action based on interaction type and current play state and id
+    if (interactionType === "controller") {
+      if (!currentEpisode?.id && !currentChannel?.id) {
+        console.warn("No episode or channel is currently loaded to control.");
         return;
       }
-      if (buttonState === "playing") {
-        playStateStore.setPlayState("paused");
-        setButtonState("paused");
-        return;
-      }
-    };
-  };
-
-  // Pause if another episode is playing
-  usePlayStateStore.subscribe((state) => {
-
-    // Sync controller with global state
-    if (role === "controller") {
-      setButtonState(state.playState);
-      return;
+      return globalIsPlaying ? pause() : play();
     }
 
-    // Set starter state depending on the current episode
-    if (role === "starter" && episodeData) {
-      const isSameEpisode = state.currentEpisode?.id === episodeData.id;
+    if (id === "controller") throw new Error("Invalid state: interactionType is not 'controller' but id is 'controller'.");
 
-      // Set the button state to the global state
-      if (isSameEpisode) {
-        setButtonState(state.playState);
-        return;
-      }
-
-      // Reset the button state when another thing is playing
-      setButtonState("paused");
+    if (isPlaying) {
+      // Inferred that this media is the one playing, so pause it
+      pause();
     }
-  });
-
-  const getIcon = () => {
-    return buttonState === "paused"
-      ? <PlayIcon size={iconSize} className="fill-zinc-100" />
-      : <PauseIcon size={iconSize} className="fill-zinc-100" />;
+    else {
+      // Play the selected media
+      if (interactionType === "episode") {
+        playEpisode(id);
+      }
+      else if (interactionType === "channel") {
+        playChannel(id);
+      }
+    }
   };
 
   return (
-    <button className={className} id={episodeData?.id.toString() || ""} onClick={click}>
-      {getIcon()}
+    <button id={id.toString()} onClick={click}>
+      {
+        isPlaying
+          ? <PauseIcon size={iconSize} className="fill-zinc-100" />
+          : <PlayIcon size={iconSize} className="fill-zinc-100" />
+      }
     </button>
   );
 }
