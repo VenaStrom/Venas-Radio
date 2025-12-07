@@ -194,10 +194,10 @@ export default function AudioControls({ className }: { className?: string }) {
 
         <p className="text-sm text-zinc-400 whitespace-nowrap">
           {!elapsed || !duration
-            ? "--:--/--:--"
+            ? "--:-- / --:--"
             : currentMedia?.type === "channel"
               ? "Live"
-              : `${elapsed.toString()}/${duration.toString()}`
+              : `${elapsed.toString()} / ${duration.toString()}`
           }
         </p>
 

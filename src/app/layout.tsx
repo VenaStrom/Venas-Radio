@@ -4,7 +4,9 @@ import { AudioLinesIcon, HomeIcon, SearchIcon, HeartIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
-import "./metadata";
+
+// eslint-disable-next-line react-refresh/only-export-components
+export { metadata } from "./metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
 
