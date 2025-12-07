@@ -85,7 +85,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
       async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
       async () => setProgramDB(JSON.parse(sessionStorage.getItem("programDB") || "{}")),
-    ]);
+    ].map(fn => fn()));
   }, []);
 
   // Fetch episodes on mount and when followedPrograms changes
@@ -157,6 +157,16 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     }
     localStorage.setItem("progressDB", JSON.stringify(serializedProgressDB));
   }, [progressDB]);
+
+  // Save followedPrograms to localStorage on change
+  useEffect(() => {
+    localStorage.setItem("followedPrograms", JSON.stringify(followedPrograms));
+  }, [followedPrograms]);
+
+  // Save followedChannels to localStorage on change
+  useEffect(() => {
+    localStorage.setItem("followedChannels", JSON.stringify(followedChannels));
+  }, [followedChannels]);
 
   return (
     <PlayContext.Provider

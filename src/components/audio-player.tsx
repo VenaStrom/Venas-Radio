@@ -90,7 +90,6 @@ export default function AudioControls({ className }: { className?: string }) {
     setDraggedProgress(inputValue);
   };
 
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Audio element setup
   useEffect(() => {
@@ -98,10 +97,18 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const audioEl = audioRef.current;
 
-    audioEl.src = currentStreamUrl || "";
-    audioEl.autoplay = true;
-    audioEl.preload = "auto";
-    audioEl.crossOrigin = "anonymous";
+    if (currentStreamUrl) {
+      audioEl.src = currentStreamUrl;
+      audioEl.autoplay = true;
+      audioEl.preload = "auto";
+      audioEl.crossOrigin = "anonymous";
+    }
+    else {
+      // Stop and clear when nothing should play
+      audioEl.pause();
+      audioEl.removeAttribute("src");
+      audioEl.load();
+    }
 
     const onTimeUpdate = () => {
       if (progress && currentMedia?.type === "episode") {
