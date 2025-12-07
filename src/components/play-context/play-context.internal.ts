@@ -1,4 +1,4 @@
-import { Channel, ChannelDB, Episode, EpisodeDB } from "@/types/types";
+import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB } from "@/types/types";
 import { createContext } from "react";
 
 export type PlayContextType = {
@@ -26,12 +26,16 @@ export type PlayContextType = {
   channelDB: ChannelDB;
   isFetchingChannels: boolean;
 
+  programDB: ProgramDB;
+  isFetchingPrograms: boolean;
+
   currentChannel: Channel | null;
   setCurrentChannel: (channel: Channel | null) => void;
   playChannel: (channelId: Channel["id"]) => void;
 
   followedPrograms: number[];
   setFollowedPrograms: React.Dispatch<React.SetStateAction<number[]>>;
+
   followedChannels: number[];
   setFollowedChannels: React.Dispatch<React.SetStateAction<number[]>>;
 };

@@ -1,12 +1,14 @@
-import { Channel, ChannelDB, Episode, EpisodeDB } from "@/types/types";
+import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo } from "react";
 import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
 import { fetchChannels } from "@/functions/channel-getter";
+import { fetchPrograms } from "@/functions/program-getter";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);
   const [isFetchingChannels, setIsFetchingChannels] = useState(true);
+  const [isFetchingPrograms, setIsFetchingPrograms] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -20,6 +22,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
+  const [programDB, setProgramDB] = useState<ProgramDB>({});
 
   const [episodeProgressMap, setEpisodeProgressMap] = useState<Record<Episode["id"], number>>({});
   const updateEpisodeProgressMap = (episodeId: Episode["id"], progress: number) => {
@@ -71,6 +74,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
       async () => setEpisodeDB(JSON.parse(sessionStorage.getItem("episodeDB") || "{}")),
       async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
+      async () => setProgramDB(JSON.parse(sessionStorage.getItem("programDB") || "{}")),
     ]);
   }, []);
 
@@ -117,6 +121,24 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       });
   }, []);
 
+  // Fetch programs on mount
+  useEffect(() => {
+    fetchPrograms()
+      .then((allPrograms) => {
+        setProgramDB(prev => {
+          const updatedDB = { ...prev, ...allPrograms };
+          sessionStorage.setItem("programDB", JSON.stringify(updatedDB));
+          return updatedDB;
+        });
+      })
+      .catch((error) => {
+        console.error("Error fetching programs:", error);
+      })
+      .finally(() => {
+        setIsFetchingPrograms(false);
+      });
+  }, []);
+
   return (
     <PlayContext.Provider
       value={{
@@ -143,6 +165,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         followedChannels,
         setFollowedChannels,
         playChannel,
+        isFetchingPrograms,
+        programDB,
       }}
     >
       {children}

@@ -34,3 +34,24 @@ export type Channel = {
   channelType: string;
 };
 export type ChannelDB = Record<Channel["id"], Channel>;
+
+export type Program = {
+  id: number;
+  name: string;
+  description: string;
+  broadcastInfo: string;
+  email: string;
+  phone: string;
+  programSlug: string;
+  channelId: number;
+  channelName: string;
+  image: {
+    square: string;
+    wide: string;
+  };
+  archived: boolean;
+  hasOnDemand: boolean;
+  hasPod: boolean;
+  responsibleEditor: string;
+};
+export type ProgramDB = Record<Program["id"], Program>;
