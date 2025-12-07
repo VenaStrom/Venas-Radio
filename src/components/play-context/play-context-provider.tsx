@@ -82,7 +82,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       async () => setFollowedChannels(JSON.parse(localStorage.getItem("followedChannels") || "[]")),
       async () => setProgressDB(JSON.parse(localStorage.getItem("progressDB") || "{}")), // Serialized Seconds as number
 
-      // SessionStorageF
+      // SessionStorage
       async () => setEpisodeDB(episodeDBDeserializer(sessionStorage.getItem("episodeDB"))),
       async () => setChannelDB(JSON.parse(sessionStorage.getItem("channelDB") || "{}")),
       async () => setProgramDB(JSON.parse(sessionStorage.getItem("programDB") || "{}")),

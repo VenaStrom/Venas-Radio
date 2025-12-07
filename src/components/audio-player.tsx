@@ -101,7 +101,6 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.src = currentStreamUrl;
       audioEl.autoplay = true;
       audioEl.preload = "auto";
-      audioEl.crossOrigin = "anonymous";
     }
     else {
       // Stop and clear when nothing should play
