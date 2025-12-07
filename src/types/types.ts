@@ -61,3 +61,13 @@ export type Program = {
   hasPod: boolean;
   responsibleEditor: string;
 };
+
+export type AudioPlayerMedia = {
+  episodeID?: Episode["id"];
+  channelID?: Channel["id"];
+  type: "episode" | "channel";
+  title: string;
+  subtitle: string;
+  url: string;
+  image: string;
+};
