@@ -6,7 +6,7 @@ import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import SettingsMenu from "@/components/settings-menu";
 import packageJson from "../../package.json" with { type: "json" };
-import { PlayProvider } from "@/components/play-context";
+import { PlayProvider } from "@/components/play-context/play-context-provider";
 
 export const metadata: Metadata = {
   title: "VR Radiospelare",
