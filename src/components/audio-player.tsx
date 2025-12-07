@@ -3,7 +3,7 @@
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useMemo, useState } from "react";
-import { AudioPlayerMedia, PlaybackProgress, Timestamp } from "@/types/types";
+import { AudioPlayerMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
 
 export default function AudioControls({ className }: { className?: string }) {
@@ -13,7 +13,7 @@ export default function AudioControls({ className }: { className?: string }) {
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
 
-  const { currentStreamUrl, currentEpisode, currentChannel } = usePlayContext();
+  const { currentStreamUrl, currentEpisode, currentChannel, progressDB, setCurrentProgress } = usePlayContext();
 
   const currentMedia: AudioPlayerMedia | null = useMemo(() => {
     if (!currentChannel && !currentEpisode) return null;
@@ -46,40 +46,54 @@ export default function AudioControls({ className }: { className?: string }) {
     return null;
   }, [currentChannel, currentEpisode]);
 
-  const progress = useMemo(() => {
-    return new PlaybackProgress(episode.duration, progressDB[episode.id] || Seconds.from(0));
-  }, [episode.id, episode.duration, progressDB]);
+  const progress: PlaybackProgress | null = useMemo(() => {
+    if (currentMedia?.type === "episode" && currentEpisode) {
+      return new PlaybackProgress(currentEpisode.duration, progressDB[currentEpisode.id] || Seconds.from(0));
+    }
+    return null;
+  }, [currentMedia?.type, currentEpisode, progressDB]);
 
-  const duration: Timestamp = useMemo(() => progress.durationTimestamp(), [progress]);
-  const remaining: Timestamp = useMemo(() => progress.remainingTimestamp(), [progress]);
-  const percent: number = useMemo(() => progress.elapsedPercentage, [progress]);
+  const duration: Timestamp | null = useMemo(() => progress ? progress.durationTimestamp() : null, [progress]);
+  const elapsed: Timestamp | null = useMemo(() => progress ? progress.elapsedTimestamp() : null, [progress]);
+  const percent: number | null = useMemo(() => progress ? progress.elapsedPercentage : null, [progress]);
 
   const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (currentMedia?.type === "channel") return; // No seeking for live channels
+
     const inputValue = parseFloat(event.target.value);
-    const newTime = (inputValue / 100) * episode.duration;
+    if (progress && currentEpisode) {
+      const newElapsed = Seconds.from(Math.round((inputValue / 100) * progress.duration.toNumber()));
+      setCurrentProgress(newElapsed);
+    }
   };
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
       <div className="w-full">
         {/* Progress bar */}
-        <ProgressBar className="block top-0" progress={percent} />
+        <ProgressBar
+          className="block top-0"
+          progress={percent ?? 100}
+          innerClassName={currentMedia?.type === "channel" ? "animate-pulse" : ""}
+        />
 
         {/* Invisible thumb to progress */}
-        <input className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0" type="range" min="0" max="100"
-          value={percent}
+        <input
+          className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0"
+          type="range" min="0" max="100"
+          value={percent ?? 100}
           onChange={onProgressDrag} />
       </div>
 
       {/* Audio element */}
-      <audio src={currentStreamUrl ?? undefined} preload="metadata"></audio>
+      <audio src={currentStreamUrl ?? undefined}></audio>
 
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
-          <p className="font-light text-sm">{episodeInfo?.programName}</p>
+          <p className="font-light text-sm">{currentMedia?.subtitle}</p>
           <p className="font-bold max-h-12 overflow-hidden text-ellipsis whitespace-break-spaces">
-            {episodeInfo?.episodeTitle || "Spelar inget"}
+            {currentMedia?.title || "Spelar inget"}
           </p>
           {error && (
             <p className="text-xs text-red-400 mt-1">{error}</p>
@@ -90,7 +104,12 @@ export default function AudioControls({ className }: { className?: string }) {
         </div>
 
         <p className="text-sm text-zinc-400 whitespace-nowrap">
-          {episodeInfo ? `${episodeInfo.progress}\u00a0/\u00a0${episodeInfo.duration}` : ""}
+          {!elapsed || !duration
+            ? "--:--/--:--"
+            : currentMedia?.type === "channel"
+              ? "Live"
+              : `${elapsed.toString()}/${duration.toString()}`
+          }
         </p>
 
         <PlayButton iconSize={30} />
