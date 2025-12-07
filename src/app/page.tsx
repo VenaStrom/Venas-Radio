@@ -6,14 +6,22 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 export default function HomePage() {
-  const { channelDB, isFetchingChannels } = usePlayContext();
+  const { channelDB, isFetchingChannels, followedChannels } = usePlayContext();
 
   const [renderCount, setRenderCount] = useState(6);
   const channels = useMemo(() => {
-    const sliced = Object.values(channelDB).slice(0, renderCount);
-    const sorted = sliced.sort((a, b) => a.name.localeCompare(b.name));
-    return sorted;
-  }, [channelDB, renderCount]);
+    return Object.values(channelDB)
+      .slice(0, renderCount)
+      .sort((a, b) => {
+        const aFollowed = followedChannels.includes(a.id) ? 0 : 1;
+        const bFollowed = followedChannels.includes(b.id) ? 0 : 1;
+
+        if (aFollowed !== bFollowed) {
+          return aFollowed - bFollowed; // Followed channels first
+        }
+        return a.name.localeCompare(b.name); // Then sort by name
+      });
+  }, [channelDB, followedChannels, renderCount]);
 
   // Staggard rendering
   useEffect(() => {
@@ -34,7 +42,7 @@ export default function HomePage() {
         <h1 className="text-2xl">Välkommen till Venas Radio</h1>
 
         <p>
-          Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokaneler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</Link>.
+          Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokanaler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</Link>.
         </p>
       </section>
 
