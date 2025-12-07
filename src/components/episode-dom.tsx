@@ -4,7 +4,7 @@ import Image from "next/image";
 import PlayButton, { PlayButtonSkeleton } from "./play-button";
 import ProgressBar from "./progress-bar";
 import SRAttribute from "./sr-attribute";
-import { Episode, Seconds } from "@/types/types";
+import { Episode } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
 import { useMemo } from "react";
 
@@ -14,8 +14,8 @@ const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE",
 export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   const { progressDB } = usePlayContext();
 
-  const progress: Seconds = useMemo(() => progressDB[episode.id], [progressDB, episode.id]);
-  const duration: Seconds = useMemo(() => episode.duration, [episode.duration]);
+  const progress_s = useMemo(() => progressDB[episode.id], [progressDB, episode.id]);
+  const duration_s = useMemo(() => episode.duration, [episode.duration]);
 
   // const progressStore = useProgressStore().episodeProgressMap[episode.id];
   // const elapsed = useMemo(() => progressStore?.seconds ? Math.floor(progressStore.seconds / 60) : 0, [progressStore]);
@@ -72,7 +72,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">
         <p className="text-xs text-zinc-400">
-          {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration} min{"\u00a0\u00a0\u00b7\u00a0\u00a0"}{remaining}
+          {formattedDate} {formattedTime}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{duration_s} min{"\u00a0\u00a0\u00b7\u00a0\u00a0"}{remaining}
         </p>
 
         <PlayButton episodeData={episode} />

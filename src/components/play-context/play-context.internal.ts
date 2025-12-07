@@ -1,4 +1,4 @@
-import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB } from "@/types/types";
+import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB, Seconds } from "@/types/types";
 import { createContext } from "react";
 
 export type PlayContextType = {
@@ -10,15 +10,15 @@ export type PlayContextType = {
   setCurrentStreamUrl: (url: string) => void;
 
   /** Number if there's a current episode or null if not and infinity if streaming  */
-  currentProgress: number | null;
-  setCurrentProgress: (progress: number) => void;
+  currentProgress: Seconds | null;
+  setCurrentProgress: (progress: Seconds) => void;
 
   currentEpisode: Episode | null;
   setCurrentEpisode: (episode: Episode | null) => void;
   playEpisode: (episodeId: Episode["id"]) => void;
 
   progressDB: ProgressDB;
-  updateEpisodeProgress: (episodeId: Episode["id"], progress: number) => void;
+  updateEpisodeProgress: (episodeId: Episode["id"], progress: Seconds) => void;
 
   episodeDB: EpisodeDB;
   isFetchingEpisodes: boolean;

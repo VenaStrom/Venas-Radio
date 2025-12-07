@@ -1,8 +1,14 @@
+import { __Seconds, __Minutes, __PlaybackProgress, __Timestamp } from "./time";
 
-export type Seconds = number;
-export type Minutes = number;
+export class Seconds extends __Seconds { };
+export class Minutes extends __Minutes { };
+export class Timestamp extends __Timestamp { };
+export class PlaybackProgress extends __PlaybackProgress { };
 
 export type ProgressDB = Record<Episode["id"], Seconds>;
+export type EpisodeDB = Record<Episode["id"], Episode>;
+export type ChannelDB = Record<Channel["id"], Channel>;
+export type ProgramDB = Record<Program["id"], Program>;
 
 export type Episode = {
   id: number;
@@ -20,7 +26,6 @@ export type Episode = {
   publishDate: Date;
   duration: Seconds;
 };
-export type EpisodeDB = Record<Episode["id"], Episode>;
 
 export type Channel = {
   id: number;
@@ -36,7 +41,6 @@ export type Channel = {
   scheduleUrl: string;
   channelType: string;
 };
-export type ChannelDB = Record<Channel["id"], Channel>;
 
 export type Program = {
   id: number;
@@ -57,4 +61,3 @@ export type Program = {
   hasPod: boolean;
   responsibleEditor: string;
 };
-export type ProgramDB = Record<Program["id"], Program>;

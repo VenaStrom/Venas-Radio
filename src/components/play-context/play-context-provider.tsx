@@ -38,7 +38,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     }
     return null;
   }, [currentEpisode, progressDB]);
-  const setCurrentProgress = (progress: number) => {
+  const setCurrentProgress = (progress: Seconds) => {
     if (currentEpisode) {
       updateEpisodeProgress(currentEpisode.id, progress);
     }
