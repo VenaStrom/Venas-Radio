@@ -16,4 +16,6 @@ export type Episode = {
   }
   publishDate: Date;
   duration: number;
-}
+};
+
+export type EpisodeDB = Record<Episode["id"], Episode>;

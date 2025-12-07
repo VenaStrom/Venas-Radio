@@ -1,7 +1,7 @@
-import { SR_Episode } from "@/types/api/episode";
-import { Episode } from "@/types/types";
+import { Episode, EpisodeDB } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo } from "react";
 import { PlayContext } from "./play-context.internal";
+import { fetchEpisodes } from "@/functions/episode-getter";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -9,7 +9,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(null);
 
   const [followedPrograms, setFollowedPrograms] = useState<string[]>([]);
-  const [episodeDB, setEpisodeDB] = useState<Record<Episode["id"], Episode>>({});
+  const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
 
   const [episodeProgressMap, setEpisodeProgressMap] = useState<Record<Episode["id"], number>>({});
   const updateEpisodeProgressMap = (episodeId: Episode["id"], progress: number) => {
@@ -61,44 +61,17 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     const toDate = new Date();
     toDate.setDate(toDate.getDate() + 7);
 
-    const fetchEpisodes = async (programIds: string[]) => {
-      const programLinks = programIds.map((programID) => `https://api.sr.se/api/v2/episodes/index?programid=${programID}&fromdate=${fromDate.toISOString().slice(0, 10)}&todate=${toDate.toISOString().slice(0, 10)}&format=json&pagination=false&audioquality=high`);
-
-      const responses = await Promise.all(programLinks.map((link) => fetch(link).then((res) => res.json())));
-
-      const allEpisodes: Record<Episode["id"], Episode> = {};
-
-      for (const data of responses) {
-        data.episodes
-          .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
-          .forEach((episode: SR_Episode) => {
-            allEpisodes[episode.id] = {
-              id: episode.id,
-              title: episode.title,
-              description: episode.description,
-              url: episode?.listenpodfile?.url || episode?.downloadpodfile?.url,
-              program: {
-                id: episode.program.id,
-                name: episode.program.name,
-              },
-              publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
-              duration: episode.listenpodfile.duration || episode.downloadpodfile.duration || 0,
-              image: {
-                square: episode.imageurl,
-                wide: episode.imageurltemplate,
-              },
-            };
-          });
-      };
-
-      setEpisodeDB((prev) => {
-        const updatedDB = { ...prev, ...allEpisodes };
-        sessionStorage.setItem("episodeDB", JSON.stringify(updatedDB));
-        return updatedDB;
+    fetchEpisodes(followedPrograms, { fromDate, toDate })
+      .then((allEpisodes) => {
+        setEpisodeDB((prev) => {
+          const updatedDB = { ...prev, ...allEpisodes };
+          sessionStorage.setItem("episodeDB", JSON.stringify(updatedDB));
+          return updatedDB;
+        });
+      })
+      .catch((error) => {
+        console.error("Error fetching episodes:", error);
       });
-    };
-
-    fetchEpisodes(followedPrograms);
   }, [followedPrograms]);
 
   return (
