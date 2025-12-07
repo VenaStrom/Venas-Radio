@@ -2,9 +2,10 @@
 
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioPlayerMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
+import { useDebounce } from "use-debounce";
 
 export default function AudioControls({ className }: { className?: string }) {
   // Local state for error handling and loading
@@ -13,8 +14,15 @@ export default function AudioControls({ className }: { className?: string }) {
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
 
-  const { currentStreamUrl, currentEpisode, currentChannel, progressDB, setCurrentProgress } = usePlayContext();
+  const {
+    currentStreamUrl,
+    currentEpisode,
+    currentChannel,
+    progressDB,
+    setCurrentProgress,
+  } = usePlayContext();
 
+  // Normalized media that abstracts episode and channel to the audio player
   const currentMedia: AudioPlayerMedia | null = useMemo(() => {
     if (!currentChannel && !currentEpisode) return null;
 
@@ -46,6 +54,7 @@ export default function AudioControls({ className }: { className?: string }) {
     return null;
   }, [currentChannel, currentEpisode]);
 
+  // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
     if (currentMedia?.type === "episode" && currentEpisode) {
       return new PlaybackProgress(currentEpisode.duration, progressDB[currentEpisode.id] || Seconds.from(0));
@@ -53,19 +62,99 @@ export default function AudioControls({ className }: { className?: string }) {
     return null;
   }, [currentMedia?.type, currentEpisode, progressDB]);
 
+  // Derived progress values
   const duration: Timestamp | null = useMemo(() => progress ? progress.durationTimestamp() : null, [progress]);
   const elapsed: Timestamp | null = useMemo(() => progress ? progress.elapsedTimestamp() : null, [progress]);
   const percent: number | null = useMemo(() => progress ? progress.elapsedPercentage : null, [progress]);
 
+  // Drag to seek handling
+  const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
+  const debouncedDraggedProgress = useDebounce(draggedProgress, 200)[0];
+  // Canon progress update after debounce
+  useEffect(() => {
+    if (
+      debouncedDraggedProgress !== null
+      && progress
+      && currentMedia?.type === "episode"
+      && currentEpisode
+    ) {
+      const newElapsed = Seconds.from(Math.round((debouncedDraggedProgress / 100) * progress.duration.toNumber()));
+      setCurrentProgress(newElapsed);
+    }
+  }, [debouncedDraggedProgress, progress, currentMedia, currentEpisode, setCurrentProgress]);
+  // Event handler
   const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (currentMedia?.type === "channel") return; // No seeking for live channels
 
     const inputValue = parseFloat(event.target.value);
-    if (progress && currentEpisode) {
-      const newElapsed = Seconds.from(Math.round((inputValue / 100) * progress.duration.toNumber()));
-      setCurrentProgress(newElapsed);
-    }
+    setDraggedProgress(inputValue);
   };
+
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Audio element setup
+  useEffect(() => {
+    if (!audioRef.current) audioRef.current = new Audio();
+
+    const audioEl = audioRef.current;
+
+    audioEl.src = currentStreamUrl || "";
+    audioEl.autoplay = true;
+    audioEl.preload = "auto";
+    audioEl.crossOrigin = "anonymous";
+
+    const onTimeUpdate = () => {
+      if (progress && currentMedia?.type === "episode") {
+        const newElapsed = Seconds.from(audioEl.currentTime);
+        setCurrentProgress(newElapsed);
+      }
+    };
+
+    audioEl.addEventListener("timeupdate", onTimeUpdate);
+
+    return () => {
+      audioEl.removeEventListener("timeupdate", onTimeUpdate);
+    };
+  }, [currentMedia?.type, currentStreamUrl, progress, setCurrentProgress]);
+
+  // Audio fetching
+  useEffect(() => {
+    if (!currentMedia) return;
+
+    let isCancelled = false;
+
+    const fetchAudio = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // await new Promise((resolve) => setTimeout(resolve, 500));
+
+        if (isCancelled) return;
+
+        setIsLoading(false);
+        setRetryCount(0); // Reset retry count on success
+      }
+      catch (e) {
+        console.error(e);
+
+        if (isCancelled) return;
+
+        if (retryCount < maxRetries) {
+          setRetryCount(retryCount + 1);
+        } else {
+          setError("Kunde inte ladda ljudströmmen.");
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchAudio();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentMedia, retryCount]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
@@ -86,7 +175,7 @@ export default function AudioControls({ className }: { className?: string }) {
       </div>
 
       {/* Audio element */}
-      <audio src={currentStreamUrl ?? undefined}></audio>
+      <audio ref={audioRef}></audio>
 
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
