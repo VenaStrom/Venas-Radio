@@ -6,7 +6,8 @@ import { PlayContext } from "./play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
 import { fetchChannels } from "@/functions/channel-getter";
 import { fetchPrograms } from "@/functions/program-getter";
-import { episodeDBDeserializer } from "../storage-parser/episode-parser";
+import { episodeDBDeserializer } from "../deserializer/episode-deserializer";
+import { progressDBDeserializer } from "../deserializer/progress-deserializer";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);
@@ -80,7 +81,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       // LocalStorage
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
       async () => setFollowedChannels(JSON.parse(localStorage.getItem("followedChannels") || "[]")),
-      async () => setProgressDB(JSON.parse(localStorage.getItem("progressDB") || "{}")), // Serialized Seconds as number
+      async () => setProgressDB(progressDBDeserializer(localStorage.getItem("progressDB"))), // Serialized Seconds as number
 
       // SessionStorage
       async () => setEpisodeDB(episodeDBDeserializer(sessionStorage.getItem("episodeDB"))),
@@ -154,6 +155,11 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   useEffect(() => {
     const serializedProgressDB: Record<string, number> = {};
     for (const [episodeID, seconds] of Object.entries(progressDB)) {
+      if (typeof seconds === "number") {
+        // In case poorly serialized data exists
+        serializedProgressDB[episodeID] = seconds;
+        continue;
+      }
       serializedProgressDB[episodeID] = seconds.toNumber();
     }
     localStorage.setItem("progressDB", JSON.stringify(serializedProgressDB));
