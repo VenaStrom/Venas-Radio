@@ -126,6 +126,22 @@ export default function AudioControls({ className }: { className?: string }) {
     }
   }, [currentStreamUrl]);
 
+  // Resume playback position
+  const lastResumedEpisodeIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+    if (currentMedia?.type !== "episode" || !currentEpisode) return;
+
+    const episodeId = currentEpisode.id;
+    if (lastResumedEpisodeIdRef.current === episodeId) return; // Already applied
+
+    const saved = progressDB[episodeId];
+    if (saved) audioEl.currentTime = saved.toNumber();
+
+    lastResumedEpisodeIdRef.current = episodeId;
+  }, [currentMedia?.type, currentEpisode, progressDB]);
+
   // Time update handling
   useEffect(() => {
     const audioEl = audioRef.current;
