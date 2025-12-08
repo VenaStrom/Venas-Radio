@@ -5,15 +5,17 @@ import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioPlayerMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
-import { useDebounce } from "use-debounce";
 
 export default function AudioControls({ className }: { className?: string }) {
   const {
     isPlaying,
+    play,
+    pause,
     currentStreamUrl,
     currentEpisode,
     currentChannel,
     progressDB,
+    currentProgress,
     setCurrentProgress,
   } = usePlayContext();
 
@@ -52,10 +54,10 @@ export default function AudioControls({ className }: { className?: string }) {
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
     if (currentMedia?.type === "episode" && currentEpisode) {
-      return new PlaybackProgress(currentEpisode.duration, progressDB[currentEpisode.id] || Seconds.from(0));
+      return new PlaybackProgress(currentEpisode.duration, currentProgress ?? Seconds.from(0));
     }
     return null;
-  }, [currentMedia?.type, currentEpisode, progressDB]);
+  }, [currentMedia?.type, currentEpisode, currentProgress]);
 
   // Derived progress values
   const duration: Timestamp | null = useMemo(() => progress ? progress.durationTimestamp() : null, [progress]);
@@ -118,32 +120,14 @@ export default function AudioControls({ className }: { className?: string }) {
     if (saved) audioEl.currentTime = saved.toNumber();
 
     lastResumedEpisodeIdRef.current = episodeId;
-  }, [currentMedia?.type, currentEpisode, progressDB]);
+
+    // I don't want progressDB to be a dependency here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMedia?.type, currentEpisode]);
 
 
   // Drag to seek handling
   const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
-  const debouncedDraggedProgress = useDebounce(draggedProgress, 200)[0];
-  useEffect(() => {
-    if (
-      debouncedDraggedProgress === null
-      || currentMedia?.type !== "episode"
-      || !currentEpisode
-      || !isReady
-    ) return;
-
-    const audioEl = audioRef.current;
-    if (!audioEl) return;
-
-    const newElapsed = Seconds.from(
-      Math.round((debouncedDraggedProgress / 100) * currentEpisode.duration.toNumber())
-    );
-
-    // audioEl.currentTime = newElapsed.toNumber();
-    setCurrentProgress(newElapsed);
-  }, [currentEpisode, currentMedia?.type, debouncedDraggedProgress, isReady, setCurrentProgress]);
-
-  // Event handlers
   const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (currentMedia?.type === "channel") return; // No seeking for live channels
     setDraggedProgress(parseFloat(event.target.value));
@@ -155,6 +139,7 @@ export default function AudioControls({ className }: { className?: string }) {
       || !currentEpisode
       || !isReady
     ) {
+      // Too early to seek
       setDraggedProgress(null);
       return;
     }
@@ -168,15 +153,21 @@ export default function AudioControls({ className }: { className?: string }) {
     const newElapsed = Seconds.from(
       Math.round((draggedProgress / 100) * currentEpisode.duration.toNumber())
     );
-    // audioEl.currentTime = newElapsed.toNumber();
+
+    audioEl.currentTime = newElapsed.toNumber();
     setCurrentProgress(newElapsed);
+
     setDraggedProgress(null);
+    play();
+  };
+  const onProgressDragStart = (event: React.DragEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement> | React.MouseEvent<HTMLInputElement>) => {
+    if (isPlaying) pause();
+    setDraggedProgress(parseFloat(event.currentTarget.value));
   };
   // For immediate non-debounced visual feedback
   const displayedPercent = draggedProgress !== null
     ? draggedProgress
     : (percent ?? 0);
-
 
   // Time update handling
   useEffect(() => {
@@ -271,7 +262,7 @@ export default function AudioControls({ className }: { className?: string }) {
         {/* Progress bar */}
         <ProgressBar
           className="block top-0"
-          progress={displayedPercent}
+          progress={currentMedia?.type === "channel" ? 100 : displayedPercent}
           innerClassName={currentMedia?.type === "channel" ? "animate-pulse" : ""}
         />
 
@@ -281,6 +272,9 @@ export default function AudioControls({ className }: { className?: string }) {
           type="range" min="0" max="100"
           value={displayedPercent}
           onChange={onProgressDrag}
+          onDragStart={onProgressDragStart}
+          onTouchStart={onProgressDragStart}
+          onMouseDown={onProgressDragStart}
           onDragEnd={onProgressDragEnd}
           onMouseUp={onProgressDragEnd}
           onTouchEnd={onProgressDragEnd}
@@ -307,7 +301,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
         <p className="text-sm text-zinc-400 whitespace-nowrap">
           {currentMedia?.type === "channel"
-            ? "Live"
+            ? "Live •"
             : !elapsed || !duration
               ? "--:-- / --:--"
               : `${elapsed.toString()} / ${duration.toString()}`
