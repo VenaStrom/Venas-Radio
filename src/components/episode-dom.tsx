@@ -7,9 +7,7 @@ import SRAttribute from "./sr-attribute";
 import { Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
 import { useMemo } from "react";
-
-const dateLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", day: "2-digit", month: "short" }];
-const timeLocale: [Intl.LocalesArgument, Intl.DateTimeFormatOptions] = ["sv-SE", { timeZone: "Europe/Stockholm", hour12: false, hour: "2-digit", minute: "2-digit" }];
+import { getLocaleTime, getRelativeTimeString } from "@/lib/time-format";
 
 export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   const { progressDB } = usePlayContext();
@@ -23,23 +21,8 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   const percent: number = useMemo(() => progress.elapsedPercentage, [progress]);
 
   // Date and time formatting
-  const formattedDate = useMemo(() => {
-    let formattedDate = episode.publishDate.toISOString().slice(0, 10); // Time insensitive date to compare with today and yesterday
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10);
-
-    if (formattedDate === today) {
-      formattedDate = "Idag";
-    }
-    else if (formattedDate === yesterday) {
-      formattedDate = "Igår";
-    }
-    else {
-      formattedDate = episode.publishDate.toLocaleString(...dateLocale);
-    }
-    return formattedDate;
-  }, [episode.publishDate]);
-  const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
+  const formattedDate = useMemo(() => getRelativeTimeString(episode.publishDate), [episode.publishDate]);
+  const formattedTime = useMemo(() => getLocaleTime(episode.publishDate), [episode.publishDate]);
 
   const remainingTime = useMemo<React.ReactNode>(() => {
     const isUnlistened = percent <= 0;
