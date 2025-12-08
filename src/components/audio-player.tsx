@@ -107,6 +107,7 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.load();
     }
   }, [currentMedia?.type, currentStreamUrl]);
+
   // Time update handling
   useEffect(() => {
     const audioEl = audioRef.current;
@@ -124,6 +125,7 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
   }, [currentEpisode, currentMedia?.type, currentStreamUrl, progress, setCurrentProgress]);
+
   // Play/pause handling
   useEffect(() => {
     const audioEl = audioRef.current;
@@ -137,7 +139,6 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.pause();
     }
   }, [isPlaying, currentStreamUrl]);
-
 
   // Audio fetching
   useEffect(() => {

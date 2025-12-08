@@ -37,6 +37,9 @@ export default function PlayButton({
 
   const isPlaying = useMemo(() => {
     switch (interactionType) {
+      case "controller":
+        return globalIsPlaying;
+
       case "episode":
         return globalIsPlaying && currentEpisode?.id === id;
 
