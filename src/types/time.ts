@@ -52,8 +52,8 @@ export class __PlaybackProgress {
 }
 
 export class __Timestamp {
-  private minutes: Minutes;
-  private seconds: Seconds;
+  public minutes: Minutes;
+  public seconds: Seconds;
 
   constructor(minutes: Minutes, seconds: Seconds) {
     this.minutes = minutes;
@@ -61,9 +61,8 @@ export class __Timestamp {
   }
 
   toString(): string {
-    const min = this.minutes.toNumber();
-    const sec = this.seconds.toNumber();
-    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    const format = (s: number) => s.toFixed(0).padStart(2, '0');
+    return `${format(this.minutes.toNumber())}:${format(this.seconds.toNumber())}`;
   }
 
   toFormattedString(
@@ -77,15 +76,19 @@ export class __Timestamp {
       },
   ): string {
     const parts: string[] = [];
+
+    options.minuteUnit = options.minuteUnit || "short";
+    options.secondUnit = options.secondUnit || "short";
+
     switch (options.minuteUnit) {
       case "long":
-        parts.push(`${this.minutes.toNumber()} minuter`);
+        parts.push(`${this.minutes.toNumber().toFixed(0)} minuter`);
         break;
       case "short":
-        parts.push(`${this.minutes.toNumber()} min`);
+        parts.push(`${this.minutes.toNumber().toFixed(0)} min`);
         break;
       case "none":
-        parts.push(this.minutes.toString());
+        parts.push(this.minutes.toNumber().toFixed(0));
         break;
       case "hide":
         break;
@@ -93,13 +96,13 @@ export class __Timestamp {
 
     switch (options.secondUnit) {
       case "long":
-        parts.push(`${this.seconds.toNumber()} sekunder`);
+        parts.push(`${this.seconds.toNumber().toFixed(0)} sekunder`);
         break;
       case "short":
-        parts.push(`${this.seconds.toNumber()} sek`);
+        parts.push(`${this.seconds.toNumber().toFixed(0)} sek`);
         break;
       case "none":
-        parts.push(this.seconds.toString());
+        parts.push(this.seconds.toNumber().toFixed(0));
         break;
       case "hide":
         break;

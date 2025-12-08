@@ -41,6 +41,25 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   }, [episode.publishDate]);
   const formattedTime = useMemo(() => episode.publishDate.toLocaleString(...timeLocale), [episode.publishDate]);
 
+  const remainingTime = useMemo<React.ReactNode>(() => {
+    const isUnlistened = percent <= 0;
+    const isListened = percent >= 99;
+    const formattedDuration = duration.toFormattedString(
+      duration.minutes.toNumber() == 0
+        ? { minuteUnit: "hide" }
+        : { secondUnit: "hide" }
+    );
+    const formattedRemaining = remaining.toFormattedString(
+      remaining.minutes.toNumber() == 0
+        ? { minuteUnit: "hide" }
+        : { secondUnit: "hide" }
+    );
+
+    if (isUnlistened) return <>{formattedDuration}</>;
+    if (isListened) return <>{formattedDuration}&nbsp;&nbsp;&middot;&nbsp;&nbsp;Lyssnad</>
+    return <>{formattedRemaining} kvar</>
+  }, [duration, percent, remaining]);
+
   return (
     <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>
       {/* SR Attribute */}
@@ -66,7 +85,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
         <p className="text-xs text-zinc-400">
           {formattedDate} {formattedTime}
           &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-          {duration.toFormattedString({ secondUnit: "hide" })} {remaining.toFormattedString()}
+          {remainingTime}
         </p>
 
         <PlayButton episodeID={episode.id} />
