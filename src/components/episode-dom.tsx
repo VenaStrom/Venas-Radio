@@ -84,7 +84,7 @@ export function EpisodeSkeleton() {
       <div className="col-span-2 h-5"></div>
 
       {/* Thumbnail */}
-      <div className="bg-zinc-600 rounded-md w-[128px] h-[72px] animate-pulse"></div>
+      <div className="bg-zinc-600 rounded-md w-32 h-[72px] animate-pulse"></div>
 
       {/* Header Text */}
       <div className="col-start-2"></div>
