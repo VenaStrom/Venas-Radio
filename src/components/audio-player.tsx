@@ -46,7 +46,7 @@ export default function AudioControls({ className }: { className?: string }) {
         channelID: currentChannel?.id,
         url: currentChannel?.url,
         title: currentChannel?.name,
-        subtitle: currentChannel?.tagline,
+        subtitle: currentChannel.channelType,
         image: currentChannel?.image.square,
       };
       return normalizedMedia;

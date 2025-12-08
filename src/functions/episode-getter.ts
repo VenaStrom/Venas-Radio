@@ -1,4 +1,3 @@
-"use client";
 
 import { SR_Episode } from "@/types/api/episode";
 import { EpisodeDB, Seconds } from "@/types/types";
