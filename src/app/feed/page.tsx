@@ -33,7 +33,7 @@ export default function FeedPage() {
 
             return (
               <React.Fragment key={episode.id + "-fragment"}>
-                <li className="w-full text-sm  text-zinc-400" key={"date-header-" + thisDate + "-" + prevDate}>
+                <li className="w-full -mb-6 text-sm text-center text-zinc-400" key={"date-header-" + thisDate + "-" + prevDate}>
                   {thisDate === new Date().toISOString().slice(0, 10)
                     ? "Idag"
                     : thisDate === new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().slice(0, 10)

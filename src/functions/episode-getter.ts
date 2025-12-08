@@ -1,4 +1,4 @@
-
+import { proxy } from "@/lib/proxy-rewrite";
 import { SR_Episode } from "@/types/api/episode";
 import { EpisodeDB, Seconds } from "@/types/types";
 
@@ -27,7 +27,12 @@ export async function fetchEpisodes(
     return url.toString();
   });
 
-  const responses = await Promise.all(programLinks.map((link) => fetch(link).then((res) => res.json())));
+  const responses = await Promise.all(
+    programLinks.map((link) => fetch(proxy(link))
+      .then((res) => res.json())
+      .catch(e => console.error(e))
+    ),
+  );
 
   const allEpisodes: EpisodeDB = {};
 
@@ -39,7 +44,7 @@ export async function fetchEpisodes(
           id: episode.id,
           title: episode.title,
           description: episode.description,
-          url: episode?.listenpodfile?.url || episode?.downloadpodfile?.url,
+          url: proxy(episode?.listenpodfile?.url || episode?.downloadpodfile?.url),
           program: {
             id: episode.program.id,
             name: episode.program.name,
@@ -47,8 +52,8 @@ export async function fetchEpisodes(
           publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
           duration: Seconds.from(episode.listenpodfile.duration || episode.downloadpodfile.duration || 0),
           image: {
-            square: episode.imageurl,
-            wide: episode.imageurltemplate,
+            square: proxy(episode.imageurl),
+            wide: proxy(episode.imageurltemplate),
           },
         };
       });

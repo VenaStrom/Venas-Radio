@@ -5,22 +5,17 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: "bottom-right",
   },
-  crossOrigin: "anonymous",
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "api.sr.se",
-      },
-      {
-        protocol: "https",
-        hostname: "static-cdn.sr.se"
-      }
+      { protocol: "https", hostname: "api.sr.se", },
+      { protocol: "https", hostname: "static-cdn.sr.se" },
+      { protocol: "https", hostname: "www.sverigesradio.se" },
     ],
   },
   allowedDevOrigins: [
     "ts.net",
     "laptop",
+    "localhost",
   ],
 };
 

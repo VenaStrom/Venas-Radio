@@ -1,8 +1,13 @@
+import { proxy } from "@/lib/proxy-rewrite";
 import { SR_Channel } from "@/types/api/channel";
 import { ChannelDB } from "@/types/types";
 
 export async function fetchChannels(): Promise<ChannelDB> {
-  const response: SR_Channel[] = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false")
+  const baseURL = new URL("https://api.sr.se/api/v2/channels");
+  baseURL.searchParams.append("format", "json");
+  baseURL.searchParams.append("pagination", "false");
+
+  const response: SR_Channel[] = await fetch(proxy(baseURL.toString()))
     .then((res) => res.json())
     .then((data) => data.channels);
 
@@ -14,11 +19,11 @@ export async function fetchChannels(): Promise<ChannelDB> {
       channelType: channel.channeltype,
       color: channel.color,
       image: {
-        square: channel.image,
-        wide: channel.imagetemplate,
+        square: proxy(channel.image),
+        wide: proxy(channel.imagetemplate),
       },
-      url: channel.liveaudio.url,
-      scheduleUrl: channel.scheduleurl,
+      url: proxy(channel.liveaudio.url),
+      scheduleUrl: proxy(channel.scheduleurl),
       siteUrl: channel.siteurl,
       tagline: channel.tagline,
     };

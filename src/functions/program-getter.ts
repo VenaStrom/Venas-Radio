@@ -1,10 +1,14 @@
+import { proxy } from "@/lib/proxy-rewrite";
 import { SR_Program } from "@/types/api/program";
 import { Program } from "@/types/types";
 
 export async function fetchPrograms(): Promise<Program[]> {
-  const response: SR_Program[] = await fetch(
-    "https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false"
-  )
+  const baseURL = new URL("https://api.sr.se/api/v2/programs/index");
+  baseURL.searchParams.append("format", "json");
+  baseURL.searchParams.append("pagination", "false");
+  baseURL.searchParams.append("isarchived", "false");
+
+  const response: SR_Program[] = await fetch(proxy(baseURL.toString()))
     .then((res) => res.json())
     .then((data) => data.programs);
 
@@ -19,8 +23,8 @@ export async function fetchPrograms(): Promise<Program[]> {
     channelId: program.channel.id,
     channelName: program.channel.name,
     image: {
-      square: program.programimage,
-      wide: program.programimagetemplate,
+      square: proxy(program.programimage),
+      wide: proxy(program.programimagetemplate),
     },
     archived: program.archived,
     hasOnDemand: program.hasondemand,
