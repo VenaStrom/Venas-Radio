@@ -5,9 +5,5 @@ export function proxy(url: string): string {
 export function unproxy(proxiedUrl: string): string | null {
   const url = new URL(proxiedUrl);
   const reqParam = url.searchParams.get("req");
-  console.log({
-    url: url.toString(),
-    req: reqParam?.toString()
-  });
   return reqParam ? decodeURIComponent(reqParam) : null;
 }
