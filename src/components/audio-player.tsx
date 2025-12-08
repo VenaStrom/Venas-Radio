@@ -15,6 +15,7 @@ export default function AudioControls({ className }: { className?: string }) {
   const maxRetries = 3;
 
   const {
+    isPlaying,
     currentStreamUrl,
     currentEpisode,
     currentChannel,
@@ -94,34 +95,49 @@ export default function AudioControls({ className }: { className?: string }) {
   // Audio element setup
   useEffect(() => {
     if (!audioRef.current) audioRef.current = new Audio();
-
     const audioEl = audioRef.current;
 
     if (currentStreamUrl) {
       audioEl.src = currentStreamUrl;
       audioEl.autoplay = true;
       audioEl.preload = "auto";
-    }
-    else {
-      // Stop and clear when nothing should play
+    } else {
       audioEl.pause();
       audioEl.removeAttribute("src");
       audioEl.load();
     }
+  }, [currentMedia?.type, currentStreamUrl]);
+  // Time update handling
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
 
     const onTimeUpdate = () => {
-      if (progress && currentMedia?.type === "episode") {
+      if (currentMedia?.type === "episode" && currentEpisode) {
         const newElapsed = Seconds.from(audioEl.currentTime);
         setCurrentProgress(newElapsed);
       }
     };
 
     audioEl.addEventListener("timeupdate", onTimeUpdate);
-
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentMedia?.type, currentStreamUrl, progress, setCurrentProgress]);
+  }, [currentEpisode, currentMedia?.type, currentStreamUrl, progress, setCurrentProgress]);
+  // Play/pause handling
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    if (isPlaying) {
+      audioEl.play().catch((e) => {
+        console.error("Error playing audio:", e);
+      });
+    } else {
+      audioEl.pause();
+    }
+  }, [isPlaying, currentStreamUrl]);
+
 
   // Audio fetching
   useEffect(() => {
