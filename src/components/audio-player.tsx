@@ -71,42 +71,60 @@ export default function AudioControls({ className }: { className?: string }) {
   // Drag to seek handling
   const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
   const debouncedDraggedProgress = useDebounce(draggedProgress, 200)[0];
-  // Canon progress update after debounce
   useEffect(() => {
     if (
-      debouncedDraggedProgress !== null
-      && progress
-      && currentMedia?.type === "episode"
-      && currentEpisode
-    ) {
-      const newElapsed = Seconds.from(Math.round((debouncedDraggedProgress / 100) * progress.duration.toNumber()));
-      setCurrentProgress(newElapsed);
-    }
-  }, [debouncedDraggedProgress, progress, currentMedia, currentEpisode, setCurrentProgress]);
-  // Event handler
+      debouncedDraggedProgress === null ||
+      currentMedia?.type !== "episode" ||
+      !currentEpisode
+    ) return;
+
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    const newElapsed = Seconds.from(
+      Math.round((debouncedDraggedProgress / 100) * currentEpisode.duration.toNumber())
+    );
+
+    audioEl.currentTime = newElapsed.toNumber();
+    setDraggedProgress(null);
+  }, [currentEpisode, currentMedia?.type, debouncedDraggedProgress]);
+
+  // Event handlers
   const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (currentMedia?.type === "channel") return; // No seeking for live channels
-
-    const inputValue = parseFloat(event.target.value);
-    setDraggedProgress(inputValue);
+    setDraggedProgress(parseFloat(event.target.value));
   };
+  const onProgressDragEnd = () => setDraggedProgress(null);
+  // For immediate non-debounced visual feedback
+  const displayedPercent = draggedProgress !== null
+    ? draggedProgress
+    : (percent ?? 0);
+
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Create audio element on mount
+  useEffect(() => {
+    if (!audioRef.current) {
+      // eslint-disable-next-line react-hooks/immutability
+      audioRef.current = document.createElement("audio");
+    }
+  }, []);
+
   // Audio element setup
   useEffect(() => {
-    if (!audioRef.current) audioRef.current = new Audio();
     const audioEl = audioRef.current;
+    if (!audioEl) return;
 
     if (currentStreamUrl) {
       audioEl.src = currentStreamUrl;
       audioEl.autoplay = true;
       audioEl.preload = "auto";
-    } else {
-      audioEl.pause();
+    }
+    else {
       audioEl.removeAttribute("src");
       audioEl.load();
     }
-  }, [currentMedia?.type, currentStreamUrl]);
+  }, [currentStreamUrl]);
 
   // Time update handling
   useEffect(() => {
@@ -114,17 +132,20 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
 
     const onTimeUpdate = () => {
-      if (currentMedia?.type === "episode" && currentEpisode) {
-        const newElapsed = Seconds.from(audioEl.currentTime);
-        setCurrentProgress(newElapsed);
-      }
+      if (
+        currentMedia?.type !== "episode"
+        || !currentEpisode
+        || draggedProgress !== null
+      ) return;
+
+      setCurrentProgress(Seconds.from(audioEl.currentTime));
     };
 
     audioEl.addEventListener("timeupdate", onTimeUpdate);
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentEpisode, currentMedia?.type, currentStreamUrl, progress, setCurrentProgress]);
+  }, [currentEpisode, currentMedia?.type, draggedProgress, setCurrentProgress]);
 
   // Play/pause handling
   useEffect(() => {
@@ -132,13 +153,16 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
 
     if (isPlaying) {
-      audioEl.play().catch((e) => {
-        console.error("Error playing audio:", e);
-      });
-    } else {
+      audioEl.play()
+        .catch((e) => {
+          if (e instanceof DOMException && e.name === "AbortError") return; // Ignore abort errors
+          console.error("Error playing audio:", e)
+        });
+    }
+    else {
       audioEl.pause();
     }
-  }, [isPlaying, currentStreamUrl]);
+  }, [isPlaying]);
 
   // Audio fetching
   useEffect(() => {
@@ -185,7 +209,7 @@ export default function AudioControls({ className }: { className?: string }) {
         {/* Progress bar */}
         <ProgressBar
           className="block top-0"
-          progress={percent ?? 100}
+          progress={displayedPercent}
           innerClassName={currentMedia?.type === "channel" ? "animate-pulse" : ""}
         />
 
@@ -193,8 +217,12 @@ export default function AudioControls({ className }: { className?: string }) {
         <input
           className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0"
           type="range" min="0" max="100"
-          value={percent ?? 100}
-          onChange={onProgressDrag} />
+          value={displayedPercent}
+          onChange={onProgressDrag}
+          onDragEnd={onProgressDragEnd}
+          onMouseUp={onProgressDragEnd}
+          onTouchEnd={onProgressDragEnd}
+        />
       </div>
 
       {/* Audio element */}
@@ -216,10 +244,10 @@ export default function AudioControls({ className }: { className?: string }) {
         </div>
 
         <p className="text-sm text-zinc-400 whitespace-nowrap">
-          {!elapsed || !duration
-            ? "--:-- / --:--"
-            : currentMedia?.type === "channel"
-              ? "Live"
+          {currentMedia?.type === "channel"
+            ? "Live"
+            : !elapsed || !duration
+              ? "--:-- / --:--"
               : `${elapsed.toString()} / ${duration.toString()}`
           }
         </p>
