@@ -4,7 +4,13 @@ export class __PlaybackProgress {
   public duration: Seconds;
   public elapsed: Seconds;
 
-  constructor(duration: Seconds, elapsed: Seconds) {
+  constructor(duration: Seconds | number, elapsed: Seconds | number) {
+    if (typeof duration === "number") {
+      duration = Seconds.from(duration);
+    }
+    if (typeof elapsed === "number") {
+      elapsed = Seconds.from(elapsed);
+    }
     this.duration = duration;
     this.elapsed = elapsed;
   }
@@ -111,7 +117,10 @@ export class __Timestamp {
     return parts.join(" ");
   }
 
-  static fromSeconds(totalSeconds: Seconds): Timestamp {
+  static fromSeconds(totalSeconds: Seconds | number): Timestamp {
+    if (typeof totalSeconds === "number") {
+      totalSeconds = Seconds.from(totalSeconds);
+    }
     const minutes = Minutes.from(Math.floor(totalSeconds.toNumber() / 60));
     const seconds = Seconds.from(totalSeconds.toNumber() % 60);
     return new Timestamp(minutes, seconds);
