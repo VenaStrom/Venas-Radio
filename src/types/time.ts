@@ -67,7 +67,7 @@ export class __Timestamp {
   }
 
   toString(): string {
-    const format = (s: number) => s.toFixed(0).padStart(2, '0');
+    const format = (s: number) => Math.floor(s).toString().padStart(2, "0");
     return `${format(this.minutes.toNumber())}:${format(this.seconds.toNumber())}`;
   }
 
@@ -86,15 +86,18 @@ export class __Timestamp {
     options.minuteUnit = options.minuteUnit || "short";
     options.secondUnit = options.secondUnit || "short";
 
+    const wholeMinutes = Math.floor(this.minutes.toNumber());
+    const wholeSeconds = Math.floor(this.seconds.toNumber());
+
     switch (options.minuteUnit) {
       case "long":
-        parts.push(`${this.minutes.toNumber().toFixed(0)} minuter`);
+        parts.push(`${wholeMinutes} minuter`);
         break;
       case "short":
-        parts.push(`${this.minutes.toNumber().toFixed(0)} min`);
+        parts.push(`${wholeMinutes} min`);
         break;
       case "none":
-        parts.push(this.minutes.toNumber().toFixed(0));
+        parts.push(wholeMinutes.toString());
         break;
       case "hide":
         break;
@@ -102,13 +105,13 @@ export class __Timestamp {
 
     switch (options.secondUnit) {
       case "long":
-        parts.push(`${this.seconds.toNumber().toFixed(0)} sekunder`);
+        parts.push(`${wholeSeconds} sekunder`);
         break;
       case "short":
-        parts.push(`${this.seconds.toNumber().toFixed(0)} sek`);
+        parts.push(`${wholeSeconds} sek`);
         break;
       case "none":
-        parts.push(this.seconds.toNumber().toFixed(0));
+        parts.push(wholeSeconds.toString());
         break;
       case "hide":
         break;
