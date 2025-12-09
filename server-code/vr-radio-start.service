@@ -3,10 +3,9 @@ Description=Vena's Radio Service
 After=network.target
 
 [Service]
-User=vr
-Group=vr
-WorkingDirectory=/home/vr/Venas-Radio
-ExecStart=/bin/bash -c "source /home/vr/.nvm/nvm.sh && yarn run start"
+User=root
+WorkingDirectory=/root/Venas-Radio
+ExecStart=/bin/bash -c "source /root/.nvm/nvm.sh && yarn run start"
 Restart=always
 RestartSec=3
 
