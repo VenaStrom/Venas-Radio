@@ -1,4 +1,4 @@
-import { Minutes, Seconds, Timestamp } from "./types";
+import { Minutes, Seconds, Timestamp, Hours } from "./types";
 
 export class __PlaybackProgress {
   public duration: Seconds;
@@ -30,11 +30,19 @@ export class __PlaybackProgress {
     return this.duration;
   }
 
+  get totalHours(): Hours {
+    return Hours.fromSeconds(this.duration);
+  }
+
   get elapsedMinutes(): Minutes {
     return this.elapsed.toMinutes();
   }
   get elapsedSeconds(): Seconds {
     return this.elapsed;
+  }
+
+  get elapsedHours(): Hours {
+    return Hours.fromSeconds(this.elapsed);
   }
 
   get remainingMinutes(): Minutes {
@@ -44,6 +52,10 @@ export class __PlaybackProgress {
   get remainingSeconds(): Seconds {
     const remaining = this.duration.toNumber() - this.elapsed.toNumber();
     return Seconds.from(Math.max(0, remaining));
+  }
+
+  get remainingHours(): Hours {
+    return Hours.fromSeconds(this.remainingSeconds);
   }
 
   durationTimestamp(): Timestamp {
@@ -120,6 +132,11 @@ export class __Timestamp {
     return parts.join(" ");
   }
 
+  get totalHours(): Hours {
+    const totalSeconds = this.minutes.toSeconds().toNumber() + this.seconds.toNumber();
+    return Hours.fromSeconds(Seconds.from(totalSeconds));
+  }
+
   static fromSeconds(totalSeconds: Seconds | number): Timestamp {
     if (typeof totalSeconds === "number") {
       totalSeconds = Seconds.from(totalSeconds);
@@ -133,6 +150,15 @@ export class __Timestamp {
     const minutes = Minutes.from(totalMinutes.toNumber());
     const seconds = Seconds.from(0);
     return new Timestamp(minutes, seconds);
+  }
+
+  static fromHours(totalHours: Hours | number): Timestamp {
+    if (typeof totalHours === "number") {
+      const totalSeconds = Seconds.from(totalHours * 3600);
+      return Timestamp.fromSeconds(totalSeconds);
+    }
+
+    return Timestamp.fromSeconds(totalHours.toSeconds());
   }
 }
 
@@ -157,6 +183,10 @@ export class __Seconds {
 
   static from(value: number): Seconds {
     return new Seconds(value);
+  }
+
+  static fromHours(hours: number): Seconds {
+    return Seconds.from(hours * 3600);
   }
 
   static add(a: Seconds, b: Seconds): Seconds {
@@ -196,11 +226,59 @@ export class __Minutes {
     return new Minutes(Math.floor(seconds.toNumber() / 60));
   }
 
+  static fromHours(hours: number): Minutes {
+    return new Minutes(hours * 60);
+  }
+
   static add(a: Minutes, b: Minutes): Minutes {
     return new Minutes(a.toNumber() + b.toNumber());
   }
 
   static subtract(a: Minutes, b: Minutes): Minutes {
     return new Minutes(a.toNumber() - b.toNumber());
+  }
+}
+
+export class __Hours {
+  private value: number;
+
+  constructor(value: number) {
+    this.value = value;
+  }
+
+  toNumber(): number {
+    return this.value;
+  }
+
+  toMinutes(): Minutes {
+    return Minutes.from(this.value * 60);
+  }
+
+  toSeconds(): Seconds {
+    return Seconds.from(this.value * 60 * 60);
+  }
+
+  toString(): string {
+    return this.value.toString();
+  }
+
+  static from(value: number): __Hours {
+    return new __Hours(value);
+  }
+
+  static fromMinutes(minutes: Minutes): __Hours {
+    return new __Hours(Math.floor(minutes.toNumber() / 60));
+  }
+
+  static fromSeconds(seconds: Seconds): __Hours {
+    return new __Hours(Math.floor(seconds.toNumber() / 3600));
+  }
+
+  static add(a: __Hours, b: __Hours): __Hours {
+    return new __Hours(a.toNumber() + b.toNumber());
+  }
+
+  static subtract(a: __Hours, b: __Hours): __Hours {
+    return new __Hours(a.toNumber() - b.toNumber());
   }
 }

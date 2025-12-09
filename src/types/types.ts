@@ -1,9 +1,10 @@
-import { __Seconds, __Minutes, __PlaybackProgress, __Timestamp } from "./time";
+import { __Seconds, __Minutes, __PlaybackProgress, __Timestamp, __Hours } from "./time";
 
 export class Seconds extends __Seconds { };
 export class Minutes extends __Minutes { };
 export class Timestamp extends __Timestamp { };
 export class PlaybackProgress extends __PlaybackProgress { };
+export class Hours extends __Hours { };
 
 export type ProgressDB = Record<Episode["id"], Seconds>;
 export type EpisodeDB = Record<Episode["id"], Episode>;
