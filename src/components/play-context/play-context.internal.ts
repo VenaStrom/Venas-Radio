@@ -38,6 +38,9 @@ export type PlayContextType = {
 
   followedChannels: number[];
   setFollowedChannels: React.Dispatch<React.SetStateAction<number[]>>;
+
+  playNextEpisode: () => void;
+  playPreviousEpisode: () => void;
 };
 
 export const PlayContext = createContext<PlayContextType | undefined>(undefined);

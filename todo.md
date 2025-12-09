@@ -7,6 +7,10 @@ Play button:
 
 Channels:
   - Liking
+  - Load better
 
 Programs:
   - Liking
+  - Loading, like at all
+  
+Remember what was playing

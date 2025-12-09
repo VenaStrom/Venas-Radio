@@ -5,6 +5,7 @@ import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioPlayerMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
+import { useDebounce } from "use-debounce";
 
 export default function AudioControls({ className }: { className?: string }) {
   const {
@@ -17,6 +18,8 @@ export default function AudioControls({ className }: { className?: string }) {
     progressDB,
     currentProgress,
     setCurrentProgress,
+    playNextEpisode,
+    playPreviousEpisode,
   } = usePlayContext();
 
   // Normalized media that abstracts episode and channel to the audio player
@@ -191,6 +194,7 @@ export default function AudioControls({ className }: { className?: string }) {
   }, [currentEpisode, currentMedia?.type, draggedProgress, setCurrentProgress]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const debouncedIsLoading = useDebounce(isLoading, 300)[0];
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
@@ -303,7 +307,7 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [isPlaying, play, pause]);
 
-  // Media session metadata
+  // Media session
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
 
@@ -320,34 +324,38 @@ export default function AudioControls({ className }: { className?: string }) {
     });
 
     // Action handlers
-    navigator.mediaSession.setActionHandler("play", () => {
-      play();
-    });
-    navigator.mediaSession.setActionHandler("pause", () => {
-      pause();
-    });
-    navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+    navigator.mediaSession.setActionHandler("play", () => play());
+    navigator.mediaSession.setActionHandler("pause", () => pause());
+    if (currentMedia.type === "episode") {
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
       const audioEl = audioRef.current;
-      if (audioEl) {
-        const skipTime = details.seekOffset || 10;
-        audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
-      }
-    });
-    navigator.mediaSession.setActionHandler("seekforward", (details) => {
-      const audioEl = audioRef.current;
-      if (audioEl) {
-        const skipTime = details.seekOffset || 10;
-        audioEl.currentTime = Math.min(audioEl.currentTime + skipTime, audioEl.duration);
-      }
-    });
-    navigator.mediaSession.setActionHandler("seekto", (details) => {
-      const audioEl = audioRef.current;
-      if (audioEl && details.seekTime !== undefined) {
-        audioEl.currentTime = details.seekTime;
-      }
-    });
+        if (audioEl) {
+          const skipTime = details.seekOffset || 10;
+          audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
+        }
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          const skipTime = details.seekOffset || 10;
+          audioEl.currentTime = Math.min(audioEl.currentTime + skipTime, audioEl.duration);
+        }
+      });
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        const audioEl = audioRef.current;
+        if (audioEl && details.seekTime !== undefined) {
+          audioEl.currentTime = details.seekTime;
+        }
+      });
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        playPreviousEpisode();
+      });
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        playNextEpisode();
+      });
+    }
 
-  }, [currentMedia, pause, play]);
+  }, [currentMedia, pause, play, playNextEpisode, playPreviousEpisode]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
@@ -387,7 +395,7 @@ export default function AudioControls({ className }: { className?: string }) {
           {error && (
             <p className="text-xs text-red-400 mt-1">{error}</p>
           )}
-          {isLoading && !error && (
+          {isLoading && debouncedIsLoading && !error && (
             <p className="text-xs text-zinc-400 mt-1">Laddar...</p>
           )}
         </div>

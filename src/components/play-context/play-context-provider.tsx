@@ -29,12 +29,16 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [programDB, setProgramDB] = useState<ProgramDB>({});
 
   const [progressDB, setProgressDB] = useState<ProgressDB>({});
-  const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds) => {
+  const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
     setProgressDB((prev) => ({
       ...prev,
-      [episodeID]: elapsed,
+      [episodeID]: typeof elapsed === "number" ? new Seconds(elapsed) : elapsed,
     }));
   };
+
+  const sortedEpisodes = useMemo(() => {
+    return Object.values(episodeDB).sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+  }, [episodeDB]);
 
   const currentProgress = useMemo(() => {
     if (currentEpisode) {
@@ -175,6 +179,48 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     localStorage.setItem("followedChannels", JSON.stringify(followedChannels));
   }, [followedChannels]);
 
+  const playNextEpisode = () => {
+    if (!currentEpisode) return;
+
+    const currentIndex = sortedEpisodes.findIndex(ep => ep.id === currentEpisode.id);
+    if (currentIndex === -1) return;
+
+    const maxIndex = sortedEpisodes.length - 1;
+
+    for (let i = currentIndex + 1; i <= maxIndex; i++) {
+      const nextEpisodeCandidate = sortedEpisodes[i];
+      if (!nextEpisodeCandidate) continue;
+      if (
+        progressDB[nextEpisodeCandidate.id]?.toNumber()
+        >= nextEpisodeCandidate.duration.toNumber()
+      ) continue; // Already fully listened to
+
+      // Found the next unlistened episode
+      playEpisode(nextEpisodeCandidate.id);
+      break;      
+    }
+  };
+
+  const playPreviousEpisode = () => {
+    if (!currentEpisode) return;
+
+    const currentIndex = sortedEpisodes.findIndex(ep => ep.id === currentEpisode.id);
+    if (currentIndex === -1) return;
+
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const prevEpisodeCandidate = sortedEpisodes[i];
+      if (!prevEpisodeCandidate) continue;
+      if (
+        progressDB[prevEpisodeCandidate.id]?.toNumber()
+        >= prevEpisodeCandidate.duration.toNumber()
+      ) continue; // Already fully listened to
+
+      // Found the previous unlistened episode
+      playEpisode(prevEpisodeCandidate.id);
+      break;      
+    }
+  };
+
   return (
     <PlayContext.Provider
       value={{
@@ -203,6 +249,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         playChannel,
         isFetchingPrograms,
         programDB,
+        playNextEpisode,
+        playPreviousEpisode,
       }}
     >
       {children}
