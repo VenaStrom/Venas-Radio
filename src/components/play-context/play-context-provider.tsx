@@ -8,6 +8,7 @@ import { fetchChannels } from "@/functions/channel-getter";
 import { fetchPrograms } from "@/functions/program-getter";
 import { episodeDBDeserializer } from "../deserializer/episode-deserializer";
 import { progressDBDeserializer } from "../deserializer/progress-deserializer";
+import { migrateFromLegacyZustand } from "./legacy-zustand-migration";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);
@@ -81,6 +82,9 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   // On mount, read localStorage for saved state (if any)
   useEffect(() => {
+    // First, migrate any legacy zustand-based data into the new keys
+    migrateFromLegacyZustand();
+
     Promise.all([
       // LocalStorage
       async () => setFollowedPrograms(JSON.parse(localStorage.getItem("followedPrograms") || "[4923, 178, 2778, 4540]")),
