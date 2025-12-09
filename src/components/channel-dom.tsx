@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import PlayButton from "./play-button";
 import SRAttribute from "./sr-attribute";
