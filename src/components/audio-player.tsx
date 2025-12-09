@@ -303,6 +303,52 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [isPlaying, play, pause]);
 
+  // Media session metadata
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    if (!currentMedia) return;
+
+    // Metadata
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentMedia.title,
+      artist: currentMedia.subtitle,
+      album: currentMedia.type === "episode" ? "Podcastavsnitt" : "Radiokanal",
+      artwork: currentMedia.image ? [
+        { src: currentMedia.image, sizes: "512x512", type: "image/png" },
+      ] : [],
+    });
+
+    // Action handlers
+    navigator.mediaSession.setActionHandler("play", () => {
+      play();
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      pause();
+    });
+    navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+      const audioEl = audioRef.current;
+      if (audioEl) {
+        const skipTime = details.seekOffset || 10;
+        audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
+      }
+    });
+    navigator.mediaSession.setActionHandler("seekforward", (details) => {
+      const audioEl = audioRef.current;
+      if (audioEl) {
+        const skipTime = details.seekOffset || 10;
+        audioEl.currentTime = Math.min(audioEl.currentTime + skipTime, audioEl.duration);
+      }
+    });
+    navigator.mediaSession.setActionHandler("seekto", (details) => {
+      const audioEl = audioRef.current;
+      if (audioEl && details.seekTime !== undefined) {
+        audioEl.currentTime = details.seekTime;
+      }
+    });
+
+  }, [currentMedia, pause, play]);
+
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
       <div className="w-full">
