@@ -5,20 +5,27 @@ import Image from "next/image";
 import LikeButton from "./like-button";
 import { Program } from "@/types/types";
 
-export default function ProgramDOM(
-  {
-    programData,
-  }: {
-    programData: Program,
-  }
-) {
+export default function ProgramDOM({ programData, }: { programData: Program, }) {
   return (
     <li className="grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3">
       {/* SR Attribute */}
       <SRAttribute className="col-span-2" />
 
       {/* Thumbnail */}
-      <Image width={82} height={82} className="bg-zinc-600 rounded-md" src={""} overrideSrc={programData.image.square} alt="Programbild" fetchPriority="low" />
+      <Image
+        width={82}
+        height={82}
+        className="bg-zinc-600 rounded-md"
+        src={""}
+        overrideSrc={(() => {
+          const url = new URL(programData.image.square);
+          url.searchParams.set("w", "164");
+          url.searchParams.set("h", "164");
+          return url.toString();
+        })()}
+        alt="Programbild"
+        fetchPriority="low"
+      />
 
       {/* Header Text */}
       <div className="col-start-2 grid grid-cols-[1fr_auto] grid-rows-[auto_1fr] gap-x-2">

@@ -15,7 +15,12 @@ export default function ChannelDOM({ channelData }: { channelData: Channel }) {
         className="bg-zinc-600 rounded-md h-24 w-24 max-h-24 max-w-24 min-h-24 min-w-24 me-4"
         width={96} height={96}
         src={""}
-        overrideSrc={channelData.image.square}
+        overrideSrc={(() => {
+          const url = new URL(channelData.image.square);
+          url.searchParams.set("width", "96");
+          url.searchParams.set("height", "96");
+          return url.toString();
+        })()}
         alt={`Kanalbild för ${channelData.name}`}
         fetchPriority="low"
       />

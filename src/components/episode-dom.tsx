@@ -49,7 +49,20 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
       <SRAttribute className="col-span-2" />
 
       {/* Thumbnail */}
-      <Image width={128} height={72} src={""} overrideSrc={episode.image.wide} alt="Avsnittsbild" className="bg-zinc-600 rounded-md" fetchPriority="low"></Image>
+      <Image
+        width={128}
+        height={72}
+        className="bg-zinc-600 rounded-md"
+        src={""}
+        overrideSrc={(() => {
+          const url = new URL(episode.image.wide);
+          url.searchParams.set("w", "256");
+          url.searchParams.set("h", "144");
+          return url.toString();
+        })()}
+        alt="Avsnittsbild"
+        fetchPriority="low"
+      />
 
       {/* Header Text */}
       <div className="col-start-2">

@@ -1,7 +1,3 @@
-Channels:
-  - Liking
-  - Load better
-
 Programs:
   - Liking
   - Loading, like at all
