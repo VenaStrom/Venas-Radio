@@ -3,15 +3,13 @@
 import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 export default function HomePage() {
   const { channelDB, isFetchingChannels, followedChannels } = usePlayContext();
 
-  const [renderCount, setRenderCount] = useState(6);
   const channels = useMemo(() => {
     return Object.values(channelDB)
-      .slice(0, renderCount)
       .sort((a, b) => {
         const aFollowed = followedChannels.includes(a.id) ? 0 : 1;
         const bFollowed = followedChannels.includes(b.id) ? 0 : 1;
@@ -21,19 +19,7 @@ export default function HomePage() {
         }
         return a.name.localeCompare(b.name); // Then sort by name
       });
-  }, [channelDB, followedChannels, renderCount]);
-
-  // Staggard rendering
-  useEffect(() => {
-    // Janky staggard loading for performance reasons
-    if (!isFetchingChannels && renderCount < Object.keys(channelDB).length - 6) {
-      const interval = setInterval(() => {
-        setRenderCount(prevCount => prevCount + 1);
-      }, 100);
-
-      return () => clearInterval(interval);
-    }
-  }, [isFetchingChannels, channelDB, renderCount]);
+  }, [channelDB, followedChannels]);
 
   return (
     <main>

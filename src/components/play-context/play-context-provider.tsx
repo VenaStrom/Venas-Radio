@@ -197,7 +197,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
       // Found the next unlistened episode
       playEpisode(nextEpisodeCandidate.id);
-      break;      
+      break;
     }
   };
 
@@ -217,7 +217,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
       // Found the previous unlistened episode
       playEpisode(prevEpisodeCandidate.id);
-      break;      
+      break;
     }
   };
 

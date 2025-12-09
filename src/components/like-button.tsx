@@ -14,12 +14,12 @@ export default function LikeButton({
 ) {
   const { followedPrograms, setFollowedPrograms, followedChannels, setFollowedChannels } = usePlayContext();
   const liked = useMemo(() => {
-    return programID ? followedPrograms[programID] || false :
-      channelID ? followedChannels[channelID] || false :
+    return programID ? followedPrograms.includes(programID) || false :
+      channelID ? followedChannels.includes(channelID) || false :
         false;
   }, [programID, channelID, followedPrograms, followedChannels]);
 
-  const [highlighted, setHighlighted] = useState(false); // Local UI state for immediate feedbackf
+  const [highlighted, setHighlighted] = useState(liked); // Local UI state for immediate feedback
 
   // Save state
   const toggleLike = () => {
