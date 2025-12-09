@@ -82,7 +82,6 @@ export default function AudioControls({ className }: { className?: string }) {
 
     if (currentStreamUrl) {
       audioEl.src = currentStreamUrl;
-      audioEl.autoplay = true;
       audioEl.preload = "auto";
     }
     else {

@@ -148,6 +148,11 @@ export class __Timestamp {
     if (typeof totalSeconds === "number") {
       totalSeconds = Seconds.from(totalSeconds);
     }
+
+    if (!(totalSeconds instanceof Seconds)) {
+      throw new Error("totalSeconds must be an instance of Seconds or a number");
+    }
+
     const minutes = Minutes.from(Math.floor(totalSeconds.toNumber() / 60));
     const seconds = Seconds.from(totalSeconds.toNumber() % 60);
     return new Timestamp(minutes, seconds);

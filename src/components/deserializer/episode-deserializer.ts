@@ -1,4 +1,4 @@
-import { Episode, EpisodeDB } from "@/types/types";
+import { Episode, EpisodeDB, Seconds } from "@/types/types";
 
 export function episodeDBDeserializer(data: string | null): EpisodeDB {
   if (!data) return {};
@@ -21,6 +21,7 @@ export function episodeDBDeserializer(data: string | null): EpisodeDB {
       deserialized[cleanEpisode.id] = {
         ...cleanEpisode,
         publishDate: new Date(cleanEpisode.publishDate),
+        duration: decodeDuration(cleanEpisode.duration),
       };
     });
     return deserialized;
@@ -29,4 +30,28 @@ export function episodeDBDeserializer(data: string | null): EpisodeDB {
     console.error("Failed to deserialize episodeDB:", error);
     return {};
   }
+}
+
+function decodeDuration(inputDuration: unknown): Seconds {
+  if (inputDuration instanceof Seconds) {
+    return inputDuration;
+  }
+  if (typeof inputDuration === "number") {
+    return new Seconds(inputDuration);
+  }
+  if (typeof inputDuration === "string") {
+    return new Seconds(parseFloat(inputDuration));
+  }
+  if (
+    typeof inputDuration === "object"
+    && inputDuration !== null
+    && "value" in inputDuration
+    && typeof inputDuration.value === "number"
+  ) {
+    return new Seconds(inputDuration.value);
+  }
+
+  const type = typeof inputDuration;
+  console.dir(inputDuration, { depth: null });
+  throw new Error(`Invalid duration type: ${type}`);
 }
