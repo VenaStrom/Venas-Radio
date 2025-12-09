@@ -73,6 +73,18 @@ export class __Timestamp {
   public minutes: Minutes;
   public seconds: Seconds;
 
+  get totalSeconds(): Seconds {
+    return Seconds.from(this.minutes.toSeconds().toNumber() + this.seconds.toNumber());
+  }
+  get totalMinutes(): Minutes {
+    const totalSeconds = this.minutes.toSeconds().toNumber() + this.seconds.toNumber();
+    return Minutes.from(Math.floor(totalSeconds / 60));
+  }
+  get totalHours(): Hours {
+    const totalSeconds = this.minutes.toSeconds().toNumber() + this.seconds.toNumber();
+    return Hours.fromSeconds(Seconds.from(totalSeconds));
+  }
+
   constructor(minutes: Minutes, seconds: Seconds) {
     this.minutes = minutes;
     this.seconds = seconds;
@@ -130,11 +142,6 @@ export class __Timestamp {
     }
 
     return parts.join(" ");
-  }
-
-  get totalHours(): Hours {
-    const totalSeconds = this.minutes.toSeconds().toNumber() + this.seconds.toNumber();
-    return Hours.fromSeconds(Seconds.from(totalSeconds));
   }
 
   static fromSeconds(totalSeconds: Seconds | number): Timestamp {

@@ -120,6 +120,10 @@ export default function AudioControls({ className }: { className?: string }) {
     if (lastResumedEpisodeIdRef.current === episodeId) return; // Already applied
 
     const saved = progressDB[episodeId];
+    if (saved && saved.toNumber().toFixed(0) === currentEpisode.duration.toNumber().toFixed(0)) {
+      audioEl.currentTime = 0;
+      return;
+    }
     if (saved) audioEl.currentTime = saved.toNumber();
 
     lastResumedEpisodeIdRef.current = episodeId;
@@ -328,7 +332,7 @@ export default function AudioControls({ className }: { className?: string }) {
     navigator.mediaSession.setActionHandler("pause", () => pause());
     if (currentMedia.type === "episode") {
       navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-      const audioEl = audioRef.current;
+        const audioEl = audioRef.current;
         if (audioEl) {
           const skipTime = details.seekOffset || 10;
           audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
@@ -356,6 +360,23 @@ export default function AudioControls({ className }: { className?: string }) {
     }
 
   }, [currentMedia, pause, play, playNextEpisode, playPreviousEpisode]);
+
+  // Play next episode when currentEpisode ends
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    const onEnded = () => {
+      if (currentMedia?.type === "episode") {
+        playNextEpisode();
+      }
+    };
+
+    audioEl.addEventListener("ended", onEnded);
+    return () => {
+      audioEl.removeEventListener("ended", onEnded);
+    };
+  }, [currentMedia, playNextEpisode]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>

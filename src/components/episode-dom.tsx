@@ -25,8 +25,8 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   const formattedTime = useMemo(() => getLocaleTime(episode.publishDate), [episode.publishDate]);
 
   const remainingTime = useMemo<React.ReactNode>(() => {
-    const isUnlistened = percent <= 0;
-    const isListened = percent >= 99;
+    const isUnlistened = percent === 0;
+    const isListened = remaining.totalSeconds.toNumber() <= 0;
     const formattedDuration = duration.toFormattedString(
       duration.minutes.toNumber() == 0
         ? { minuteUnit: "hide" }
