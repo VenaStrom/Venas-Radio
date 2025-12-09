@@ -34,13 +34,13 @@ export async function fetchEpisodes(
     ),
   );
 
-  const allEpisodes: EpisodeDB = {};
+  const fetchedEpisodes: EpisodeDB = {};
 
   for (const data of responses) {
     data.episodes
       .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
       .forEach((episode: SR_Episode) => {
-        allEpisodes[episode.id] = {
+        fetchedEpisodes[episode.id] = {
           id: episode.id,
           title: episode.title,
           description: episode.description,
@@ -59,5 +59,5 @@ export async function fetchEpisodes(
       });
   };
 
-  return allEpisodes;
+  return fetchedEpisodes;
 }

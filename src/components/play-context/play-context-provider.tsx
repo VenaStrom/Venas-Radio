@@ -103,14 +103,14 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     if (followedPrograms.length === 0) return;
 
     const fromDate = new Date();
-    fromDate.setDate(fromDate.getDate() - 30);
+    fromDate.setDate(fromDate.getDate() - 10);
     const toDate = new Date();
     toDate.setDate(toDate.getDate() + 7);
 
     fetchEpisodes(followedPrograms, { fromDate, toDate })
-      .then((allEpisodes) => {
-        setEpisodeDB((prev) => {
-          const updatedDB = { ...prev, ...allEpisodes };
+      .then((fetchedEpisodes) => {
+        setEpisodeDB(() => {
+          const updatedDB = fetchedEpisodes;
           sessionStorage.setItem("episodeDB", JSON.stringify(updatedDB));
           return updatedDB;
         });
