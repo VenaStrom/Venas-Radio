@@ -18,6 +18,7 @@ export default function FeedPage() {
       <ul className="flex flex-col mt-2 mb-4 gap-y-10">
         {isFetching ? (
           <>
+            <li className="w-full -mb-5 text-center text-zinc-400"></li>
             {new Array(30).fill(0).map((_, index) => (
               <EpisodeSkeleton key={"episode-skeleton-" + index} />
             ))}
