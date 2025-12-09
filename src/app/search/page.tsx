@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Fuse from "fuse.js";
 import { SearchIcon, XIcon } from "lucide-react";
 import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
@@ -17,10 +17,8 @@ const filterKeys: { name: keyof Program; weight: number; }[] = [
 export default function SearchPage() {
   const { programDB, followedPrograms, isFetchingPrograms } = usePlayContext();
 
-  const [renderCount, setRenderCount] = useState(6);
   const programs = useMemo(() => {
     return Object.values(programDB)
-      .slice(0, renderCount)
       .sort((a, b) => {
         const aFollowed = followedPrograms.includes(a.id) ? 0 : 1;
         const bFollowed = followedPrograms.includes(b.id) ? 0 : 1;
@@ -30,18 +28,7 @@ export default function SearchPage() {
         }
         return a.name.localeCompare(b.name); // Then sort by name
       });
-  }, [programDB, followedPrograms, renderCount]);
-
-  // Staggered rendering
-  useEffect(() => {
-    if (!isFetchingPrograms && renderCount < programs.length - 6) {
-      const interval = setInterval(() => {
-        setRenderCount((prevCount) => prevCount + 1);
-      }, 50);
-
-      return () => clearInterval(interval);
-    }
-  }, [isFetchingPrograms, programs.length, renderCount]);
+  }, [programDB, followedPrograms]);
 
   // Search
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,7 +82,6 @@ export default function SearchPage() {
           </>
         ) : (
           searchResult
-            .slice(0, renderCount)
             .map((program) => (
               <ProgramDOM programData={program} key={program.id} />
             ))
