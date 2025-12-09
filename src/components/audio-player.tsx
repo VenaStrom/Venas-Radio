@@ -219,42 +219,54 @@ export default function AudioControls({ className }: { className?: string }) {
 
   // Audio fetching
   useEffect(() => {
-    if (!currentMedia) return;
+    // When nothing is selected or no stream URL, clear state and exit
+    if (!currentMedia || !currentStreamUrl) {
+      setIsLoading(false);
+      setError(null);
+      setRetryCount(0);
+      return;
+    }
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
 
     let isCancelled = false;
 
-    const fetchAudio = async () => {
+    const handleLoadStart = () => {
+      if (isCancelled) return;
       setIsLoading(true);
       setError(null);
+    };
 
-      try {
-        // await new Promise((resolve) => setTimeout(resolve, 500));
+    const handleCanPlay = () => {
+      if (isCancelled) return;
+      setIsLoading(false);
+      setRetryCount(0);
+    };
 
-        if (isCancelled) return;
+    const handleError = () => {
+      if (isCancelled) return;
 
-        setIsLoading(false);
-        setRetryCount(0); // Reset retry count on success
+      if (retryCount < maxRetries) {
+        setRetryCount(prev => prev + 1);
+        audioEl.load();
       }
-      catch (e) {
-        console.error(e);
-
-        if (isCancelled) return;
-
-        if (retryCount < maxRetries) {
-          setRetryCount(retryCount + 1);
-        } else {
-          setError("Kunde inte ladda ljudströmmen.");
-          setIsLoading(false);
-        }
+      else {
+        setIsLoading(false);
+        setError("Kunde inte ladda ljudströmmen.");
       }
     };
 
-    fetchAudio();
+    audioEl.addEventListener("loadstart", handleLoadStart);
+    audioEl.addEventListener("canplay", handleCanPlay);
+    audioEl.addEventListener("error", handleError);
 
     return () => {
       isCancelled = true;
+      audioEl.removeEventListener("loadstart", handleLoadStart);
+      audioEl.removeEventListener("canplay", handleCanPlay);
+      audioEl.removeEventListener("error", handleError);
     };
-  }, [currentMedia, retryCount]);
+  }, [currentMedia, currentStreamUrl, retryCount, maxRetries]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
