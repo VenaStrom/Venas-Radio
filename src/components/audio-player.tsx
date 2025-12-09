@@ -268,6 +268,41 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, [currentMedia, currentStreamUrl, retryCount, maxRetries]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (isPlaying) {
+          pause();
+        } else {
+          play();
+        }
+      }
+
+      if (event.code === "ArrowRight") {
+        event.preventDefault();
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          audioEl.currentTime = Math.min(audioEl.currentTime + 15, audioEl.duration);
+        }
+      }
+
+      if (event.code === "ArrowLeft") {
+        event.preventDefault();
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          audioEl.currentTime = Math.max(audioEl.currentTime - 15, 0);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isPlaying, play, pause]);
+
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
       <div className="w-full">
