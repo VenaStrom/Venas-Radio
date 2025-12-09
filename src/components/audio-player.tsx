@@ -2,631 +2,434 @@
 
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
-import { PlayStateStore, usePlayStateStore } from "@/store/play-state-store";
-import { ProgressStore, useProgressStore } from "@/store/progress-store";
-import { ContentStore, useContentStore } from "@/store/content-store";
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
-import type { Content } from "@/types/api/content";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AudioPlayerMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import { usePlayContext } from "./play-context/play-context-use";
+import { useDebounce } from "use-debounce";
 
-const getNextEpisode = (
-  contentStore: ContentStore,
-  progressStore: ProgressStore,
-  playStateStore: PlayStateStore,
-): Content | null => {
-  if (!playStateStore.currentEpisode) return null;
-
-  const episodeData = Object.values(contentStore.contentData);
-
-  // Sort the episodes by publish date
-  episodeData.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
-
-  const episodeIDs = episodeData.map((episode) => episode.id.toString());
-
-  // Find the index of the current episode
-  const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
-  if (episodeIndex === -1) return null; // Episode not found
-
-  // Find the next episode that is not finished
-  for (let i = episodeIndex + 1; i < episodeIDs.length; i++) {
-    const episode = episodeData.find((episode) => episode.id.toString() === episodeIDs[i]) || null;
-    if (!episode) continue;
-    const isFinished = progressStore.episodeProgressMap[episode.id]?.finished;
-    if (!isFinished) return episode;
-  }
-
-  return null;
-};
-
-const getPreviousEpisode = (
-  contentStore: ContentStore,
-  progressStore: ProgressStore,
-  playStateStore: PlayStateStore,
-): Content | null => {
-  if (!playStateStore.currentEpisode) return null;
-
-  const episodeData = Object.values(contentStore.contentData);
-
-  // Sort the episodes by publish date
-  episodeData.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
-
-  const episodeIDs = episodeData.map((episode) => episode.id.toString());
-
-  // Find the index of the current episode
-  const episodeIndex = episodeIDs.indexOf(playStateStore.currentEpisode.id.toString());
-  if (episodeIndex === -1) return null; // Episode not found
-
-  // Find the previous episode that is not finished
-  for (let i = episodeIndex - 1; i >= 0; i--) {
-    const episode = episodeData.find((episode) => episode.id.toString() === episodeIDs[i]) || null;
-    if (!episode) continue;
-    const isFinished = progressStore.episodeProgressMap[episode.id]?.finished;
-    if (!isFinished) return episode;
-  }
-
-  return null;
-};
-
-/**
- * A component that displays audio controls and a progress bar 
- */
 export default function AudioControls({ className }: { className?: string }) {
-  // Stores
-  const playStateStore = usePlayStateStore();
-  const contentStore = useContentStore();
-  const progressStore = useProgressStore();
+  const {
+    isPlaying,
+    play,
+    pause,
+    currentStreamUrl,
+    currentEpisode,
+    currentChannel,
+    progressDB,
+    currentProgress,
+    setCurrentProgress,
+    playNextEpisode,
+    playPreviousEpisode,
+  } = usePlayContext();
 
-  // Local state for error handling and loading
+  // Normalized media that abstracts episode and channel to the audio player
+  const currentMedia: AudioPlayerMedia | null = useMemo(() => {
+    if (!currentChannel && !currentEpisode) return null;
+
+    const type = currentChannel ? "channel" : currentEpisode ? "episode" : null;
+    if (!type) return null;
+
+    if (type === "episode" && currentEpisode) {
+      const normalizedMedia: AudioPlayerMedia = {
+        type,
+        episodeID: currentEpisode?.id,
+        url: currentEpisode?.url,
+        title: currentEpisode?.title,
+        subtitle: currentEpisode?.program.name,
+        image: currentEpisode?.image.square,
+      };
+      return normalizedMedia;
+    }
+    if (type === "channel" && currentChannel) {
+      const normalizedMedia: AudioPlayerMedia = {
+        type,
+        channelID: currentChannel?.id,
+        url: currentChannel?.url,
+        title: currentChannel?.name,
+        subtitle: currentChannel.channelType,
+        image: currentChannel?.image.square,
+      };
+      return normalizedMedia;
+    }
+    return null;
+  }, [currentChannel, currentEpisode]);
+
+  // Playback progress class instance
+  const progress: PlaybackProgress | null = useMemo(() => {
+    if (currentMedia?.type === "episode" && currentEpisode) {
+      return new PlaybackProgress(currentEpisode.duration, currentProgress ?? Seconds.from(0));
+    }
+    return null;
+  }, [currentMedia?.type, currentEpisode, currentProgress]);
+
+  // Derived progress values
+  const duration: Timestamp | null = useMemo(() => progress ? progress.durationTimestamp() : null, [progress]);
+  const elapsed: Timestamp | null = useMemo(() => progress ? progress.elapsedTimestamp() : null, [progress]);
+  const percent: number | null = useMemo(() => progress ? progress.elapsedPercentage : null, [progress]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Create audio element on mount
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = document.createElement("audio");
+    }
+  }, []);
+
+  // Audio element setup
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    if (currentStreamUrl) {
+      audioEl.src = currentStreamUrl;
+      audioEl.preload = "auto";
+    }
+    else {
+      audioEl.removeAttribute("src");
+      audioEl.load();
+    }
+  }, [currentStreamUrl]);
+
+  // Ready state handling
+  const [isReady, setIsReady] = useState(false);
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    const onLoaded = () => setIsReady(true);
+    const onEmptied = () => setIsReady(false);
+
+    audioEl.addEventListener("loadedmetadata", onLoaded);
+    audioEl.addEventListener("emptied", onEmptied);
+
+    return () => {
+      audioEl.removeEventListener("loadedmetadata", onLoaded);
+      audioEl.removeEventListener("emptied", onEmptied);
+    };
+  }, []);
+
+  // Resume playback position
+  const lastResumedEpisodeIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+    if (currentMedia?.type !== "episode" || !currentEpisode) return;
+
+    const episodeId = currentEpisode.id;
+    if (lastResumedEpisodeIdRef.current === episodeId) return; // Already applied
+
+    const saved = progressDB[episodeId];
+    if (saved && saved.toNumber().toFixed(0) === currentEpisode.duration.toNumber().toFixed(0)) {
+      audioEl.currentTime = 0;
+      return;
+    }
+    if (saved) audioEl.currentTime = saved.toNumber();
+
+    lastResumedEpisodeIdRef.current = episodeId;
+
+    // I don't want progressDB to be a dependency here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMedia?.type, currentEpisode]);
+
+
+  // Drag to seek handling
+  const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
+  const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (currentMedia?.type === "channel") return; // No seeking for live channels
+    setDraggedProgress(parseFloat(event.target.value));
+  };
+  const onProgressDragEnd = () => {
+    if (
+      draggedProgress === null
+      || currentMedia?.type !== "episode"
+      || !currentEpisode
+      || !isReady
+    ) {
+      // Too early to seek
+      setDraggedProgress(null);
+      return;
+    }
+
+    const audioEl = audioRef.current;
+    if (!audioEl) {
+      setDraggedProgress(null);
+      return;
+    }
+
+    const newElapsed = Seconds.from(
+      Math.round((draggedProgress / 100) * currentEpisode.duration.toNumber())
+    );
+
+    audioEl.currentTime = newElapsed.toNumber();
+    setCurrentProgress(newElapsed);
+
+    setDraggedProgress(null);
+    play();
+  };
+  const onProgressDragStart = (event: React.DragEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement> | React.MouseEvent<HTMLInputElement>) => {
+    if (isPlaying) pause();
+    setDraggedProgress(parseFloat(event.currentTarget.value));
+  };
+  // For immediate non-debounced visual feedback
+  const displayedPercent = draggedProgress !== null
+    ? draggedProgress
+    : (percent ?? 0);
+
+  // Time update handling
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    const onTimeUpdate = () => {
+      if (
+        currentMedia?.type !== "episode"
+        || !currentEpisode
+        || draggedProgress !== null
+      ) return;
+
+      setCurrentProgress(Seconds.from(audioEl.currentTime));
+    };
+
+    audioEl.addEventListener("timeupdate", onTimeUpdate);
+    return () => {
+      audioEl.removeEventListener("timeupdate", onTimeUpdate);
+    };
+  }, [currentEpisode, currentMedia?.type, draggedProgress, setCurrentProgress]);
+
   const [isLoading, setIsLoading] = useState(false);
+  const debouncedIsLoading = useDebounce(isLoading, 300)[0];
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
 
-  // Define audio things
-  const audioURL = playStateStore.currentEpisode?.url;
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const previousEpisodeIdRef = useRef<number | null>(null);
-  const isPlayingRef = useRef(false);
-  const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Refresh audio connection without losing progress
-  const refreshAudioConnection = useCallback(() => {
-    if (!audioRef.current || !playStateStore.currentEpisode || !isPlayingRef.current) return;
-
-    const audio = audioRef.current;
-    const currentTime = audio.currentTime;
-
-    // Only refresh if we have a valid time and we're actually having connection issues
-    if (currentTime > 0) {
-      console.log(`Refreshing audio connection at ${currentTime}s`);
-      setIsLoading(true);
-
-      const wasPlaying = playStateStore.playState === "playing";
-      // Use direct URL instead of proxy
-      const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
-
-      const handleCanPlay = () => {
-        if (audioRef.current) {
-          // Use a small timeout to ensure the audio element is ready for seeking
-          setTimeout(() => {
-            if (audioRef.current) {
-              console.log(`Restoring time to ${currentTime}s after refresh`);
-              audioRef.current.currentTime = currentTime;
-              setIsLoading(false);
-              if (wasPlaying) {
-                audioRef.current.play().catch(e => {
-                  console.error("Failed to play after refresh:", e);
-                  playStateStore.setPlayState("paused");
-                });
-              }
-            }
-          }, 50); // 50ms delay
-        }
-        audio.removeEventListener("canplay", handleCanPlay);
-      };
-
-      // Pause before changing src to ensure a clean state
-      audio.pause();
-      audio.addEventListener("canplay", handleCanPlay);
-      audio.src = directUrl;
-      audio.load();
-    }
-  }, [playStateStore]);
-
-  // Stable audio element creation and event setup
+  // Play/pause handling
   useEffect(() => {
-    if (!audioRef.current) return;
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
 
-    const audio = audioRef.current;
-    let loadingTimeout: NodeJS.Timeout | null = null;
+    if (isPlaying) {
+      audioEl.play()
+        .then(() => {
+          setIsLoading(false);
+          setRetryCount(0); // Reset retry count on success
+        })
+        .catch((e) => {
+          if (e instanceof DOMException && e.name === "AbortError") return; // Ignore abort errors
+          console.error("Error playing audio:", e)
+          setError("Kunde inte spela upp ljudströmmen.");
+        });
+    }
+    else {
+      audioEl.pause();
+    }
+  }, [isPlaying]);
 
-    const handleLoadStart = () => {
-      setIsLoading(true);
-      setError(null);
-      // Clear any existing loading timeout
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
-    };
-
-    const handleCanPlay = () => {
+  // Audio fetching
+  useEffect(() => {
+    // When nothing is selected or no stream URL, clear state and exit
+    if (!currentMedia || !currentStreamUrl) {
       setIsLoading(false);
       setError(null);
       setRetryCount(0);
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-        loadingTimeout = null;
-      }
-    };
+      return;
+    }
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
 
-    const handleError = (e: Event) => {
-      // Only handle errors if we're not in the middle of loading a new track
-      if (!isLoading) {
-        console.error("Audio playback error:", e);
-        setIsLoading(false);
-        playStateStore.setPlayState("paused");
+    let isCancelled = false;
 
-        if (retryCount < maxRetries && playStateStore.currentEpisode) {
-          setError(`Nätverksproblem, prövar igen... (${retryCount + 1}/${maxRetries})`);
-          setTimeout(() => {
-            setRetryCount(prev => prev + 1);
-            if (audioRef.current && playStateStore.currentEpisode) {
-              // Use direct URL instead of proxy
-              const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
-              audioRef.current.src = directUrl;
-              audioRef.current.load();
-            }
-          }, 2000);
-        } else if (retryCount >= maxRetries) {
-          setError("Ljudhämtning misslyckades. Försök igen senare.");
-        }
-      }
-    };
-
-    const handleStalled = () => {
-      // Only handle stalls if we've been loading for more than 5 seconds
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
-
-      loadingTimeout = setTimeout(() => {
-        console.warn("Audio stalled, attempting to recover...");
-        if (audioRef.current && audioRef.current.currentTime > 0) {
-          refreshAudioConnection();
-        }
-      }, 5000);
-    };
-
-    const handleWaiting = () => {
-      // Don't immediately show loading for brief buffering
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
-
-      loadingTimeout = setTimeout(() => {
-        setIsLoading(true);
-      }, 1000); // Only show loading after 1 second of waiting
-    };
-
-    const handlePlaying = () => {
-      setIsLoading(false);
+    const handleLoadStart = () => {
+      if (isCancelled) return;
+      setIsLoading(true);
       setError(null);
-      isPlayingRef.current = true;
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-        loadingTimeout = null;
-      }
     };
 
-    const handlePause = () => {
-      isPlayingRef.current = false;
-      // Don't change loading state on pause
-    };
-
-    const handleEnded = () => {
-      if (!playStateStore.currentEpisode) return;
-
-      // Set progress to finished
-      progressStore.setEpisodeProgress(
-        playStateStore.currentEpisode.id.toString(),
-        { seconds: playStateStore.currentEpisode.duration || 0, finished: true }
-      );
-
-      // Find the next episode
-      const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
-      if (nextEpisode) {
-        playStateStore.setCurrentEpisode(nextEpisode);
-        // Maintain playing state for seamless transition
-        playStateStore.setPlayState("playing");
-      } else {
-        // No next episode found
-        playStateStore.setCurrentEpisode(null);
-        playStateStore.setPlayState("paused");
-        console.info("No next episode found");
-      }
-    };
-
-    // Add event listeners
-    audio.addEventListener("loadstart", handleLoadStart);
-    audio.addEventListener("canplay", handleCanPlay);
-    audio.addEventListener("error", handleError);
-    audio.addEventListener("stalled", handleStalled);
-    audio.addEventListener("waiting", handleWaiting);
-    audio.addEventListener("playing", handlePlaying);
-    audio.addEventListener("pause", handlePause);
-    audio.addEventListener("ended", handleEnded);
-
-    // Cleanup function
-    return () => {
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
-      audio.removeEventListener("loadstart", handleLoadStart);
-      audio.removeEventListener("canplay", handleCanPlay);
-      audio.removeEventListener("error", handleError);
-      audio.removeEventListener("stalled", handleStalled);
-      audio.removeEventListener("waiting", handleWaiting);
-      audio.removeEventListener("playing", handlePlaying);
-      audio.removeEventListener("pause", handlePause);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, [retryCount, playStateStore, progressStore, contentStore, audioURL, isLoading, refreshAudioConnection]);
-
-  // Sync audio ref's state with global state - prevent unwanted resets
-  const syncAudioState = useCallback(async () => {
-    if (!audioRef.current || !playStateStore.currentEpisode) return;
-
-    try {
-      if (playStateStore.playState === "playing") {
-        setError(null);
-        // Only try to play if we're not currently loading
-        if (!isLoading) {
-          // Don't reset currentTime if it's already set and we have stored progress
-          const storedProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds || 0;
-          if (storedProgress > 0 && audioRef.current.currentTime === 0) {
-            audioRef.current.currentTime = storedProgress;
-          }
-          await audioRef.current.play();
-        }
-      } else {
-        audioRef.current.pause();
-      }
-    } catch (error: any) {
-      // Only handle play errors, not loading errors
-      if (error.name !== "AbortError" && error.name !== "NotAllowedError") {
-        console.error("Failed to play audio:", error);
-        playStateStore.setPlayState("paused");
-        setError("Kunde inte starta uppspelning. Försök igen.");
-      }
-    }
-  }, [playStateStore, isLoading, progressStore]);
-
-  useEffect(() => {
-    syncAudioState();
-  }, [syncAudioState]);
-
-  // Load progress on episode change
-  useEffect(() => {
-    if (!audioRef.current || !playStateStore.currentEpisode) return;
-
-    const audio = audioRef.current;
-    const episode = playStateStore.currentEpisode;
-    const progressData = progressStore.episodeProgressMap[episode.id.toString()];
-    const isFinished = progressData?.finished || false;
-    const storedProgress = isFinished ? 0 : (progressData?.seconds || 0);
-
-    // Always ensure finished episodes get reset so the UI reflects a clean slate
-    if (isFinished) {
-      progressStore.setEpisodeProgress(
-        episode.id.toString(),
-        { seconds: 0, finished: false }
-      );
-    }
-
-    // Skip eager loading when we're not actively playing to avoid problematic preloading
-    if (playStateStore.playState !== "playing") {
-      return;
-    }
-
-    // If this exact episode is already wired up, just sync the saved progress if needed
-    if (episode.id === previousEpisodeIdRef.current) {
-      if (storedProgress > 0 && Math.abs(audio.currentTime - storedProgress) > 0.5) {
-        audio.currentTime = storedProgress;
-      }
-      return;
-    }
-
-    setError(null);
-    setRetryCount(0);
-    setIsLoading(true);
-    previousEpisodeIdRef.current = episode.id;
-
-    const directUrl = `${episode.url}?_t=${Date.now()}`;
-    audio.pause();
-    audio.src = directUrl;
-
-    const handleLoadedData = () => {
-      if (storedProgress > 0) {
-        audio.currentTime = storedProgress;
-      }
+    const handleCanPlay = () => {
+      if (isCancelled) return;
       setIsLoading(false);
-
-      if (playStateStore.playState === "playing" && !error) {
-        setTimeout(() => {
-          if (playStateStore.playState === "playing" && !error) {
-            syncAudioState();
-          }
-        }, 50);
-      }
-
-      audio.removeEventListener("loadeddata", handleLoadedData);
+      setRetryCount(0);
     };
 
-    audio.addEventListener("loadeddata", handleLoadedData);
-    audio.load();
+    const handleError = () => {
+      if (isCancelled) return;
+
+      if (retryCount < maxRetries) {
+        setRetryCount(prev => prev + 1);
+        audioEl.load();
+      }
+      else {
+        setIsLoading(false);
+        setError("Kunde inte ladda ljudströmmen.");
+      }
+    };
+
+    audioEl.addEventListener("loadstart", handleLoadStart);
+    audioEl.addEventListener("canplay", handleCanPlay);
+    audioEl.addEventListener("error", handleError);
 
     return () => {
-      audio.removeEventListener("loadeddata", handleLoadedData);
+      isCancelled = true;
+      audioEl.removeEventListener("loadstart", handleLoadStart);
+      audioEl.removeEventListener("canplay", handleCanPlay);
+      audioEl.removeEventListener("error", handleError);
     };
-  }, [playStateStore.currentEpisode, playStateStore.playState, progressStore, syncAudioState, error, playStateStore]);
+  }, [currentMedia, currentStreamUrl, retryCount, maxRetries]);
 
-  // Handle progress updates with throttling - ONLY update if actually playing
+  // Keyboard shortcuts
   useEffect(() => {
-    if (!audioRef.current || !playStateStore.currentEpisode) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (isPlaying) {
+          pause();
+        } else {
+          play();
+        }
+      }
 
-    const updateProgress = () => {
-      if (!audioRef.current || !playStateStore.currentEpisode) return;
-      if (!playStateStore.currentEpisode.meta.saveProgress) return;
-      if (!isPlayingRef.current) return;
-      if (playStateStore.playState !== "playing") return; // Double check play state
+      if (event.code === "ArrowRight") {
+        event.preventDefault();
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          audioEl.currentTime = Math.min(audioEl.currentTime + 15, audioEl.duration);
+        }
+      }
 
-      const currentTime = audioRef.current.currentTime;
-      const existingProgress = progressStore.episodeProgressMap[playStateStore.currentEpisode.id.toString()]?.seconds || 0;
-
-      // Only update if there's a meaningful change (avoid micro-updates)
-      if (Math.abs(currentTime - existingProgress) > 0.5) {
-        progressStore.setEpisodeProgress(
-          playStateStore.currentEpisode.id.toString(),
-          { seconds: currentTime, finished: false }
-        );
+      if (event.code === "ArrowLeft") {
+        event.preventDefault();
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          audioEl.currentTime = Math.max(audioEl.currentTime - 15, 0);
+        }
       }
     };
 
-    // Update progress every 2 seconds to reduce store updates
-    progressUpdateIntervalRef.current = setInterval(updateProgress, 2000);
-
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      if (progressUpdateIntervalRef.current) {
-        clearInterval(progressUpdateIntervalRef.current);
-        progressUpdateIntervalRef.current = null;
-      }
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [playStateStore.currentEpisode, progressStore, playStateStore.playState]);
+  }, [isPlaying, play, pause]);
 
-
-
-  const onProgressDrag = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!playStateStore.currentEpisode ||
-      playStateStore.currentEpisode.meta.disableDragProgress) return;
-
-    const newProgress = parseInt(e.target.value) / 100 * playStateStore.currentEpisode.duration;
-
-    // Modify the audio element first
-    if (audioRef.current) {
-      audioRef.current.currentTime = newProgress;
-    }
-
-    // Then save in global store
-    progressStore.setEpisodeProgress(
-      playStateStore.currentEpisode.id.toString(),
-      { seconds: newProgress, finished: false }
-    );
-  }, [playStateStore.currentEpisode, progressStore]);
-
-  // MediaSession API setup
+  // Media session
   useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      !("mediaSession" in navigator) ||
-      !playStateStore.currentEpisode
-    ) {
-      return;
-    }
+    if (!("mediaSession" in navigator)) return;
 
-    const episode = playStateStore.currentEpisode;
-    const programName = episode.program.name;
-    const artwork = [
-      { src: episode.image.square, sizes: "96x96", type: "image/png" },
-      { src: episode.image.square, sizes: "128x128", type: "image/png" },
-      { src: episode.image.square, sizes: "192x192", type: "image/png" },
-      { src: episode.image.square, sizes: "256x256", type: "image/png" },
-      { src: episode.image.square, sizes: "384x384", type: "image/png" },
-      { src: episode.image.square, sizes: "512x512", type: "image/png" },
-    ];
+    if (!currentMedia) return;
 
-    // Only set metadata if the episode changes
-    navigator.mediaSession.metadata = new window.MediaMetadata({
-      title: episode.title,
-      artist: programName,
-      album: "Podcast",
-      artwork,
+    // Metadata
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentMedia.title,
+      artist: currentMedia.subtitle,
+      album: currentMedia.type === "episode" ? "Podcastavsnitt" : "Radiokanal",
+      artwork: currentMedia.image ? [
+        { src: currentMedia.image, sizes: "512x512", type: "image/png" },
+      ] : [],
     });
 
-    // Handler functions
-    const playHandler = () => playStateStore.setPlayState("playing");
-    const pauseHandler = () => playStateStore.setPlayState("paused");
-    const seekBackwardHandler = (details: any) => {
-      if (audioRef.current) {
-        audioRef.current.currentTime = Math.max(
-          audioRef.current.currentTime - (details.seekOffset || 10), 0
-        );
-      }
-    };
-    const seekForwardHandler = (details: any) => {
-      if (audioRef.current) {
-        audioRef.current.currentTime = Math.min(
-          audioRef.current.currentTime + (details.seekOffset || 10),
-          audioRef.current.duration
-        );
-      }
-    };
-    const prevTrackHandler = () => {
-      const previousEpisode = getPreviousEpisode(contentStore, progressStore, playStateStore);
-      if (previousEpisode) {
-        playStateStore.setCurrentEpisode(previousEpisode);
-      }
-    };
-    const nextTrackHandler = () => {
-      const nextEpisode = getNextEpisode(contentStore, progressStore, playStateStore);
-      if (nextEpisode) {
-        playStateStore.setCurrentEpisode(nextEpisode);
-      }
-    };
-
-    // Set action handlers
-    navigator.mediaSession.setActionHandler("play", playHandler);
-    navigator.mediaSession.setActionHandler("pause", pauseHandler);
-    navigator.mediaSession.setActionHandler("seekbackward", seekBackwardHandler);
-    navigator.mediaSession.setActionHandler("seekforward", seekForwardHandler);
-    navigator.mediaSession.setActionHandler("previoustrack", prevTrackHandler);
-    navigator.mediaSession.setActionHandler("nexttrack", nextTrackHandler);
-
-    // Cleanup function
-    return () => {
-      if ("mediaSession" in navigator) {
-        navigator.mediaSession.setActionHandler("play", null);
-        navigator.mediaSession.setActionHandler("pause", null);
-        navigator.mediaSession.setActionHandler("seekbackward", null);
-        navigator.mediaSession.setActionHandler("seekforward", null);
-        navigator.mediaSession.setActionHandler("previoustrack", null);
-        navigator.mediaSession.setActionHandler("nexttrack", null);
-      }
-    };
-    // Dependency ONLY on actual episode metadata!
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playStateStore.currentEpisode?.id, playStateStore.currentEpisode?.title, playStateStore.currentEpisode?.program.name, playStateStore.currentEpisode?.image.square]);
-
-  const episodeInfo = useMemo(() => {
-    const currentEpisode = playStateStore.currentEpisode;
-    if (!currentEpisode) return null;
-
-    const progressSeconds = progressStore.episodeProgressMap[currentEpisode.id]?.seconds || 0;
-    const durationSeconds = currentEpisode.duration || 0;
-
-    const percent = durationSeconds === 0 ? 0 : (progressSeconds / durationSeconds) * 100;
-
-    const getHHMMSS = (seconds: number) => {
-      const hour = Math.floor(seconds / 3600);
-      const minute = Math.floor(seconds / 60) % 60;
-      const second = Math.floor(seconds % 60);
-      return [hour, minute, second] as [number, number, number];
-    };
-
-    const [pHour, pMinute, pSecond] = getHHMMSS(progressSeconds);
-    const progress = pHour > 0
-      ? `${pHour.toString().padStart(2, "0")}:${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`
-      : `${pMinute.toString().padStart(2, "0")}:${pSecond.toString().padStart(2, "0")}`;
-
-    const [dHour, dMinute, dSecond] = getHHMMSS(durationSeconds);
-    const duration = dHour > 0
-      ? `${dHour.toString().padStart(2, "0")}:${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`
-      : `${dMinute.toString().padStart(2, "0")}:${dSecond.toString().padStart(2, "0")}`;
-
-    return {
-      programName: currentEpisode.program.name,
-      episodeTitle: currentEpisode.title,
-      progressSeconds,
-      durationSeconds,
-      percent,
-      progress,
-      duration,
-    } as const;
-  }, [playStateStore.currentEpisode, progressStore.episodeProgressMap]);
-
-  // Heartbeat to detect unexpected playback stops
-  useEffect(() => {
-    if (!audioRef.current || !playStateStore.currentEpisode || playStateStore.playState !== "playing") return;
-
-    let lastCurrentTime = 0;
-    let stuckCount = 0;
-
-    const heartbeatInterval = setInterval(() => {
-      if (audioRef.current && playStateStore.playState === "playing" && !audioRef.current.paused) {
-        const currentTime = audioRef.current.currentTime;
-
-        // Check if audio is stuck (not progressing)
-        if (Math.abs(currentTime - lastCurrentTime) < 0.1) {
-          stuckCount++;
-          console.warn(`Audio appears stuck, count: ${stuckCount}`);
-
-          // If stuck for more than 3 checks (15 seconds), attempt recovery
-          if (stuckCount >= 3) {
-            console.log("Audio stuck detected, attempting recovery");
-            if (playStateStore.currentEpisode) {
-              // Use direct URL for recovery too
-              const directUrl = `${playStateStore.currentEpisode.url}?_t=${Date.now()}`;
-              audioRef.current.src = directUrl;
-              audioRef.current.load();
-
-              const handleRecoveryCanPlay = () => {
-                if (audioRef.current) {
-                  audioRef.current.currentTime = currentTime;
-                  audioRef.current.play().catch(console.error);
-                  audioRef.current.removeEventListener("canplay", handleRecoveryCanPlay);
-                }
-              };
-
-              audioRef.current.addEventListener("canplay", handleRecoveryCanPlay);
-            }
-            stuckCount = 0;
-          }
-        } else {
-          stuckCount = 0; // Reset if audio is progressing
+    // Action handlers
+    navigator.mediaSession.setActionHandler("play", () => play());
+    navigator.mediaSession.setActionHandler("pause", () => pause());
+    if (currentMedia.type === "episode") {
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          const skipTime = details.seekOffset || 10;
+          audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
         }
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        const audioEl = audioRef.current;
+        if (audioEl) {
+          const skipTime = details.seekOffset || 10;
+          audioEl.currentTime = Math.min(audioEl.currentTime + skipTime, audioEl.duration);
+        }
+      });
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        const audioEl = audioRef.current;
+        if (audioEl && details.seekTime !== undefined) {
+          audioEl.currentTime = details.seekTime;
+        }
+      });
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        playPreviousEpisode();
+      });
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        playNextEpisode();
+      });
+    }
 
-        lastCurrentTime = currentTime;
+  }, [currentMedia, pause, play, playNextEpisode, playPreviousEpisode]);
+
+  // Play next episode when currentEpisode ends
+  useEffect(() => {
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+
+    const onEnded = () => {
+      if (currentMedia?.type === "episode") {
+        playNextEpisode();
       }
-    }, 5000); // Check every 5 seconds
-
-    return () => {
-      clearInterval(heartbeatInterval);
     };
-  }, [playStateStore.currentEpisode, playStateStore.playState]);
+
+    audioEl.addEventListener("ended", onEnded);
+    return () => {
+      audioEl.removeEventListener("ended", onEnded);
+    };
+  }, [currentMedia, playNextEpisode]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
       <div className="w-full">
         {/* Progress bar */}
-        <ProgressBar className="block top-0" progress={episodeInfo?.percent || 0} />
+        <ProgressBar
+          className="block top-0"
+          progress={currentMedia?.type === "channel" ? 100 : displayedPercent}
+          innerClassName={currentMedia?.type === "channel" ? "animate-pulse" : ""}
+        />
 
         {/* Invisible thumb to progress */}
-        <input className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0" type="range" min="0" max="100"
-          value={episodeInfo?.percent || 0}
-          onChange={onProgressDrag} />
+        <input
+          className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0"
+          type="range" min="0" max="100"
+          value={displayedPercent}
+          onChange={onProgressDrag}
+          onDragStart={onProgressDragStart}
+          onTouchStart={onProgressDragStart}
+          onMouseDown={onProgressDragStart}
+          onDragEnd={onProgressDragEnd}
+          onMouseUp={onProgressDragEnd}
+          onTouchEnd={onProgressDragEnd}
+        />
       </div>
 
       {/* Audio element */}
-      <audio ref={audioRef} preload="metadata"></audio>
+      <audio ref={audioRef}></audio>
 
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
-          <p className="font-light text-sm">{episodeInfo?.programName}</p>
-          <p className="font-bold max-h-[3rem] overflow-hidden text-ellipsis whitespace-break-spaces">
-            {episodeInfo?.episodeTitle || "Spelar inget"}
+          <p className="font-light text-sm">{currentMedia?.subtitle}</p>
+          <p className="font-bold max-h-12 overflow-hidden text-ellipsis whitespace-break-spaces">
+            {currentMedia?.title || "Spelar inget"}
           </p>
           {error && (
             <p className="text-xs text-red-400 mt-1">{error}</p>
           )}
-          {isLoading && !error && (
+          {isLoading && debouncedIsLoading && !error && (
             <p className="text-xs text-zinc-400 mt-1">Laddar...</p>
           )}
         </div>
 
         <p className="text-sm text-zinc-400 whitespace-nowrap">
-          {episodeInfo ? `${episodeInfo.progress}\u00a0/\u00a0${episodeInfo.duration}` : ""}
+          {currentMedia?.type === "channel"
+            ? "Live •"
+            : !elapsed || !duration
+              ? "--:-- / --:--"
+              : `${elapsed.toString()} / ${duration.toString()}`
+          }
         </p>
 
-        <PlayButton iconSize={30} role="controller" />
+        <PlayButton iconSize={30} />
       </div>
     </div>
   );

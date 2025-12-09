@@ -3,41 +3,27 @@
 import Image from "next/image";
 import PlayButton from "./play-button";
 import SRAttribute from "./sr-attribute";
-import { CSSProperties } from "react";
-import type { Channel } from "@/types/api/channel";
-import type { Content } from "@/types/api/content";
 import LikeButton from "./like-button";
+import { Channel } from "@/types/types";
 
-export default function ChannelDOM({ channelData, className = "", style }: { channelData: Channel, className?: string, style?: CSSProperties }) {
-
-  // It's hacky but... Let's squeeze the channelData into a Content structure
-  // so we can use the PlayButton component without modifications
-  const contentData: Content = {
-    id: channelData.id,
-    title: channelData.name,
-    description: channelData.tagline,
-    url: channelData.liveaudio.url,
-    publishDate: new Date(),
-    program: {
-      id: channelData.id,
-      name: channelData.name
-    },
-    duration: 0,
-    image: {
-      square: channelData.image,
-      wide: channelData.imagetemplate
-    },
-    meta: {
-      saveProgress: false,
-      disableDragProgress: true
-    }
-  }
-
+export default function ChannelDOM({ channelData }: { channelData: Channel }) {
   return (
-    <li className={`w-full flex flex-row h-28 items-center justify-start ${className}`} style={style} id={channelData.id.toString()}>
+    <li className="w-full flex flex-row h-28 items-center justify-start" id={channelData.id.toString()}>
 
       {/* Thumbnail */}
-      <Image className="bg-zinc-600 rounded-md h-24 w-24 max-h-24 max-w-24 min-h-24 min-w-24 me-4" width={96} height={96} src={""} overrideSrc={channelData.image} alt="Kanalbild" fetchPriority="low"></Image>
+      <Image
+        className="bg-zinc-600 rounded-md h-24 w-24 max-h-24 max-w-24 min-h-24 min-w-24 me-4"
+        width={96} height={96}
+        src={""}
+        overrideSrc={(() => {
+          const url = new URL(channelData.image.square);
+          url.searchParams.set("width", "96");
+          url.searchParams.set("height", "96");
+          return url.toString();
+        })()}
+        alt={`Kanalbild för ${channelData.name}`}
+        fetchPriority="low"
+      />
 
       <div className="h-full flex flex-col justify-start items-start gap-y-1 flex-1">
         <div className="flex flex-row justify-between items-center w-full">
@@ -48,7 +34,7 @@ export default function ChannelDOM({ channelData, className = "", style }: { cha
 
           <div className="flex flex-row gap-x-4 items-center">
             <LikeButton channelID={channelData.id} />
-            <PlayButton episodeData={contentData} iconSize={28} />
+            <PlayButton channelID={channelData.id} iconSize={28} />
           </div>
         </div>
 

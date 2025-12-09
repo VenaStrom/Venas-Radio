@@ -1,51 +1,25 @@
 "use client";
 
 import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
-import { useContentStore } from "@/store/content-store";
-import { useSettingsStore } from "@/store/settings-store";
-import { Channel } from "@/types/api/channel";
+import { usePlayContext } from "@/components/play-context/play-context-use";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+import { useMemo } from "react";
 
 export default function HomePage() {
-  const { channels, setChannels, lastFetchedChannels } = useContentStore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [renderCount, setRenderCount] = useState(6);
-  const userSettings = useSettingsStore();
+  const { channelDB, isFetchingChannels, followedChannels } = usePlayContext();
 
-  useEffect(() => {
-    const fetchChannels = async () => {
-      const now = Date.now();
-      if (channels.length > 0 && lastFetchedChannels && (now - lastFetchedChannels < CACHE_DURATION)) {
-        setIsLoading(false);
-        return;
-      }
+  const channels = useMemo(() => {
+    return Object.values(channelDB)
+      .sort((a, b) => {
+        const aFollowed = followedChannels.includes(a.id) ? 0 : 1;
+        const bFollowed = followedChannels.includes(b.id) ? 0 : 1;
 
-      const response = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false");
-      const data = await response.json();
-
-      const allChannels: Channel[] = data.channels;
-
-      // Save
-      setChannels(allChannels);
-      setIsLoading(false);
-    };
-
-    fetchChannels();
-  }, [channels, setChannels, lastFetchedChannels]);
-
-  useEffect(() => {
-    // Janky staggard loading for performance reasons
-    if (!isLoading && renderCount < channels.length - 6) {
-      const interval = setInterval(() => {
-        setRenderCount(prevCount => prevCount + 1);
-      }, 100);
-
-      return () => clearInterval(interval);
-    }
-  }, [isLoading, renderCount, channels]);
+        if (aFollowed !== bFollowed) {
+          return aFollowed - bFollowed; // Followed channels first
+        }
+        return a.name.localeCompare(b.name); // Then sort by name
+      });
+  }, [channelDB, followedChannels]);
 
   return (
     <main>
@@ -54,7 +28,7 @@ export default function HomePage() {
         <h1 className="text-2xl">Välkommen till Venas Radio</h1>
 
         <p>
-          Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokaneler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</Link>.
+          Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokanaler och -program från Sveriges Radio, via deras <Link href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</Link>.
         </p>
       </section>
 
@@ -63,25 +37,12 @@ export default function HomePage() {
         <h2 className="mb-5">Lyssna live</h2>
 
         <ul className="w-full flex flex-col gap-y-4 last:pb-10">
-          {isLoading ? (
+          {isFetchingChannels ? (
             new Array(10).fill(0).map((_, i) => (
               <ChannelSkeleton key={i} />
             ))
           ) : (
-            channels.sort((a, b) => {
-              // If user is missing likedChannels, make them
-              if (!userSettings.settings?.likedChannels) {
-                userSettings.setSetting("likedChannels", []);
-              }
-
-              const aFav = userSettings.settings?.likedChannels?.includes(a.id) || false;
-              const bFav = userSettings.settings?.likedChannels?.includes(b.id) || false;
-
-              if (aFav && !bFav) return -1;
-              if (!aFav && bFav) return 1;
-
-              return 0;
-            }).map((channel) => (
+            channels.map((channel) => (
               <ChannelDOM channelData={channel} key={channel.id} />
             ))
           )}
