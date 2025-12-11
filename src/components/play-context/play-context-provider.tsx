@@ -98,6 +98,24 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     ].map(fn => fn()));
   }, []);
 
+  // On page load or refresh, decide whether to refetch episodes
+  const [refreshEpisodes, dispatchRefresh] = useState<number>(0);
+  useEffect(() => {
+    const now = new Date();
+    const lastFetchStr = sessionStorage.getItem("lastEpisodeFetch");
+    if (lastFetchStr) {
+      const lastFetch = new Date(lastFetchStr);
+      const timeDiff = now.getTime() - lastFetch.getTime();
+      const thresholdMS = 1000 * 60 * 10; // 10 minutes
+
+      // Last fetch was recent, skip refetch
+      if (timeDiff < thresholdMS) return;
+    }
+    // Update last fetch time
+    sessionStorage.setItem("lastEpisodeFetch", now.toISOString());
+    (() => dispatchRefresh(p => p++ % 2))();
+  }, []);
+
   // Fetch episodes on mount and when followedPrograms changes
   useEffect(() => {
     if (followedPrograms.length === 0) return;
@@ -121,7 +139,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       .finally(() => {
         setIsFetchingEpisodes(false);
       });
-  }, [followedPrograms]);
+  }, [followedPrograms, refreshEpisodes]);
 
   // Fetch channels on mount
   useEffect(() => {

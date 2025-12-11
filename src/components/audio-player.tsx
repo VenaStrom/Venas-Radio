@@ -83,6 +83,7 @@ export default function AudioControls({ className }: { className?: string }) {
     if (currentStreamUrl) {
       audioEl.src = currentStreamUrl;
       audioEl.preload = "auto";
+      audioEl.autoplay = true;
     }
     else {
       audioEl.removeAttribute("src");
