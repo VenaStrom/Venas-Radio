@@ -119,8 +119,12 @@ export default function AudioControls({ className }: { className?: string }) {
     if (lastResumedEpisodeIdRef.current === episodeId) return; // Already applied
 
     const saved = progressDB[episodeId];
-    if (saved && saved.toNumber().toFixed(0) === currentEpisode.duration.toNumber().toFixed(0)) {
+    const durationRounded = currentEpisode.duration.toNumber().toFixed(0);
+    const progressRounded = saved ? Math.min(currentEpisode.duration.toNumber(), saved.toNumber()).toFixed(0) : null;
+    if (saved && progressRounded === durationRounded) {
+      // Explicitly playing a finished episode, start from beginning
       audioEl.currentTime = 0;
+      setCurrentProgress(Seconds.from(0));
       return;
     }
     if (saved) audioEl.currentTime = saved.toNumber();
