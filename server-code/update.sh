@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/vr/Venas-Radio
+cd /root/Venas-Radio
 
 git fetch --all
 git checkout origin/main --force
