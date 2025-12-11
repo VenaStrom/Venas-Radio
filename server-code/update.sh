@@ -7,7 +7,7 @@ git checkout origin/main --force
 
 # Build
 npm i -g yarn
-yarn install
+yarn install --frozen-lockfile
 yarn build
 
 # Make /server-code executable
