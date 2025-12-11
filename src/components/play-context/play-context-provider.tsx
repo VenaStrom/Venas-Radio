@@ -61,7 +61,12 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     if (episode) {
       setCurrentEpisode(episode);
       setCurrentStreamUrl(episode.url);
+
       setIsPlaying(true);
+      setTimeout(() => {
+        // I don't like this but it's to jostle the audio player into playing
+        setIsPlaying(true);
+      }, 50);
     }
     else {
       console.warn(`Episode with ID ${episodeId} not found in episodeDB.`);
