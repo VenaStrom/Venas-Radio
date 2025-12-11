@@ -15,7 +15,7 @@ export default function FeedPage() {
 
   return (
     <main>
-      <ul className="flex flex-col mt-2 mb-4 gap-y-10">
+      <ul className="flex flex-col mt-2 mb-4 gap-y-8">
         {isFetching ? (
           <>
             <li className="w-full -mb-5 text-center text-zinc-400"></li>

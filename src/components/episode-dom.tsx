@@ -78,7 +78,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
 
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-zinc-400 mb-1">
           {formattedDate} {formattedTime}
           &nbsp;&nbsp;&middot;&nbsp;&nbsp;
           {remainingTime}
