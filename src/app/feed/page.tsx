@@ -51,8 +51,7 @@ export default function FeedPage() {
               );
             }
 
-            const furthestFutureRelativeDay = allowedRelativeDays.reduce((a, b) => Math.max(a, b), -Infinity);
-            if (dayDiff > furthestFutureRelativeDay) {
+            if (dayDiff > 0) {
               dateHeader += " (tidig publicering)";
             }
 
