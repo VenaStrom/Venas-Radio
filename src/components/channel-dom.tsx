@@ -17,8 +17,8 @@ export default function ChannelDOM({ channelData }: { channelData: Channel }) {
         src={""}
         overrideSrc={(() => {
           const url = new URL(channelData.image.square);
-          url.searchParams.set("width", "96");
-          url.searchParams.set("height", "96");
+          url.searchParams.set("w", "192");
+          url.searchParams.set("h", "192");
           return url.toString();
         })()}
         alt={`Kanalbild för ${channelData.name}`}
