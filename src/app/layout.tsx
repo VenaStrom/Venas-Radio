@@ -1,9 +1,10 @@
 import "./global.tw.css";
 import { Nunito_Sans } from "next/font/google";
-import { AudioLinesIcon, HomeIcon, SearchIcon, HeartIcon } from "lucide-react";
+import { HomeIcon, SearchIcon, HeartIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
+import { Title } from "./title";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "./metadata";
@@ -11,15 +12,13 @@ export { metadata } from "./metadata";
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+
   return (
     <html lang="sv" className={nunitoSansFont.className}>
       <body className="bg-zinc-900 text-zinc-100">
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
-          <div className="flex flex-row items-center justify-center gap-1">
-            <AudioLinesIcon />
-            <p className="font-bold text-lg">VR</p>
-          </div>
+          <Title />
         </header>
 
         <PlayProvider>
