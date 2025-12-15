@@ -5,13 +5,22 @@ import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode-dom";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 
 export default function FeedPage() {
-  const { episodeDB, isFetchingEpisodes: isFetching } = usePlayContext();
+  const { episodeDB, isFetchingEpisodes: isFetching, followedPrograms } = usePlayContext();
 
   const episodes = useMemo(() => {
     const allEpisodes = Object.values(episodeDB);
     allEpisodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
     return allEpisodes;
   }, [episodeDB]);
+
+  if (followedPrograms.length === 0) {
+    return <main>
+      <div className="flex flex-col items-center justify-center mt-20 text-zinc-400">
+        <p className="mb-4">Du följer inga program.</p>
+        <p className="text-sm text-center">Lägg till program genom att söka på dem och klicka på hjärtat.</p>
+      </div>
+    </main>
+  }
 
   return (
     <main>

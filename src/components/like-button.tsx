@@ -1,7 +1,7 @@
 "use client";
 
 import { HeartIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePlayContext } from "./play-context/play-context-use";
 
 export default function LikeButton({
@@ -20,25 +20,29 @@ export default function LikeButton({
   }, [programID, channelID, followedPrograms, followedChannels]);
 
   const [highlighted, setHighlighted] = useState(liked); // Local UI state for immediate feedback
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setHighlighted(liked), [liked]); // Keep local state in sync with global state
 
   // Save state
   const toggleLike = () => {
-    const newState = !liked;
-    setHighlighted(newState);
+    const isNowLiked = !liked;
+    setHighlighted(isNowLiked);
 
     if (programID) {
-      setFollowedPrograms(prev =>
-        [...newState
-          ? new Set([...prev, programID])
-          : new Set([...prev].filter(id => id !== programID))
-        ]);
+      setFollowedPrograms(prev => {
+        const newSet = new Set<number>(prev);
+        if (isNowLiked) newSet.add(programID);
+        else newSet.delete(programID);
+        return Array.from(newSet);
+      });
     }
     else if (channelID) {
-      setFollowedChannels(prev =>
-        [...newState
-          ? new Set([...prev, channelID])
-          : new Set([...prev].filter(id => id !== channelID))
-        ]);
+      setFollowedChannels(prev => {
+        const newSet = new Set<number>(prev);
+        if (isNowLiked) newSet.add(channelID);
+        else newSet.delete(channelID);
+        return Array.from(newSet);
+      });
     }
   };
 
