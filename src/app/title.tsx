@@ -17,7 +17,15 @@ export function Title() {
         if (clickCount + 1 >= 5) {
           alert("Dumped local storage to clipboard");
           setClickCount(0);
-          navigator.clipboard.writeText(JSON.stringify(localStorage));
+          navigator.clipboard.writeText(JSON.stringify({
+            followedPrograms: localStorage.getItem("followedPrograms"),
+            followedChannels: localStorage.getItem("followedChannels"),
+            progressDB: localStorage.getItem("progressDB"),
+            programDB: localStorage.getItem("programDB"),
+            channelDB: localStorage.getItem("channelDB"),
+            episodeDB: localStorage.getItem("episodeDB"),
+            "legacy-zustand-migrated": localStorage.getItem("legacy-zustand-migrated"),
+          }));
         }
       }}
     >
