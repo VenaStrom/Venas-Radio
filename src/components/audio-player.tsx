@@ -212,16 +212,11 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
 
     if (isPlaying) {
-      audioEl.play()
-        .then(() => {
-          setIsLoading(false);
-          setRetryCount(0); // Reset retry count on success
-        })
-        .catch((e) => {
-          if (e instanceof DOMException && e.name === "AbortError") return; // Ignore abort errors
-          console.error("Error playing audio:", e)
-          setError("Kunde inte spela upp ljudströmmen.");
-        });
+      audioEl.play().catch((e) => {
+        if (e instanceof DOMException && e.name === "AbortError") return; // Ignore abort errors
+        console.error("Error playing audio:", e);
+        setError("Kunde inte spela upp ljudströmmen.");
+      });
     }
     else {
       audioEl.pause();
@@ -371,9 +366,8 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const onEnded = () => {
       if (currentMedia?.type === "episode") {
-        audioEl.pause();
         playNextEpisode();
-        audioEl.play();
+        // audioEl.addEventListener("canplay", () => { audioEl.play(); }, { once: true });
       }
     };
 
