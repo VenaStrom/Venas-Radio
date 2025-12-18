@@ -59,6 +59,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const playEpisode = useCallback((episodeId: Episode["id"]) => {
     const episode = episodeDB[episodeId];
     if (episode) {
+      setCurrentChannel(null);
       setCurrentEpisode(episode);
       setCurrentStreamUrl(episode.url);
 
@@ -76,6 +77,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const playChannel = useCallback((channelId: Channel["id"]) => {
     const channel = channelDB[channelId];
     if (channel) {
+      setCurrentEpisode(null);
       setCurrentChannel(channel);
       setCurrentStreamUrl(channel.url);
       setIsPlaying(true);
