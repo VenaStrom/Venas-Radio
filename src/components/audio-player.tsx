@@ -3,7 +3,7 @@
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AudioPlayerMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import { AudioPlayerMedia, Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "./play-context/play-context-use";
 import { useDebounce } from "use-debounce";
 
@@ -16,6 +16,7 @@ export default function AudioControls({ className }: { className?: string }) {
     currentEpisode,
     currentChannel,
     progressDB,
+    episodeDB,
     currentProgress,
     setCurrentProgress,
     playNextEpisode,
@@ -68,14 +69,64 @@ export default function AudioControls({ className }: { className?: string }) {
   const percent: number | null = useMemo(() => progress ? progress.elapsedPercentage : null, [progress]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Create audio element on mount
+
+  // pool of preloader audio elements for next N tracks
+  const PRELOAD_COUNT = 5;
+  const preloadPoolRef = useRef<HTMLAudioElement[]>([]);
+
+  // Create audio elements on mount
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = document.createElement("audio");
     }
+
+    // Initialize preload pool
+    if (preloadPoolRef.current.length === 0) {
+      for (let i = 0; i < PRELOAD_COUNT; i++) {
+        const a = document.createElement("audio");
+        a.preload = "auto";
+        preloadPoolRef.current.push(a);
+      }
+    }
   }, []);
 
-  // Audio element setup
+  // Compute sorted episodes from episodeDB to know which to preload
+  const sortedEpisodes = useMemo(() => {
+    const vals = Object.values(episodeDB || {});
+    return vals.sort((a: Episode, b: Episode) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+  }, [episodeDB]);
+
+  // Helper: preload next N episodes given currentEpisode
+  useEffect(() => {
+    if (!currentEpisode || !sortedEpisodes || sortedEpisodes.length === 0) return;
+
+    const currentIndex = sortedEpisodes.findIndex((ep: Episode) => ep.id === currentEpisode.id);
+    if (currentIndex === -1) return;
+
+    const audioPreloadEls = preloadPoolRef.current;
+    let poolIdx = 0;
+    for (let i = currentIndex + 1; i <= Math.min(sortedEpisodes.length - 1, currentIndex + PRELOAD_COUNT); i++) {
+      const ep = sortedEpisodes[i];
+      if (!ep || !ep.url) continue;
+      const preloadEl = audioPreloadEls[poolIdx++];
+      // Only set src if different to avoid needless reloads
+      if (preloadEl && preloadEl.src !== ep.url) {
+        preloadEl.src = ep.url;
+        preloadEl.preload = "auto";
+        try { preloadEl.load(); } catch { /* Silent */ }
+      }
+    }
+    // Clear remaining pool slots (if any)
+    for (; poolIdx < audioPreloadEls.length; poolIdx++) {
+      const el = audioPreloadEls[poolIdx];
+      if (el && el.src) {
+        el.removeAttribute("src");
+        try { el.load(); } catch { /* Silent */ }
+      }
+    }
+  }, [currentEpisode, sortedEpisodes]);
+
+  // Audio element setup (main playback element)
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
@@ -226,7 +277,7 @@ export default function AudioControls({ className }: { className?: string }) {
   // Audio fetching
   useEffect(() => {
     // When nothing is selected or no stream URL, clear state and exit
-    if (!currentMedia || !currentStreamUrl) {
+    if (!currentStreamUrl) {
       setIsLoading(false);
       setError(null);
       setRetryCount(0);
@@ -247,6 +298,11 @@ export default function AudioControls({ className }: { className?: string }) {
       if (isCancelled) return;
       setIsLoading(false);
       setRetryCount(0);
+      if (isPlaying) {
+        audioEl.play().catch(() => {
+          // Autoplay may be blocked by the browser. Ignore.
+        });
+      }
     };
 
     const handleError = () => {
@@ -254,7 +310,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
       if (retryCount < maxRetries) {
         setRetryCount(prev => prev + 1);
-        audioEl.load();
+        try { audioEl.load(); } catch { /* Silent */ }
       }
       else {
         setIsLoading(false);
@@ -272,7 +328,7 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.removeEventListener("canplay", handleCanPlay);
       audioEl.removeEventListener("error", handleError);
     };
-  }, [currentMedia, currentStreamUrl, retryCount, maxRetries]);
+  }, [currentStreamUrl, retryCount, maxRetries, isPlaying]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -367,7 +423,6 @@ export default function AudioControls({ className }: { className?: string }) {
     const onEnded = () => {
       if (currentMedia?.type === "episode") {
         playNextEpisode();
-        // audioEl.addEventListener("canplay", () => { audioEl.play(); }, { once: true });
       }
     };
 
