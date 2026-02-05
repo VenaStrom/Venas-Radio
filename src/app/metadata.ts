@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     title: "VR Radiospelare",
     siteName: "VR Radiospelare",
     locale: "sv_SE",
-    url: "https://vr-radio.tailad6f63.ts.net/",
+    url: "https://vr.venastrom.se/",
     images: [
       {
         url: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/main/public/icons/audio-lines.svg",

@@ -1,6 +1,6 @@
 # Vena's Radio
 
-Visit the site [vr-radio.tailad6f63.ts.net](https://vr-radio.tailad6f63.ts.net/)
+Visit the site [vr.venastrom.se](https://vr.venastrom.se/)
 
 <div style="display:inline">
   <img src="screenshots/home-page.png" alt="Home page screenshot" width="200"/>
@@ -19,7 +19,6 @@ I was growing tired of the SR Play app on android since it had a bunch of bugs t
 - Web API
 
 ### Dev Ops and Hosting
-- Tailscale
 - Proxmox
-  - Debian 12 VM
+  - Debian 13 VM
 - GitHub

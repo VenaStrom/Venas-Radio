@@ -33,9 +33,11 @@
     "seekforward",
     "seekto",
     "siteurl",
+    "tailad",
     "todate",
     "Unlistened",
-    "unproxy"
+    "unproxy",
+    "venastrom"
   ],
   "cSpell.language": "en,sv-SE"
 }

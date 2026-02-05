@@ -444,7 +444,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
         {/* Invisible thumb to progress */}
         <input
-          className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0"
+          className="block top-0 w-full h-0 z-10 scale-y-150 opacity-0 cursor-pointer"
           type="range" min="0" max="100"
           value={displayedPercent}
           onChange={onProgressDrag}
