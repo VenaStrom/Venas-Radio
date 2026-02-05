@@ -48,13 +48,26 @@ export default function MigrationHandler() {
       const id = originInfo.migrateId;
       const load = async () => {
         try {
-          const response = await fetch(`/api/migration/load?id=${encodeURIComponent(id)}`);
-          if (!response.ok) throw new Error("Migration data not found");
-          const data = (await response.json()) as { payload: Record<string, string> };
-          for (const [key, value] of Object.entries(data.payload)) {
-            localStorage.setItem(key, value);
+          if (id === "window-name") {
+            if (window.name) {
+              const parsed = JSON.parse(window.name) as { payload?: Record<string, string> };
+              if (parsed?.payload) {
+                for (const [key, value] of Object.entries(parsed.payload)) {
+                  localStorage.setItem(key, value);
+                }
+                localStorage.setItem(MIGRATION_COMPLETED_KEY, "true");
+              }
+            }
+            window.name = "";
+          } else {
+            const response = await fetch(`/api/migration/load?id=${encodeURIComponent(id)}`);
+            if (!response.ok) throw new Error("Migration data not found");
+            const data = (await response.json()) as { payload: Record<string, string> };
+            for (const [key, value] of Object.entries(data.payload)) {
+              localStorage.setItem(key, value);
+            }
+            localStorage.setItem(MIGRATION_COMPLETED_KEY, "true");
           }
-          localStorage.setItem(MIGRATION_COMPLETED_KEY, "true");
         } catch (err) {
           console.error(err);
         } finally {
@@ -84,34 +97,44 @@ export default function MigrationHandler() {
         `payloadBytes=${payloadBytes}`,
       ].join("\n");
 
-      const response = await fetch(`https://${NEW_DOMAIN}/api/migration/store`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body,
-      });
-      const responseText = await response.text();
-      if (!response.ok) {
-        diagnostics = `${diagnosticsHeader}\nresponseStatus=${response.status} ${response.statusText}\nresponseBody=${responseText.slice(0, 1000)}`;
-        setDebugInfo(diagnostics);
-        throw new Error("Failed to store migration data");
-      }
-      let data: { id: string } | null = null;
       try {
-        data = JSON.parse(responseText) as { id: string };
-      } catch {
-        diagnostics = `${diagnosticsHeader}\nresponseParseError=true\nresponseBody=${responseText.slice(0, 1000)}`;
+        const response = await fetch(`https://${NEW_DOMAIN}/api/migration/store`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body,
+        });
+        const responseText = await response.text();
+        if (!response.ok) {
+          diagnostics = `${diagnosticsHeader}\nresponseStatus=${response.status} ${response.statusText}\nresponseBody=${responseText.slice(0, 1000)}`;
+          setDebugInfo(diagnostics);
+          throw new Error("Failed to store migration data");
+        }
+        let data: { id: string } | null = null;
+        try {
+          data = JSON.parse(responseText) as { id: string };
+        } catch {
+          diagnostics = `${diagnosticsHeader}\nresponseParseError=true\nresponseBody=${responseText.slice(0, 1000)}`;
+          setDebugInfo(diagnostics);
+          throw new Error("Invalid response from migration endpoint");
+        }
+        if (!data?.id) {
+          diagnostics = `${diagnosticsHeader}\nresponseMissingId=true\nresponseBody=${responseText.slice(0, 1000)}`;
+          setDebugInfo(diagnostics);
+          throw new Error("Missing migration id from endpoint");
+        }
+        localStorage.setItem(MIGRATION_COMPLETED_KEY, "true");
+        window.location.href = `https://${NEW_DOMAIN}/?migrate=${encodeURIComponent(data.id)}`;
+        return;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        diagnostics = diagnostics ?? `${diagnosticsHeader}\nerror=${message}\nusingWindowNameFallback=true`;
         setDebugInfo(diagnostics);
-        throw new Error("Invalid response from migration endpoint");
+        window.name = JSON.stringify({ payload });
+        window.location.href = `https://${NEW_DOMAIN}/?migrate=window-name`;
+        return;
       }
-      if (!data?.id) {
-        diagnostics = `${diagnosticsHeader}\nresponseMissingId=true\nresponseBody=${responseText.slice(0, 1000)}`;
-        setDebugInfo(diagnostics);
-        throw new Error("Missing migration id from endpoint");
-      }
-      localStorage.setItem(MIGRATION_COMPLETED_KEY, "true");
-      window.location.href = `https://${NEW_DOMAIN}/?migrate=${encodeURIComponent(data.id)}`;
     }
     catch (err) {
       if (!diagnostics) {
