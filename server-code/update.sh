@@ -6,7 +6,6 @@ git fetch --all
 git checkout origin/main --force
 
 # Build
-npm i -g yarn
 yarn install --frozen-lockfile
 yarn build
 
@@ -14,4 +13,4 @@ yarn build
 chmod +x server-code/
 
 # Reboot
-systemctl reboot
+systemctl restart vr-radio-start
