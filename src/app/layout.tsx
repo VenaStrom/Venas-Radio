@@ -5,6 +5,7 @@ import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
 import { Title } from "./title";
+import MigrationHandler from "@/components/migration/migration-handler";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "./metadata";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
 
         <PlayProvider>
+          <MigrationHandler />
           {children}
 
           <footer className="bg-zinc-950 flex flex-col self-end items-center">
