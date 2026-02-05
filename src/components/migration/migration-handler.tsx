@@ -22,6 +22,7 @@ export default function MigrationHandler() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const originInfo = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -69,21 +70,55 @@ export default function MigrationHandler() {
   const onMigrate = async () => {
     setIsMigrating(true);
     setError(null);
+    setDebugInfo(null);
+    let diagnostics: string | null = null;
     try {
       const payload = collectLocalStorage();
+      const body = JSON.stringify({ payload });
+      const payloadBytes = new Blob([body]).size;
+      const diagnosticsHeader = [
+        `timestamp=${new Date().toISOString()}`,
+        `userAgent=${navigator.userAgent}`,
+        `hostname=${window.location.hostname}`,
+        `keys=${Object.keys(payload).length}`,
+        `payloadBytes=${payloadBytes}`,
+      ].join("\n");
+
       const response = await fetch(`https://${NEW_DOMAIN}/api/migration/store`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ payload }),
+        body,
       });
-      if (!response.ok) throw new Error("Failed to store migration data");
-      const data = (await response.json()) as { id: string };
+      const responseText = await response.text();
+      if (!response.ok) {
+        diagnostics = `${diagnosticsHeader}\nresponseStatus=${response.status} ${response.statusText}\nresponseBody=${responseText.slice(0, 1000)}`;
+        setDebugInfo(diagnostics);
+        throw new Error("Failed to store migration data");
+      }
+      let data: { id: string } | null = null;
+      try {
+        data = JSON.parse(responseText) as { id: string };
+      } catch {
+        diagnostics = `${diagnosticsHeader}\nresponseParseError=true\nresponseBody=${responseText.slice(0, 1000)}`;
+        setDebugInfo(diagnostics);
+        throw new Error("Invalid response from migration endpoint");
+      }
+      if (!data?.id) {
+        diagnostics = `${diagnosticsHeader}\nresponseMissingId=true\nresponseBody=${responseText.slice(0, 1000)}`;
+        setDebugInfo(diagnostics);
+        throw new Error("Missing migration id from endpoint");
+      }
       localStorage.setItem(MIGRATION_COMPLETED_KEY, "true");
       window.location.href = `https://${NEW_DOMAIN}/?migrate=${encodeURIComponent(data.id)}`;
     }
-    catch {
+    catch (err) {
+      if (!diagnostics) {
+        const message = err instanceof Error ? err.message : String(err);
+        diagnostics = [`timestamp=${new Date().toISOString()}`, `error=${message}`].join("\n");
+        setDebugInfo(diagnostics);
+      }
       setError("Kunde inte flytta dina inställningar. Försök igen.");
     }
     finally {
@@ -107,6 +142,25 @@ export default function MigrationHandler() {
           inställningar (favoriter och lyssningsprogress) till den nya sidan?
         </p>
         {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        {debugInfo && (
+          <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+            <details className="text-xs text-zinc-300">
+              <summary className="cursor-pointer text-zinc-200">Teknisk info</summary>
+              <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-zinc-300">
+                {debugInfo}
+              </pre>
+            </details>
+            <div className="mt-2 flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void navigator.clipboard?.writeText?.(debugInfo)}
+              >
+                Kopiera info
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onDismiss} disabled={isMigrating}>
             Inte nu
