@@ -1,5 +1,6 @@
 import "./global.tw.css";
-import { Nunito_Sans } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { Nunito_Sans, Geist, Geist_Mono } from "next/font/google";
 import { HomeIcon, SearchIcon, HeartIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
@@ -11,15 +12,17 @@ import MigrationHandler from "@/components/migration/migration-handler";
 export { metadata } from "./metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-
-  return (
-    <html lang="sv" className={nunitoSansFont.className}>
+  return (<ClerkProvider>
+    <html lang="sv" className={`${nunitoSansFont.className} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="bg-zinc-900 text-zinc-100">
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
           <Title />
+          
         </header>
 
         <PlayProvider>
@@ -48,5 +51,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </PlayProvider>
       </body>
     </html>
-  );
+  </ClerkProvider>);
 }

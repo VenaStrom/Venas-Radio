@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { unproxy } from "./lib/proxy-rewrite";
 import { canonURL } from "./lib/canon-url";
 import sharp from "sharp";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default async function proxy(req: NextRequest): Promise<Response> {
+export default clerkMiddleware(async (auth, req): Promise<Response> => {
   const response = NextResponse.next();
 
   const srResponse = await handleSRRequest(req);
@@ -12,7 +13,16 @@ export default async function proxy(req: NextRequest): Promise<Response> {
   }
 
   return response;
-}
+});
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+};
 
 async function handleSRRequest(req: NextRequest): Promise<Response | void> {
   "use cache";
