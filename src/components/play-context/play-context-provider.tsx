@@ -252,6 +252,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   // Restore current episode/channel on mount
   const hasRestoredCurrentRef = useRef(false);
+  const hasInitializedPlaybackRef = useRef(false);
   useEffect(() => {
     if (hasRestoredCurrentRef.current) return;
 
@@ -287,6 +288,12 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     hasRestoredCurrentRef.current = true;
   }, [channelDB, episodeDB]);
 
+  useEffect(() => {
+    if (currentEpisode || currentChannel) {
+      hasInitializedPlaybackRef.current = true;
+    }
+  }, [currentEpisode, currentChannel]);
+
   // Save currently playing episode to localStorage on change
   useEffect(() => {
     if (!hasRestoredCurrentRef.current) return;
@@ -295,6 +302,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       localStorage.setItem("currentEpisodeID", currentEpisode.id.toString());
     }
     else {
+      if (!hasInitializedPlaybackRef.current) return;
       localStorage.removeItem("currentEpisodeID");
     }
   }, [currentEpisode]);
@@ -307,6 +315,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       localStorage.setItem("currentChannelID", currentChannel.id.toString());
     }
     else {
+      if (!hasInitializedPlaybackRef.current) return;
       localStorage.removeItem("currentChannelID");
     }
   }, [currentChannel]);
