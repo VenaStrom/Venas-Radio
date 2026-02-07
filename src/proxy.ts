@@ -4,7 +4,7 @@ import { canonURL } from "./lib/canon-url";
 import sharp from "sharp";
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware(async (auth, req): Promise<Response> => {
+export default clerkMiddleware(async (_auth, req): Promise<Response> => {
   const response = NextResponse.next();
 
   const srResponse = await handleSRRequest(req);
