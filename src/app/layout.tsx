@@ -1,12 +1,12 @@
 import "./global.tw.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nunito_Sans, Geist, Geist_Mono } from "next/font/google";
-import { HomeIcon, SearchIcon, HeartIcon } from "lucide-react";
+import { HomeIcon, SearchIcon, HeartIcon, AudioLinesIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
-import { Title } from "./title";
 import MigrationHandler from "@/components/migration/migration-handler";
+import { LoginButton } from "@/components/login-button";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "./metadata";
@@ -21,8 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-zinc-900 text-zinc-100">
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
-          <Title />
-          
+          <div className="flex flex-row items-center justify-center gap-1 select-none">
+            <AudioLinesIcon />
+            <p className="font-bold text-lg">VR</p>
+          </div>
+          <LoginButton />
         </header>
 
         <PlayProvider>
