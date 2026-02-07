@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "ts.net",
     "laptop",
+    "laptop.lan",
+    "laptop.local",
     "localhost",
   ],
 };
