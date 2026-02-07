@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id                String            @id // Discord Snowflake
+  favorite_channels Channel[]         @relation("user_favorite_channels")
+  favorite_programs Program[]         @relation("user_favorite_programs")
+  episode_progress  EpisodeProgress[] @relation("user_episode_progress")
+}
+
+model EpisodeProgress {
+  user_id    String
+  user       User    @relation("user_episode_progress", fields: [user_id], references: [id])
+  episode_id String
+  episode    Episode @relation("episode_progress_episode", fields: [episode_id], references: [id])
+  progress   Float
+
+  @@id([user_id, episode_id])
+}
+
+model Episode {
+  id           String   @id
+  duration     Float
+  title        String
+  description  String
+  publish_date DateTime
+
+  image_square_url String
+  image_wide_url   String
+
+  external_audio_url String @map("external_url")
+
+  program_id String
+  program    Program           @relation("episode_program", fields: [program_id], references: [id])
+  progress   EpisodeProgress[] @relation("episode_progress_episode")
+}
+
+model Channel {
+  id                    String @id
+  name                  String
+  image_square_url      String
+  image_wide_url        String
+  color                 String
+  tagline               String
+  external_audio_url    String
+  external_site_url     String
+  external_schedule_url String
+  channel_type          String
+
+  programs        Program[] @relation("program_channel")
+  following_users User[]    @relation("user_favorite_channels")
+}
+
+model Program {
+  id                 String @id
+  name               String
+  description        String
+  broadcast_info     String
+  email              String
+  phone              String
+  responsible_editor String
+  program_slug       String // SR's tracking slug?
+
+  archived      Boolean
+  has_on_demand Boolean
+  has_pod       Boolean
+
+  channel_id      String
+  channel         Channel   @relation("program_channel", fields: [channel_id], references: [id])
+  episodes        Episode[] @relation("episode_program")
+  following_users User[]    @relation("user_favorite_programs")
+}

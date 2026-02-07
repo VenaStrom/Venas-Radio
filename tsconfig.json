@@ -28,7 +28,10 @@
       ],
       "@root/*": [
         "./*"
-      ]
+      ],
+      "@prisma/client": [
+        "./src/prisma/client/client.ts",
+      ],
     }
   },
   "include": [
