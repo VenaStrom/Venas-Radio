@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import PlayButton, { PlayButtonSkeleton } from "./play-button";
-import ProgressBar from "./progress-bar";
-import SRAttribute from "./sr-attribute";
+import PlayButton, { PlayButtonSkeleton } from "@/components/play-button";
+import ProgressBar from "@/components/progress-bar";
+import SRAttribute from "@/components/sr-attribute";
 import { Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
-import { usePlayContext } from "./play-context/play-context-use";
+import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useMemo } from "react";
 import { getLocaleTime, getRelativeTimeString } from "@/lib/time-format";
 

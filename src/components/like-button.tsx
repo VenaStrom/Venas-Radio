@@ -2,7 +2,7 @@
 
 import { HeartIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { usePlayContext } from "./play-context/play-context-use";
+import { usePlayContext } from "@/components/play-context/play-context-use";
 
 export default function LikeButton({
   programID,

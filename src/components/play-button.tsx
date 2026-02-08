@@ -2,7 +2,7 @@
 
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { useMemo } from "react";
-import { usePlayContext } from "./play-context/play-context-use";
+import { usePlayContext } from "@/components/play-context/play-context-use";
 
 export default function PlayButton({
   episodeID,

@@ -2,13 +2,13 @@
 
 import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB, Seconds } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
-import { PlayContext } from "./play-context.internal";
+import { PlayContext } from "@/components/play-context/play-context.internal";
 import { fetchEpisodes } from "@/functions/episode-getter";
 import { fetchChannels } from "@/functions/channel-getter";
 import { fetchPrograms } from "@/functions/program-getter";
-import { episodeDBDeserializer } from "../deserializer/episode-deserializer";
-import { progressDBDeserializer } from "../deserializer/progress-deserializer";
-import { migrateFromLegacyZustand } from "./legacy-zustand-migration";
+import { episodeDBDeserializer } from "@/components/deserializer/episode-deserializer";
+import { progressDBDeserializer } from "@/components/deserializer/progress-deserializer";
+import { migrateFromLegacyZustand } from "@/components/play-context/legacy-zustand-migration";
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);

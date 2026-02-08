@@ -1,16 +1,15 @@
-import "./global.tw.css";
+import "@/app/global.tw.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nunito_Sans, Geist, Geist_Mono } from "next/font/google";
-import { HomeIcon, SearchIcon, HeartIcon, AudioLinesIcon, MenuIcon } from "lucide-react";
+import { HomeIcon, SearchIcon, HeartIcon, AudioLinesIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
 import MigrationHandler from "@/components/migration/migration-handler";
-import { LoginButton } from "@/components/login-button";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sidebar } from "@/app/sidebar";
 
 // eslint-disable-next-line react-refresh/only-export-components
-export { metadata } from "./metadata";
+export { metadata } from "@/app/metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], });
@@ -27,32 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="font-bold text-lg">VR</p>
           </div>
 
-          <Sheet>
-            <SheetTrigger>
-              <MenuIcon size={48} />
-            </SheetTrigger>
-
-            <SheetContent
-              className="bg-zinc-950 border-zinc-700"
-              aria-description="Inställningar för Venas Radio, inklusive inloggning och synkronisering av favoriter."
-            >
-              <SheetDescription className="hidden" aria-hidden="false">
-                Här kan du logga in för att spara dina favoriter och inställningar, så att de synkroniseras mellan enheter.
-              </SheetDescription>
-
-              <SheetHeader>
-                <SheetTitle>Inställningar</SheetTitle>
-
-                <small>
-                  Spara dina favoriter och inställningar för att synka mellan enheter.
-                </small>
-                <LoginButton />
-
-                <SheetClose />
-              </SheetHeader>
-
-            </SheetContent>
-          </Sheet>
+          <Sidebar />
         </header>
 
         <PlayProvider>

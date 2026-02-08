@@ -1,4 +1,4 @@
-import { canonURL } from "./canon-url";
+import { canonURL } from "@/lib/canon-url";
 
 export function proxy(url: string): string {
   const urlObject = new URL("/api/sr", canonURL);

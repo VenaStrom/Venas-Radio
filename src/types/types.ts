@@ -1,4 +1,4 @@
-import { __Seconds, __Minutes, __PlaybackProgress, __Timestamp, __Hours } from "./time";
+import { __Seconds, __Minutes, __PlaybackProgress, __Timestamp, __Hours } from "@/types/time";
 
 export class Seconds extends __Seconds { };
 export class Minutes extends __Minutes { };

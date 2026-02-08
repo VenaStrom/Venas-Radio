@@ -4,7 +4,7 @@ import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioPlayerMedia, Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
-import { usePlayContext } from "./play-context/play-context-use";
+import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useDebounce } from "use-debounce";
 
 export default function AudioControls({ className }: { className?: string }) {

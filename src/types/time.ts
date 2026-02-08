@@ -1,4 +1,4 @@
-import { Minutes, Seconds, Timestamp, Hours } from "./types";
+import { Minutes, Seconds, Timestamp, Hours } from "@/types/types";
 
 export class __PlaybackProgress {
   public duration: Seconds;

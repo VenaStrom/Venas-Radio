@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import PlayButton from "./play-button";
-import SRAttribute from "./sr-attribute";
-import LikeButton from "./like-button";
 import { Channel } from "@/types/types";
+import PlayButton from "@/components/play-button";
+import LikeButton from "@/components/like-button";
+import SRAttribute from "@/components/sr-attribute";
 
 export default function ChannelDOM({ channelData }: { channelData: Channel }) {
   return (

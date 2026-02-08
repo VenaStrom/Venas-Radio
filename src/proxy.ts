@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { unproxy } from "./lib/proxy-rewrite";
-import { canonURL } from "./lib/canon-url";
+import { unproxy } from "@/lib/proxy-rewrite";
+import { canonURL } from "@/lib/canon-url";
 import sharp from "sharp";
 import { clerkMiddleware } from "@clerk/nextjs/server";
 

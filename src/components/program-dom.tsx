@@ -1,8 +1,8 @@
 "use client";
 
-import SRAttribute from "./sr-attribute";
+import SRAttribute from "@/components/sr-attribute";
 import Image from "next/image";
-import LikeButton from "./like-button";
+import LikeButton from "@/components/like-button";
 import { Program } from "@/types/types";
 
 export default function ProgramDOM({ programData, }: { programData: Program, }) {
@@ -52,7 +52,7 @@ export function ProgramSkeleton() {
       <div className="col-span-2 h-5"></div>
 
       {/* Thumbnail */}
-      <div className="bg-zinc-600 rounded-md size-[82px] animate-pulse"></div>
+      <div className="bg-zinc-600 rounded-md size-20.5 animate-pulse"></div>
 
       {/* Header Text */}
       <div className="col-start-2 grid grid-cols-[1fr_auto] gap-x-2 gap-y-1">
