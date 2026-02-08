@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { fetchPrograms } from "@/functions/external-fetchers/program-getter";
+import { fetchPrograms } from "@/functions/external-fetchers/program-fetcher";
 
 export async function getPrograms() {
   const existingPrograms = await prisma.program.findMany({
