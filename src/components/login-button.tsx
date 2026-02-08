@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Suspense } from "react";
@@ -13,7 +15,7 @@ function LoggedInSkeleton() {
   );
 }
 
-export async function LoginButton() {
+export function LoginButton() {
   return (
     <div className={`flex flex-row items-center justify-center`}>
       <Suspense fallback={<LoggedInSkeleton />}>
