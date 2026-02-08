@@ -16,7 +16,27 @@ export function SearchInput({ initialQuery = "" }: SearchInputProps) {
   const searchParams = useSearchParams();
   const currentQuery = searchParams.get("q") ?? "";
   const [value, setValue] = useState(initialQuery || currentQuery);
-  const [debouncedValue] = useDebounce(value, 200);
+  const [debouncedValue] = useDebounce(value, 500);
+
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    const updateKeyboardOffset = () => {
+      const keyboardHeight = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
+      document.documentElement.style.setProperty("--keyboard-offset", `${keyboardHeight}px`);
+    };
+
+    updateKeyboardOffset();
+    visualViewport.addEventListener("resize", updateKeyboardOffset);
+    visualViewport.addEventListener("scroll", updateKeyboardOffset);
+
+    return () => {
+      visualViewport.removeEventListener("resize", updateKeyboardOffset);
+      visualViewport.removeEventListener("scroll", updateKeyboardOffset);
+      document.documentElement.style.removeProperty("--keyboard-offset");
+    };
+  }, []);
 
   useEffect(() => {
     setValue(currentQuery);
@@ -40,15 +60,21 @@ export function SearchInput({ initialQuery = "" }: SearchInputProps) {
   }, [currentQuery, debouncedValue, nextUrl, router]);
 
   return (
-    <div className={`
-      z-10 fixed
+    <div
+      style={{
+        bottom:
+          "calc(env(safe-area-inset-bottom) + max(var(--app-footer-h, 136px), var(--keyboard-offset, 0px)))",
+      }}
+      className={`
+      z-10 fixed left-1/2 -translate-x-1/2
       w-10/12
-      mt-2 py-2 px-4
+      mb-2 py-2 px-4
       flex flex-row items-center justify-center
       gap-x-2
       bg-zinc-950
       rounded-lg
-    `}>
+    `}
+    >
       <SearchIcon className="opacity-50" />
 
       <Input
@@ -56,6 +82,7 @@ export function SearchInput({ initialQuery = "" }: SearchInputProps) {
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="Sök program..."
+        autoComplete="off"
       />
 
       {/* Hide when input is empty */}

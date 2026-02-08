@@ -94,8 +94,8 @@ export function ProgramList({
         overflow-y-auto
         h-full
         flex flex-col
-        gap-y-10
-        pt-20 px-6 last:pb-10
+        gap-y-12
+        pt-4 px-6 last:pb-10
       `}
       onScroll={handleScroll}
     >
