@@ -24,6 +24,19 @@ export function ProgramList({
   }, [programIds, batchSize]);
   const [activatedBatches, setActivatedBatches] = useState<Set<number>>(new Set());
 
+  const mergedProgramMap = useMemo(() => {
+    const updatedMap = { ...programMap };
+    (initialPrograms || []).forEach((program) => {
+      updatedMap[program.id] = program;
+    });
+    return updatedMap;
+  }, [programMap, initialPrograms]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActivatedBatches(new Set());
+  }, [programIds]);
+
   const fetchPrograms = async (ids: string[]) => {
     const newPrograms = await getProgramsByIds(ids);
     if (!newPrograms) {
@@ -56,7 +69,7 @@ export function ProgramList({
     if (pixelProgress > loadedPixels - threshold) {
       const nextBatchIndex = idBatches.findIndex((batch, index) => (
         !activatedBatches.has(index)
-        && batch.some((id) => !programMap[id])
+        && batch.some((id) => !mergedProgramMap[id])
       ));
       const nextBatch = nextBatchIndex !== -1 ? idBatches[nextBatchIndex] : null;
       if (nextBatch) {
@@ -68,11 +81,11 @@ export function ProgramList({
   // On activated batch change, fetch programs
   useEffect(() => {
     const batchesToFetch = Array.from(activatedBatches)
-      .map(index => idBatches[index])
-      .filter(batch => Boolean(batch))
-      .filter(batch => batch.some((id) => !programMap[id]));
+      .map((index) => idBatches[index])
+      .filter((batch): batch is string[] => Boolean(batch))
+      .filter((batch) => batch.some((id) => !mergedProgramMap[id]));
     batchesToFetch.forEach((batch) => fetchPrograms(batch));
-  }, [activatedBatches, idBatches, programMap]);
+  }, [activatedBatches, idBatches, mergedProgramMap, programMap]);
 
   return (
     <ul
@@ -87,7 +100,7 @@ export function ProgramList({
       onScroll={handleScroll}
     >
       {programIds.map((id) => {
-        const program = programMap[id];
+        const program = mergedProgramMap[id];
         return program ? <ProgramDOM key={id} program={program} /> : <ProgramDOM.Skeleton key={id} />;
       })}
     </ul>

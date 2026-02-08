@@ -4,8 +4,14 @@ import "server-only";
 import prisma from "@/lib/prisma";
 import { cacheTag } from "next/cache";
 import { Program } from "@/prisma/client/client";
+import Fuse from "fuse.js";
 
-export async function getPrograms() {
+const programSearchKeys: { name: keyof Program; weight: number }[] = [
+  { name: "name", weight: 0.7 },
+  { name: "description", weight: 0.3 },
+];
+
+export async function getPrograms({ search }: { search?: string } = {}) {
   "use cache";
   cacheTag("programs");
 
@@ -14,7 +20,13 @@ export async function getPrograms() {
     orderBy: { name: "asc", },
   });
 
-  return programs;
+  const normalizedSearch = search?.trim();
+  if (!normalizedSearch) {
+    return programs;
+  }
+
+  const fuse = new Fuse(programs, { keys: programSearchKeys });
+  return fuse.search(normalizedSearch).map((result) => result.item);
 }
 
 export async function getProgramById(programId: string): Promise<Program | null> {

@@ -37,6 +37,9 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    --app-header-h: 56px;
+    --app-footer-h: 136px;
+    --app-nav-h: 64px;
   }
 
   html {
@@ -47,16 +50,23 @@
     @apply flex flex-col w-full lg:max-w-2xl h-svh bg-background text-foreground;
 
     & > header {
+      min-height: var(--app-header-h);
       @apply w-full overflow-hidden;
     }
 
     & > main {
+      min-height: calc(100dvh - var(--app-header-h) - var(--app-footer-h));
       @apply w-full flex-1 overflow-y-scroll py-2 px-5;
     }
 
     & > footer {
+      min-height: var(--app-footer-h);
       @apply w-full overflow-hidden;
     }
+  }
+
+  body > footer nav {
+    min-height: var(--app-nav-h);
   }
 
   .lucide {
