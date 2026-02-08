@@ -62,18 +62,17 @@ export function SearchInput({ initialQuery = "" }: SearchInputProps) {
   return (
     <div
       style={{
-        bottom:
-          "calc(env(safe-area-inset-bottom) + max(var(--app-footer-h, 136px), var(--keyboard-offset, 0px)))",
+        bottom: "calc(env(safe-area-inset-bottom) + max(var(--app-footer-h, 136px), var(--keyboard-offset, 0px)))",
       }}
       className={`
-      z-10 fixed left-1/2 -translate-x-1/2
-      w-10/12
-      mb-2 py-2 px-4
-      flex flex-row items-center justify-center
-      gap-x-2
-      bg-zinc-950
-      rounded-lg
-    `}
+        z-10 fixed left-1/2 -translate-x-1/2
+        w-10/12
+        mb-2 py-2 px-4
+        flex flex-row items-center justify-center
+        gap-x-2
+        bg-zinc-950
+        rounded-lg
+      `}
     >
       <SearchIcon className="opacity-50" />
 
