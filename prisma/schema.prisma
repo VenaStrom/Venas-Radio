@@ -58,14 +58,14 @@ model Channel {
 }
 
 model Program {
-  id                 String @id
+  id                 String  @id
   name               String
   description        String
-  broadcast_info     String
+  broadcast_info     String?
   email              String
   phone              String
   responsible_editor String
-  program_slug       String // SR's tracking slug?
+  program_slug       String? // SR's tracking slug?
   image_square_url   String
   image_wide_url     String
 

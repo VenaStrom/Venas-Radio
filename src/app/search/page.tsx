@@ -1,11 +1,6 @@
-// import { Input } from "@/components/ui/input";
-// import { useMemo, useState } from "react";
-// import Fuse from "fuse.js";
-// import { SearchIcon, XIcon } from "lucide-react";
-// import ProgramDOM, { ProgramSkeleton } from "@/components/program-dom";
-// import { usePlayContext } from "@/components/play-context/play-context-use";
-// import { Program } from "@/types/types";
-// import { useDebounce } from "use-debounce";
+import ProgramDOM from "@/components/program-dom";
+import { getPrograms } from "@/functions/fetchers/get-programs"
+import { Suspense } from "react";
 
 // const filterKeys: { name: keyof Program; weight: number; }[] = [
 //   { name: "name", weight: 0.7 },
@@ -13,6 +8,8 @@
 // ];
 
 export default async function SearchPage() {
+  const programs = await getPrograms();
+
   // const { programDB, followedPrograms, isFetchingPrograms } = usePlayContext();
 
   // const programs = useMemo(() => {
@@ -49,7 +46,19 @@ export default async function SearchPage() {
 
   return (
     <main>
-
+      <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20 px-5 last:pb-10">
+        <Suspense fallback={
+          <>
+            {new Array(10).fill(0).map((_, i) => (
+              <ProgramDOM.Skeleton key={i} />
+            ))}
+          </>
+        }>
+          {programs.map((program) => (
+            <ProgramDOM programData={program} key={program.id} />
+          ))}
+        </Suspense>
+      </ul>
     </main>
   )
   // return (

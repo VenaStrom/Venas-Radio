@@ -1,9 +1,7 @@
-"use client";
-
 import SRAttribute from "@/components/sr-attribute";
 import Image from "next/image";
 import LikeButton from "@/components/like-button";
-import { Program } from "@/types/types";
+import { Program } from "@/prisma/client/client";
 
 export default function ProgramDOM({ programData, }: { programData: Program, }) {
   return (
@@ -16,13 +14,7 @@ export default function ProgramDOM({ programData, }: { programData: Program, }) 
         width={82}
         height={82}
         className="bg-zinc-600 rounded-md"
-        src={""}
-        overrideSrc={(() => {
-          const url = new URL(programData.image.square);
-          url.searchParams.set("w", "164");
-          url.searchParams.set("h", "164");
-          return url.toString();
-        })()}
+        src={programData.image_square_url}
         alt="Programbild"
         fetchPriority="low"
       />
@@ -33,7 +25,7 @@ export default function ProgramDOM({ programData, }: { programData: Program, }) 
         <p className="col-start-1 text-base font-bold overflow-hidden">{programData.name}</p>
 
         {/* Other info */}
-        <p className="col-start-1 text-xs font-normal text-zinc-300 overflow-hidden">{programData.broadcastInfo}</p>
+        <p className="col-start-1 text-xs font-normal text-zinc-300 overflow-hidden">{programData.broadcast_info}</p>
 
         {/* Like button */}
         <LikeButton programID={programData.id} />
@@ -45,7 +37,7 @@ export default function ProgramDOM({ programData, }: { programData: Program, }) 
   );
 }
 
-export function ProgramSkeleton() {
+function Skeleton() {
   return (
     <li className="grid grid-cols-[96px_1fr] grid-rows-[min_96px_min_min] gap-y-2 gap-x-3">
       {/* SR Attribute */}
@@ -68,4 +60,5 @@ export function ProgramSkeleton() {
       <div className="col-span-2 h-10 text-s pt-1 font-normal overflow-hidden animate-pulse"></div>
     </li>
   );
-}
+};
+ProgramDOM.Skeleton = Skeleton;

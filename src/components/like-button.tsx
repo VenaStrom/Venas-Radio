@@ -8,10 +8,13 @@ export default function LikeButton({
   programID,
   channelID,
 }: {
-  programID?: number;
-  channelID?: number;
+  programID?: number | string;
+  channelID?: number | string;
 }
 ) {
+  programID = typeof programID === "string" ? parseInt(programID) : programID;
+  channelID = typeof channelID === "string" ? parseInt(channelID) : channelID;
+
   const { followedPrograms, setFollowedPrograms, followedChannels, setFollowedChannels } = usePlayContext();
   const liked = useMemo(() => {
     return programID ? followedPrograms.includes(programID) || false :
@@ -20,7 +23,6 @@ export default function LikeButton({
   }, [programID, channelID, followedPrograms, followedChannels]);
 
   const [highlighted, setHighlighted] = useState(liked); // Local UI state for immediate feedback
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setHighlighted(liked), [liked]); // Keep local state in sync with global state
 
   // Save state

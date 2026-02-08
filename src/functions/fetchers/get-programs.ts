@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { fetchPrograms } from "@/functions/external-fetchers/program-fetcher";
 
 export async function getPrograms() {
+  "use cache";
+
   const existingPrograms = await prisma.program.findMany({
     where: { archived: false, },
   });

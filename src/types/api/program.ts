@@ -1,9 +1,9 @@
 export type SR_Program = {
   description: string;
-  broadcastinfo: string;
+  broadcastinfo: string | undefined;
   email: string;
   phone: string;
-  programurl: string;
+  programurl: string | undefined;
   programslug: string;
   programimage: string;
   programimagetemplate: string;
