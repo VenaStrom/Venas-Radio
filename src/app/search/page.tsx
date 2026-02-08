@@ -7,7 +7,8 @@ export default async function SearchPage() {
   return (
     <main className="px-0 max-h-fit overflow-y-hidden">
       <ProgramList
-        initialPrograms={programs.slice(0, 10)}
+        initialPrograms={programs.slice(0, 30)}
+        batchSize={30}
         programIds={programs.map((p) => p.id)}
       />
     </main>

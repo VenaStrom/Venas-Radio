@@ -3,24 +3,25 @@
 import ProgramDOM from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
 import { Program } from "@/prisma/client/client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function ProgramList({
   initialPrograms,
+  batchSize = 30,
   programIds,
 }: {
   initialPrograms?: Program[];
+  batchSize?: number;
   programIds: string[];
 }) {
   const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms || []).map((p) => [p.id, p])));
-  const fetchableIds = programIds.filter((id) => !programMap[id]);
-
-  const batchSize = 10;
-  const idBatches = fetchableIds.reduce<string[][]>((batches, id, index) => {
-    if (index % batchSize === 0) batches.push([]);
-    batches[batches.length - 1].push(id);
-    return batches;
-  }, []);
+  const idBatches = useMemo(() => {
+    return programIds.reduce<string[][]>((batches, id, index) => {
+      if (index % batchSize === 0) batches.push([]);
+      batches[batches.length - 1].push(id);
+      return batches;
+    }, []);
+  }, [programIds, batchSize]);
   const [activatedBatches, setActivatedBatches] = useState<Set<number>>(new Set());
 
   const fetchPrograms = async (ids: string[]) => {
@@ -42,18 +43,21 @@ export function ProgramList({
   const handleScroll = (e: React.UIEvent<HTMLUListElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const perProgramHeight = scrollHeight / programIds.length;
-    const loadedProgramsCount = activatedBatches.size * batchSize;
+    const loadedProgramsCount = Array.from(activatedBatches).reduce((sum, index) => {
+      const batch = idBatches[index];
+      return batch ? sum + batch.length : sum;
+    }, 0);
 
     const pixelProgress = scrollTop + clientHeight;
     const loadedPixels = loadedProgramsCount * perProgramHeight;
 
-    const threshold = perProgramHeight * 10;
+    const threshold = perProgramHeight * batchSize;
 
     if (pixelProgress > loadedPixels - threshold) {
-      const nextBatchIndex = idBatches.findIndex((batch) =>
-        !activatedBatches.has(idBatches.indexOf(batch))
+      const nextBatchIndex = idBatches.findIndex((batch, index) => (
+        !activatedBatches.has(index)
         && batch.some((id) => !programMap[id])
-      );
+      ));
       const nextBatch = nextBatchIndex !== -1 ? idBatches[nextBatchIndex] : null;
       if (nextBatch) {
         setActivatedBatches((prev) => new Set(prev).add(nextBatchIndex));
@@ -64,11 +68,11 @@ export function ProgramList({
   // On activated batch change, fetch programs
   useEffect(() => {
     const batchesToFetch = Array.from(activatedBatches)
-      .map((index) => idBatches[index])
-      .filter(batch => batch.some(id => !programMap[id]));
+      .map(index => idBatches[index])
+      .filter(batch => Boolean(batch))
+      .filter(batch => batch.some((id) => !programMap[id]));
     batchesToFetch.forEach((batch) => fetchPrograms(batch));
   }, [activatedBatches, idBatches, programMap]);
-
 
   return (
     <ul
