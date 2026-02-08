@@ -1,16 +1,15 @@
-import ProgramDOM from "@/components/program-dom";
 import { getPrograms } from "@/functions/fetchers/get-programs"
+import { ProgramList } from "./program-list";
 
 export default async function SearchPage() {
   const programs = await getPrograms();
 
   return (
-    <main>
-      <ul className="flex-1 w-full overflow-y-scroll flex flex-col gap-y-10 pt-20 px-5 last:pb-10">
-        {programs.map((program) => (
-          <ProgramDOM programData={program} key={program.id} />
-        ))}
-      </ul>
+    <main className="px-0 max-h-fit overflow-y-hidden">
+      <ProgramList
+        initialPrograms={programs.slice(0, 10)}
+        programIds={programs.map((p) => p.id)}
+      />
     </main>
   );
 }

@@ -3,7 +3,7 @@ import Image from "next/image";
 import LikeButton from "@/components/like-button";
 import { Program } from "@/prisma/client/client";
 
-export default function ProgramDOM({ programData, }: { programData: Program, }) {
+export default function ProgramDOM({ program, }: { program: Program, }) {
   return (
     <li className="grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3">
       {/* SR Attribute */}
@@ -14,7 +14,7 @@ export default function ProgramDOM({ programData, }: { programData: Program, }) 
         width={82}
         height={82}
         className="bg-zinc-600 rounded-md"
-        src={programData.image_square_url}
+        src={program.image_square_url}
         alt="Programbild"
         fetchPriority="low"
       />
@@ -22,17 +22,17 @@ export default function ProgramDOM({ programData, }: { programData: Program, }) 
       {/* Header Text */}
       <div className="col-start-2 grid grid-cols-[1fr_auto] grid-rows-[auto_1fr] gap-x-2">
         {/* Program name */}
-        <p className="col-start-1 text-base font-bold overflow-hidden">{programData.name}</p>
+        <p className="col-start-1 text-base font-bold overflow-hidden">{program.name}</p>
 
         {/* Other info */}
-        <p className="col-start-1 text-xs font-normal text-zinc-300 overflow-hidden">{programData.broadcast_info}</p>
+        <p className="col-start-1 text-xs font-normal text-zinc-300 overflow-hidden">{program.broadcast_info}</p>
 
         {/* Like button */}
-        <LikeButton programID={programData.id} />
+        <LikeButton programID={program.id} />
       </div>
 
       {/* Description */}
-      <p className="col-span-2 text-xs pt-1 font-normal overflow-hidden">{programData.description}</p>
+      <p className="col-span-2 text-xs pt-1 font-normal overflow-hidden">{program.description}</p>
     </li>
   );
 }
