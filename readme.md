@@ -17,6 +17,8 @@ I was growing tired of the SR Play app on android since it had a bunch of bugs t
 - TailwindCSS
 - TypeScript
 - Web API
+- Prisma
+- MariaDB
 
 ### Dev Ops and Hosting
 - Proxmox
