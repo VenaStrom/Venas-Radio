@@ -17,7 +17,7 @@ export async function fetchChannels(): Promise<Channel[]> {
     color: channel.color,
     external_audio_url: channel.liveaudio.url,
     external_site_url: channel.siteurl,
-    external_schedule_url: channel.scheduleurl,
+    external_schedule_url: channel.scheduleurl ?? null,
     tagline: channel.tagline,
     image_square_url: channel.image,
     image_wide_url: channel.imagetemplate,

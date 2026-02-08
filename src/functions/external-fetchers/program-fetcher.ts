@@ -17,7 +17,7 @@ export async function fetchPrograms(): Promise<Program[]> {
     description: program.description,
     broadcast_info: program.broadcastinfo ?? null,
     email: program.email,
-    phone: program.phone,
+    phone: program.phone || null,
     program_slug: program.programslug ?? null,
     channel_id: program.channel.id.toString(),
     image_square_url: program.programimage,

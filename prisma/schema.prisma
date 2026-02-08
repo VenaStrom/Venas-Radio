@@ -28,7 +28,7 @@ model Episode {
   id           String   @id
   duration     Float
   title        String
-  description  String
+  description  String   @db.Text
   publish_date DateTime
 
   image_square_url String
@@ -42,13 +42,13 @@ model Episode {
 }
 
 model Channel {
-  id                    String @id
+  id                    String  @id
   name                  String
   color                 String
   tagline               String
   external_audio_url    String
   external_site_url     String
-  external_schedule_url String
+  external_schedule_url String?
   channel_type          String
   image_square_url      String
   image_wide_url        String
@@ -60,10 +60,10 @@ model Channel {
 model Program {
   id                 String  @id
   name               String
-  description        String
+  description        String  @db.Text
   broadcast_info     String?
   email              String
-  phone              String
+  phone              String?
   responsible_editor String
   program_slug       String? // SR's tracking slug?
   image_square_url   String
@@ -73,8 +73,8 @@ model Program {
   has_on_demand Boolean
   has_pod       Boolean
 
-  channel_id      String
-  channel         Channel   @relation("program_channel", fields: [channel_id], references: [id])
+  channel_id      String?
+  channel         Channel?  @relation("program_channel", fields: [channel_id], references: [id])
   episodes        Episode[] @relation("episode_program")
   following_users User[]    @relation("user_favorite_programs")
 }

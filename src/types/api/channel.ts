@@ -9,7 +9,7 @@ export type SR_Channel = {
     url: string;
     statkey: string;
   };
-  scheduleurl: string;
+  scheduleurl: string | undefined;
   channeltype: string;
   xmltvid: string;
   id: number;
