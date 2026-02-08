@@ -3,9 +3,9 @@
 import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB, Seconds } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
 import { PlayContext } from "@/components/play-context/play-context.internal";
-import { fetchEpisodes } from "@/functions/episode-getter";
-import { fetchChannels } from "@/functions/channel-getter";
-import { fetchPrograms } from "@/functions/program-getter";
+import { fetchEpisodes } from "@/functions/external-fetchers/episode-getter";
+import { fetchChannels } from "@/functions/external-fetchers/channel-getter";
+import { fetchPrograms } from "@/functions/external-fetchers/program-getter";
 import { episodeDBDeserializer } from "@/components/deserializer/episode-deserializer";
 import { progressDBDeserializer } from "@/components/deserializer/progress-deserializer";
 import { migrateFromLegacyZustand } from "@/components/play-context/legacy-zustand-migration";

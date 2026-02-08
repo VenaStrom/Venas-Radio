@@ -44,14 +44,14 @@ model Episode {
 model Channel {
   id                    String @id
   name                  String
-  image_square_url      String
-  image_wide_url        String
   color                 String
   tagline               String
   external_audio_url    String
   external_site_url     String
   external_schedule_url String
   channel_type          String
+  image_square_url      String
+  image_wide_url        String
 
   programs        Program[] @relation("program_channel")
   following_users User[]    @relation("user_favorite_channels")
@@ -66,6 +66,8 @@ model Program {
   phone              String
   responsible_editor String
   program_slug       String // SR's tracking slug?
+  image_square_url   String
+  image_wide_url     String
 
   archived      Boolean
   has_on_demand Boolean

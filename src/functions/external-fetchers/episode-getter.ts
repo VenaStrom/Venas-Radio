@@ -1,6 +1,5 @@
-import { proxy } from "@/lib/proxy-rewrite";
+import { Episode } from "@/prisma/client/client";
 import { SR_Episode } from "@/types/api/episode";
-import { EpisodeDB, Seconds } from "@/types/types";
 
 export async function fetchEpisodes(
   programIds: number[],
@@ -8,7 +7,7 @@ export async function fetchEpisodes(
     fromDate: Date;
     toDate: Date;
   },
-): Promise<EpisodeDB> {
+): Promise<Episode[]> {
   const { fromDate, toDate } = options;
 
   const baseURL = new URL("https://api.sr.se/api/v2/episodes/index");
@@ -28,34 +27,28 @@ export async function fetchEpisodes(
   });
 
   const responses = await Promise.all(
-    programLinks.map((link) => fetch(proxy(link))
+    programLinks.map((link) => fetch(link)
       .then((res) => res.json())
       .catch(e => console.error(e))
     ),
   );
 
-  const fetchedEpisodes: EpisodeDB = {};
-
+  const fetchedEpisodes: Episode[] = [];
   for (const data of responses) {
     data.episodes
       .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
       .forEach((episode: SR_Episode) => {
-        fetchedEpisodes[episode.id] = {
-          id: episode.id,
+        fetchedEpisodes.push({
+          id: episode.id.toString(),
           title: episode.title,
           description: episode.description,
-          url: proxy(episode?.listenpodfile?.url || episode?.downloadpodfile?.url),
-          program: {
-            id: episode.program.id,
-            name: episode.program.name,
-          },
-          publishDate: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
-          duration: Seconds.from(episode.listenpodfile.duration || episode.downloadpodfile.duration || 0),
-          image: {
-            square: proxy(episode.imageurl),
-            wide: proxy(episode.imageurltemplate),
-          },
-        };
+          external_audio_url: episode.listenpodfile?.url || episode.downloadpodfile?.url,
+          program_id: episode.program.id.toString(),
+          publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
+          duration: episode.listenpodfile.duration || episode.downloadpodfile.duration,
+          image_square_url: episode.imageurl,
+          image_wide_url: episode.imageurltemplate,
+        } satisfies Episode);
       });
   };
 

@@ -1,6 +1,5 @@
-import { proxy } from "@/lib/proxy-rewrite";
+import { Program } from "@/prisma/client/client";
 import { SR_Program } from "@/types/api/program";
-import { Program } from "@/types/types";
 
 export async function fetchPrograms(): Promise<Program[]> {
   const baseURL = new URL("https://api.sr.se/api/v2/programs/index");
@@ -8,29 +7,26 @@ export async function fetchPrograms(): Promise<Program[]> {
   baseURL.searchParams.append("pagination", "false");
   baseURL.searchParams.append("isarchived", "false");
 
-  const response: SR_Program[] = await fetch(proxy(baseURL.toString()))
+  const response: SR_Program[] = await fetch(baseURL.toString())
     .then((res) => res.json())
     .then((data) => data.programs);
 
   const programs: Program[] = response.map((program: SR_Program) => ({
-    id: program.id,
+    id: program.id.toString(),
     name: program.name,
     description: program.description,
-    broadcastInfo: program.broadcastinfo,
+    broadcast_info: program.broadcastinfo,
     email: program.email,
     phone: program.phone,
-    programSlug: program.programslug,
-    channelId: program.channel.id,
-    channelName: program.channel.name,
-    image: {
-      square: proxy(program.programimage),
-      wide: proxy(program.programimagetemplate),
-    },
+    program_slug: program.programslug,
+    channel_id: program.channel.id.toString(),
+    image_square_url: program.programimage,
+    image_wide_url: program.programimagetemplate,
     archived: program.archived,
-    hasOnDemand: program.hasondemand,
-    hasPod: program.haspod,
-    responsibleEditor: program.responsibleeditor,
-  }));
+    has_on_demand: program.hasondemand,
+    has_pod: program.haspod,
+    responsible_editor: program.responsibleeditor,
+  } satisfies Program));
 
   return programs;
 }
