@@ -1,6 +1,20 @@
 import { Episode } from "@prisma/client";
 import { SR_Episode } from "@/types/api/episode";
 
+function mapSREpisode(episode: SR_Episode): Episode {
+  return {
+    id: episode.id.toString(),
+    title: episode.title,
+    description: episode.description,
+    external_audio_url: episode.listenpodfile?.url || episode.downloadpodfile?.url,
+    program_id: episode.program.id.toString(),
+    publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
+    duration: episode.listenpodfile?.duration || episode.downloadpodfile?.duration || 0,
+    image_square_url: episode.imageurl,
+    image_wide_url: episode.imageurltemplate,
+  } satisfies Episode;
+}
+
 export async function fetchEpisodes(
   programIds: number[],
   options: {
@@ -38,19 +52,25 @@ export async function fetchEpisodes(
     data.episodes
       .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
       .forEach((episode: SR_Episode) => {
-        fetchedEpisodes.push({
-          id: episode.id.toString(),
-          title: episode.title,
-          description: episode.description,
-          external_audio_url: episode.listenpodfile?.url || episode.downloadpodfile?.url,
-          program_id: episode.program.id.toString(),
-          publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
-          duration: episode.listenpodfile.duration || episode.downloadpodfile.duration,
-          image_square_url: episode.imageurl,
-          image_wide_url: episode.imageurltemplate,
-        } satisfies Episode);
+        fetchedEpisodes.push(mapSREpisode(episode));
       });
   };
 
   return fetchedEpisodes;
+}
+
+export async function fetchEpisodeById(episodeId: string): Promise<Episode | null> {
+  const baseURL = new URL("https://api.sr.se/api/v2/episodes/get");
+  baseURL.searchParams.append("id", episodeId);
+  baseURL.searchParams.append("format", "json");
+  baseURL.searchParams.append("audioquality", "high");
+
+  const response = await fetch(baseURL.toString());
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as { episode?: SR_Episode };
+  if (!data?.episode) return null;
+  if (!data.episode.listenpodfile && !data.episode.downloadpodfile) return null;
+
+  return mapSREpisode(data.episode);
 }

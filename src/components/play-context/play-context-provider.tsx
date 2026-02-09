@@ -6,6 +6,7 @@ import { useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "re
 import { useUser } from "@clerk/nextjs";
 import { PlayContext } from "@/components/play-context/play-context.internal";
 import { progressDBDeserializer } from "@/components/deserializer/progress-deserializer";
+import { getEpisodeAudioUrl } from "@/lib/episode-audio";
 
 type PendingMedia = { type: "episode" | "channel"; id: string; } | null;
 
@@ -100,7 +101,12 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const initialMedia = useMemo(() => readStoredMedia(), []);
-  const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(initialMedia.restoredMedia?.url ?? null);
+  const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(() => {
+    if (initialMedia.restoredMedia?.type === "episode" && initialMedia.restoredMedia.id) {
+      return getEpisodeAudioUrl(initialMedia.restoredMedia.id);
+    }
+    return initialMedia.restoredMedia?.url ?? null;
+  });
 
   const [currentEpisode, setCurrentEpisode] = useState<EpisodeWithProgram | null>(null);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
@@ -128,7 +134,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     if (!pending || pending.type !== "episode" || pending.id !== episode.id) return;
     setCurrentChannel(null);
     setCurrentEpisode(episode);
-    setCurrentStreamUrl(episode.external_audio_url);
+    setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
     pendingMediaRef.current = null;
   }, []);
 
@@ -185,7 +191,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
     setCurrentChannel(null);
     setCurrentEpisode(episode);
-    setCurrentStreamUrl(episode.external_audio_url);
+    setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
     pendingMediaRef.current = null;
 
     setIsPlaying(true);
@@ -288,7 +294,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       return {
         type: "episode",
         id: currentEpisode.id,
-        url: currentEpisode.external_audio_url,
+        url: getEpisodeAudioUrl(currentEpisode.id),
         title: currentEpisode.title,
         subtitle: currentEpisode.program?.name ?? null,
         image: currentEpisode.image_square_url ?? null,

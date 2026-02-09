@@ -7,6 +7,7 @@ import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
 import MigrationHandler from "@/components/migration/migration-handler";
 import { Sidebar } from "@/app/sidebar";
+import { ensureEpisodePrefetchScheduler } from "@/lib/episode-prefetch-scheduler";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "@/app/metadata";
@@ -16,6 +17,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  ensureEpisodePrefetchScheduler();
   return (<ClerkProvider>
     <html lang="sv" className={`${nunitoSansFont.className} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="bg-zinc-900 text-zinc-100">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { refreshEpisodesForPrograms } from "@/lib/episode-prefetch";
 
 type UserStatePayload = {
   progress?: Record<string, number>;
@@ -142,6 +143,10 @@ export async function POST(request: Request) {
         })
       )
     );
+  }
+
+  if (validProgramIds.length > 0) {
+    void refreshEpisodesForPrograms(validProgramIds);
   }
 
   return NextResponse.json({ ok: true });

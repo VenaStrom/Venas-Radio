@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EpisodeWithProgram, PlayableMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useDebounce } from "use-debounce";
+import { getEpisodeAudioUrl } from "@/lib/episode-audio";
 
 export default function AudioControls({ className }: { className?: string }) {
   const {
@@ -77,11 +78,12 @@ export default function AudioControls({ className }: { className?: string }) {
     let poolIdx = 0;
     for (let i = currentIndex + 1; i <= Math.min(sortedEpisodes.length - 1, currentIndex + PRELOAD_COUNT); i++) {
       const ep = sortedEpisodes[i];
-      if (!ep || !ep.external_audio_url) continue;
+      if (!ep) continue;
       const preloadEl = audioPreloadEls[poolIdx++];
+      const url = getEpisodeAudioUrl(ep.id);
       // Only set src if different to avoid needless reloads
-      if (preloadEl && preloadEl.src !== ep.external_audio_url) {
-        preloadEl.src = ep.external_audio_url;
+      if (preloadEl && preloadEl.src !== url) {
+        preloadEl.src = url;
         preloadEl.preload = "auto";
         try { preloadEl.load(); } catch { /* Silent */ }
       }
