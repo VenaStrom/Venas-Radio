@@ -3,10 +3,17 @@
 import type { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB } from "@/types/types";
 import { Seconds } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
 import { PlayContext } from "@/components/play-context/play-context.internal";
 import { progressDBDeserializer } from "@/components/deserializer/progress-deserializer";
 
 type PendingMedia = { type: "episode" | "channel"; id: string; } | null;
+
+type RemoteUserState = {
+  progress?: Record<string, number>;
+  followedPrograms?: string[];
+  followedChannels?: string[];
+};
 
 function readStoredIdList(key: string): string[] {
   if (typeof window === "undefined") return [];
@@ -25,6 +32,34 @@ function readStoredIdList(key: string): string[] {
 function readStoredProgress(): ProgressDB {
   if (typeof window === "undefined") return {};
   return progressDBDeserializer(localStorage.getItem("progressDB"));
+}
+
+function normalizeProgressPayload(payload?: Record<string, number>): ProgressDB {
+  if (!payload) return {};
+  const normalized: ProgressDB = {};
+  for (const [episodeId, value] of Object.entries(payload)) {
+    if (!episodeId) continue;
+    if (!Number.isFinite(value)) continue;
+    normalized[episodeId.toString()] = Seconds.from(value);
+  }
+  return normalized;
+}
+
+function serializeProgressDB(payload: ProgressDB): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(payload).map(([episodeId, seconds]) => [episodeId, seconds.toNumber()])
+  );
+}
+
+function mergeProgress(local: ProgressDB, remote: ProgressDB): ProgressDB {
+  const merged: ProgressDB = { ...local };
+  for (const [episodeId, seconds] of Object.entries(remote)) {
+    const localSeconds = merged[episodeId];
+    if (!localSeconds || seconds.toNumber() > localSeconds.toNumber()) {
+      merged[episodeId] = seconds;
+    }
+  }
+  return merged;
 }
 
 function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: PendingMedia } {
@@ -57,6 +92,7 @@ function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: Pend
 }
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
+  const { isLoaded, isSignedIn } = useUser();
   const [isFetchingEpisodes, _setIsFetchingEpisodes] = useState(true);
   const [isFetchingChannels, _setIsFetchingChannels] = useState(true);
   const [isFetchingPrograms, _setIsFetchingPrograms] = useState(true);
@@ -299,6 +335,79 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     );
     localStorage.setItem("progressDB", JSON.stringify(serialized));
   }, [progressDB]);
+
+  const hasLoadedRemoteRef = useRef(false);
+  const pendingSyncRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      hasLoadedRemoteRef.current = false;
+      return;
+    }
+
+    let isActive = true;
+    const loadRemoteState = async () => {
+      try {
+        const response = await fetch("/api/user-state");
+        if (!response.ok) return;
+        const data = (await response.json()) as RemoteUserState;
+        if (!isActive) return;
+
+        const remoteProgress = normalizeProgressPayload(data.progress);
+        setProgressDB((prev) => mergeProgress(prev, remoteProgress));
+
+        if (data.followedPrograms?.length) {
+          setFollowedPrograms((prev) => Array.from(new Set([...prev, ...data.followedPrograms!])));
+        }
+        if (data.followedChannels?.length) {
+          setFollowedChannels((prev) => Array.from(new Set([...prev, ...data.followedChannels!])));
+        }
+      }
+      finally {
+        if (isActive) {
+          hasLoadedRemoteRef.current = true;
+        }
+      }
+    };
+
+    void loadRemoteState();
+    return () => {
+      isActive = false;
+    };
+  }, [isLoaded, isSignedIn]);
+
+  const syncPayload = useMemo(() => {
+    return {
+      progress: serializeProgressDB(progressDB),
+      followedPrograms,
+      followedChannels,
+    } as RemoteUserState;
+  }, [progressDB, followedPrograms, followedChannels]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    if (!hasLoadedRemoteRef.current) return;
+
+    if (pendingSyncRef.current) {
+      window.clearTimeout(pendingSyncRef.current);
+    }
+
+    pendingSyncRef.current = window.setTimeout(() => {
+      void fetch("/api/user-state", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(syncPayload),
+      });
+    }, 800);
+
+    return () => {
+      if (pendingSyncRef.current) {
+        window.clearTimeout(pendingSyncRef.current);
+      }
+    };
+  }, [isLoaded, isSignedIn, syncPayload]);
 
   return (
     <PlayContext.Provider
