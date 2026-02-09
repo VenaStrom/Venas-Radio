@@ -3,7 +3,7 @@
 import "server-only";
 import prisma from "@/lib/prisma";
 import { cacheTag } from "next/cache";
-import { Channel } from "@/prisma/client/client";
+import { Channel } from "@prisma/client";
 import Fuse from "fuse.js";
 
 const channelSearchKeys: { name: keyof Channel; weight: number }[] = [
