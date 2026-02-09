@@ -1,9 +1,9 @@
-import SRAttribute from "@/components/sr-attribute";
+import type { Program } from "@prisma/client";
 import Image from "next/image";
+import SRAttribute from "@/components/sr-attribute";
 import LikeButton from "@/components/like-button";
-import { Program } from "@prisma/client";
 
-export function ProgramDOM({ program, }: { program: Program, }) {
+export default function ProgramDOM({ program, }: { program: Program, }) {
   return (
     <li className="grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3">
       {/* SR Attribute */}
@@ -56,7 +56,7 @@ function Skeleton() {
       </div>
 
       {/* Description */}
-        <div className="bg-zinc-600 rounded-md col-start-1 col-end-3 h-10 animate-pulse pt-1"></div>
+      <div className="bg-zinc-600 rounded-md col-start-1 col-end-3 h-10 animate-pulse pt-1"></div>
       {/* <div className="col-span-2 h-10 text-s pt-1 font-normal overflow-hidden animate-pulse"></div> */}
     </li>
   );

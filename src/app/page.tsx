@@ -1,26 +1,16 @@
-"use client";
-
-import ChannelDOM, { ChannelSkeleton } from "@/components/channel-dom";
-import { usePlayContext } from "@/components/play-context/play-context-use";
+import ChannelDOM from "@/components/channel-dom";
+import { getChannels } from "@/functions/fetchers/get-channels";
+import SearchInput from "@/app/search/search-input";
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense } from "react";
 
-export default function HomePage() {
-  const { channelDB, isFetchingChannels, followedChannels } = usePlayContext();
+type HomePageProps = {
+  searchParams?: Promise<{
+    q?: string;
+  }>;
+};
 
-  const channels = useMemo(() => {
-    return Object.values(channelDB)
-      .sort((a, b) => {
-        const aFollowed = followedChannels.includes(a.id) ? 0 : 1;
-        const bFollowed = followedChannels.includes(b.id) ? 0 : 1;
-
-        if (aFollowed !== bFollowed) {
-          return aFollowed - bFollowed; // Followed channels first
-        }
-        return a.name.localeCompare(b.name); // Then sort by name
-      });
-  }, [channelDB, followedChannels]);
-
+export default function HomePage({ searchParams }: HomePageProps) {
   return (
     <main>
       {/* Intro section */}
@@ -36,18 +26,44 @@ export default function HomePage() {
       <section className="w-full flex flex-col items-center mt-16">
         <h2 className="mb-5">Lyssna live</h2>
 
-        <ul className="w-full flex flex-col gap-y-4 last:pb-10">
-          {isFetchingChannels ? (
-            new Array(10).fill(0).map((_, i) => (
-              <ChannelSkeleton key={i} />
-            ))
-          ) : (
-            channels.map((channel) => (
-              <ChannelDOM channelData={channel} key={channel.id} />
-            ))
-          )}
-        </ul>
+        <Suspense fallback={<ChannelListSkeleton />}>
+          <ChannelsContent searchParams={searchParams} />
+        </Suspense>
       </section>
     </main>
+  );
+}
+
+async function ChannelsContent({ searchParams }: HomePageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const searchQuery = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q : "";
+  const channels = await getChannels({ search: searchQuery });
+
+  return (
+    <>
+      <div className="h-0 w-full flex justify-center">
+        <SearchInput
+          initialQuery={searchQuery}
+          placeholder="Sök kanal..."
+        />
+      </div>
+      <ul className="w-full flex flex-col gap-y-4 pt-4 last:pb-10">
+        {channels.map((channel) => (
+          <ChannelDOM channel={channel} key={channel.id} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function ChannelListSkeleton() {
+  return (
+    <ul
+      className="flex-1 min-h-0 w-full flex flex-col gap-y-4 pt-4 last:pb-10"
+    >
+      {new Array(10).fill(0).map((_, i) => (
+          <ChannelDOM.Skeleton key={i} />
+      ))}
+    </ul>
   );
 }

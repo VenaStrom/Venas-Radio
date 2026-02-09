@@ -8,9 +8,10 @@ import { SearchIcon, XIcon } from "lucide-react";
 
 type SearchInputProps = {
   initialQuery?: string;
+  placeholder?: string;
 };
 
-export function SearchInput({ initialQuery = "" }: SearchInputProps) {
+export default function SearchInput({ initialQuery = "", placeholder = "Sök..." }: SearchInputProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -80,7 +81,7 @@ export function SearchInput({ initialQuery = "" }: SearchInputProps) {
         className="bg-none border-none font-semibold text-lg w-full p-0"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Sök program..."
+        placeholder={placeholder}
         autoComplete="off"
       />
 

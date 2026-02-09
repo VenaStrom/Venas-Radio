@@ -1,27 +1,22 @@
-"use client";
-
+import type { Channel } from "@prisma/client";
 import Image from "next/image";
-import { Channel } from "@/types/types";
 import PlayButton from "@/components/play-button";
 import LikeButton from "@/components/like-button";
 import SRAttribute from "@/components/sr-attribute";
 
-export default function ChannelDOM({ channelData }: { channelData: Channel }) {
+export default function ChannelDOM({ channel }: { channel: Channel }) {
+  const channelIdNumber = Number(channel.id);
+  const channelId = Number.isFinite(channelIdNumber) ? channelIdNumber : undefined;
+
   return (
-    <li className="w-full flex flex-row h-28 items-center justify-start" id={channelData.id.toString()}>
+    <li className="w-full flex flex-row h-28 items-center justify-start" id={channel.id.toString()}>
 
       {/* Thumbnail */}
       <Image
         className="bg-zinc-600 rounded-md h-24 w-24 max-h-24 max-w-24 min-h-24 min-w-24 me-4"
         width={96} height={96}
-        src={""}
-        overrideSrc={(() => {
-          const url = new URL(channelData.image.square);
-          url.searchParams.set("w", "192");
-          url.searchParams.set("h", "192");
-          return url.toString();
-        })()}
-        alt={`Kanalbild för ${channelData.name}`}
+        src={channel.image_square_url}
+        alt={`Kanalbild för ${channel.name}`}
         fetchPriority="low"
       />
 
@@ -29,20 +24,20 @@ export default function ChannelDOM({ channelData }: { channelData: Channel }) {
         <div className="flex flex-row justify-between items-center w-full">
           {/* Channel name */}
           <p className="font-bold overflow-hidden flex flex-row gap-x-2 items-center">
-            {channelData.name}
+            {channel.name}
           </p>
 
           <div className="flex flex-row gap-x-4 items-center">
-            <LikeButton channelID={channelData.id} />
-            <PlayButton channelID={channelData.id} iconSize={28} />
+            <LikeButton channelID={channel.id} />
+            <PlayButton channelID={channelId} iconSize={28} />
           </div>
         </div>
 
-        <SRAttribute className="" />
+        <SRAttribute />
 
         {/* Description */}
         <p className="text-xs font-normal col-span-2">
-          {channelData.tagline}
+          {channel.tagline}
         </p>
 
         <span className="flex-1"></span>
@@ -54,7 +49,7 @@ export default function ChannelDOM({ channelData }: { channelData: Channel }) {
   );
 }
 
-export function ChannelSkeleton() {
+function Skeleton() {
   return (
     <li className="flex flex-row h-28 items-center gap-x-4 w-full">
       {/* Thumbnail */}
@@ -72,3 +67,4 @@ export function ChannelSkeleton() {
     </li>
   );
 }
+ChannelDOM.Skeleton = Skeleton;

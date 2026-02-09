@@ -1,6 +1,6 @@
 "use client";
 
-import { ProgramDOM } from "@/components/program-dom";
+import ProgramDOM from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
 import { Program } from "@prisma/client";
 import { useEffect, useMemo, useState } from "react";

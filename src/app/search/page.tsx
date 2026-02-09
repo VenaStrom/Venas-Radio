@@ -1,8 +1,8 @@
 import { getPrograms } from "@/functions/fetchers/get-programs";
 import { ProgramList } from "@/app/search/program-list";
-import { SearchInput } from "@/app/search/search-input";
+import SearchInput from "@/app/search/search-input";
 import { Suspense } from "react";
-import { ProgramDOM } from "@/components/program-dom";
+import ProgramDOM from "@/components/program-dom";
 
 type SearchPageProps = {
   searchParams?: Promise<{
@@ -26,7 +26,10 @@ async function SearchPageContent({ searchParams }: SearchPageProps) {
   return (
     <main className="p-0 overflow-y-hidden flex flex-col">
       <div className="h-0 w-full flex justify-center">
-        <SearchInput initialQuery={searchQuery} />
+        <SearchInput
+          initialQuery={searchQuery}
+          placeholder="Sök program..."
+        />
       </div>
       <ProgramList
         initialPrograms={programs.slice(0, 30)}
