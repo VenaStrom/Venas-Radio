@@ -1,4 +1,4 @@
-import { Episode } from "@/prisma/client/client";
+import { Episode } from "@prisma/client";
 import { SR_Episode } from "@/types/api/episode";
 
 export async function fetchEpisodes(

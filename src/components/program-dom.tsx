@@ -1,7 +1,7 @@
 import SRAttribute from "@/components/sr-attribute";
 import Image from "next/image";
 import LikeButton from "@/components/like-button";
-import { Program } from "@/prisma/client/client";
+import { Program } from "@prisma/client";
 
 export function ProgramDOM({ program, }: { program: Program, }) {
   return (

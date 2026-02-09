@@ -3,7 +3,7 @@
 import "server-only";
 import prisma from "@/lib/prisma";
 import { cacheTag } from "next/cache";
-import { Program } from "@/prisma/client/client";
+import { Program } from "@prisma/client";
 import Fuse from "fuse.js";
 
 const programSearchKeys: { name: keyof Program; weight: number }[] = [

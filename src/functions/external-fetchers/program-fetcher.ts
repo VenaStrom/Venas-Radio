@@ -1,4 +1,4 @@
-import { Program } from "@/prisma/client/client";
+import { Program } from "@prisma/client";
 import { SR_Program } from "@/types/api/program";
 
 export async function fetchPrograms(): Promise<Program[]> {

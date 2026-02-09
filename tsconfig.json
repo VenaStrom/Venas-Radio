@@ -30,7 +30,7 @@
         "./*"
       ],
       "@prisma/client": [
-        "./src/prisma/client/client.ts",
+        "./src/prisma/generated/client.ts",
       ],
     }
   },

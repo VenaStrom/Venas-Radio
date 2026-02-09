@@ -1,4 +1,4 @@
-import { Channel } from "@/prisma/client/client";
+import { Channel } from "@prisma/client";
 import { SR_Channel } from "@/types/api/channel";
 
 export async function fetchChannels(): Promise<Channel[]> {
