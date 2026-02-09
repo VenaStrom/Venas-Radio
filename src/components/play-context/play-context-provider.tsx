@@ -1,29 +1,85 @@
 "use client";
 
-import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB, Seconds } from "@/types/types";
+import type { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB } from "@/types/types";
+import { Seconds } from "@/types/types";
 import { useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
 import { PlayContext } from "@/components/play-context/play-context.internal";
+import { progressDBDeserializer } from "@/components/deserializer/progress-deserializer";
+
+type PendingMedia = { type: "episode" | "channel"; id: string; } | null;
+
+function readStoredIdList(key: string): string[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as string[] | number[];
+    return parsed.map((id) => id.toString()).filter(Boolean);
+  }
+  catch {
+    console.warn(`Failed to parse ${key} from localStorage.`);
+    return [];
+  }
+}
+
+function readStoredProgress(): ProgressDB {
+  if (typeof window === "undefined") return {};
+  return progressDBDeserializer(localStorage.getItem("progressDB"));
+}
+
+function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: PendingMedia } {
+  if (typeof window === "undefined") return { restoredMedia: null, pending: null };
+
+  const storedMediaRaw = localStorage.getItem("currentMedia");
+  if (storedMediaRaw) {
+    try {
+      const parsed = JSON.parse(storedMediaRaw) as PlayableMedia;
+      if (parsed?.id && parsed?.url && (parsed.type === "episode" || parsed.type === "channel")) {
+        return { restoredMedia: parsed, pending: { type: parsed.type, id: parsed.id } };
+      }
+    }
+    catch {
+      console.warn("Failed to parse currentMedia from localStorage.");
+    }
+  }
+
+  const storedEpisodeId = localStorage.getItem("currentEpisodeID");
+  if (storedEpisodeId) {
+    return { restoredMedia: null, pending: { type: "episode", id: storedEpisodeId } };
+  }
+
+  const storedChannelId = localStorage.getItem("currentChannelID");
+  if (storedChannelId) {
+    return { restoredMedia: null, pending: { type: "channel", id: storedChannelId } };
+  }
+
+  return { restoredMedia: null, pending: null };
+}
 
 export function PlayProvider({ children }: { children: ReactNode; }) {
-  const [isFetchingEpisodes, setIsFetchingEpisodes] = useState(true);
-  const [isFetchingChannels, setIsFetchingChannels] = useState(true);
-  const [isFetchingPrograms, setIsFetchingPrograms] = useState(true);
+  const [isFetchingEpisodes, _setIsFetchingEpisodes] = useState(true);
+  const [isFetchingChannels, _setIsFetchingChannels] = useState(true);
+  const [isFetchingPrograms, _setIsFetchingPrograms] = useState(true);
 
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(null);
+  const initialMedia = useMemo(() => readStoredMedia(), []);
+  const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(initialMedia.restoredMedia?.url ?? null);
 
-  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
+  const [currentEpisode, setCurrentEpisode] = useState<EpisodeWithProgram | null>(null);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
 
-  const [followedPrograms, setFollowedPrograms] = useState<number[]>([]);
-  const [followedChannels, setFollowedChannels] = useState<number[]>([]);
+  const [restoredMedia] = useState<PlayableMedia | null>(initialMedia.restoredMedia);
+  const pendingMediaRef = useRef<PendingMedia>(initialMedia.pending);
+
+  const [followedPrograms, setFollowedPrograms] = useState<string[]>(() => readStoredIdList("followedPrograms"));
+  const [followedChannels, setFollowedChannels] = useState<string[]>(() => readStoredIdList("followedChannels"));
 
   const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
   const [programDB, setProgramDB] = useState<ProgramDB>({});
 
-  const [progressDB, setProgressDB] = useState<ProgressDB>({});
+  const [progressDB, setProgressDB] = useState<ProgressDB>(() => readStoredProgress());
   const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
     setProgressDB((prev) => ({
       ...prev,
@@ -31,13 +87,47 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
     }));
   };
 
+  const resolvePendingEpisode = useCallback((episode: EpisodeWithProgram) => {
+    const pending = pendingMediaRef.current;
+    if (!pending || pending.type !== "episode" || pending.id !== episode.id) return;
+    setCurrentChannel(null);
+    setCurrentEpisode(episode);
+    setCurrentStreamUrl(episode.external_audio_url);
+    pendingMediaRef.current = null;
+  }, []);
+
+  const resolvePendingChannel = useCallback((channel: Channel) => {
+    const pending = pendingMediaRef.current;
+    if (!pending || pending.type !== "channel" || pending.id !== channel.id) return;
+    setCurrentEpisode(null);
+    setCurrentChannel(channel);
+    setCurrentStreamUrl(channel.external_audio_url);
+    pendingMediaRef.current = null;
+  }, []);
+
+  const registerEpisode = useCallback((episode: EpisodeWithProgram) => {
+    setEpisodeDB((prev) => (prev[episode.id] ? prev : { ...prev, [episode.id]: episode }));
+    resolvePendingEpisode(episode);
+  }, [resolvePendingEpisode]);
+
+  const registerChannel = useCallback((channel: Channel) => {
+    setChannelDB((prev) => (prev[channel.id] ? prev : { ...prev, [channel.id]: channel }));
+    resolvePendingChannel(channel);
+  }, [resolvePendingChannel]);
+
+  const registerProgram = useCallback((program: Program) => {
+    setProgramDB((prev) => (prev[program.id] ? prev : { ...prev, [program.id]: program }));
+  }, []);
+
   const sortedEpisodes = useMemo(() => {
-    return Object.values(episodeDB).sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+    return Object.values(episodeDB)
+      .filter((episode): episode is EpisodeWithProgram => Boolean(episode?.publish_date))
+      .sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
   }, [episodeDB]);
 
   const currentProgress = useMemo(() => {
     if (currentEpisode) {
-      return progressDB[currentEpisode.id] || 0;
+      return progressDB[currentEpisode.id] || Seconds.from(0);
     }
     return null;
   }, [currentEpisode, progressDB]);
@@ -52,33 +142,35 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   const playEpisode = useCallback((episodeId: Episode["id"]) => {
     const episode = episodeDB[episodeId];
-    if (episode) {
-      setCurrentChannel(null);
-      setCurrentEpisode(episode);
-      setCurrentStreamUrl(episode.url);
-
-      setIsPlaying(true);
-      setTimeout(() => {
-        // I don't like this but it's to jostle the audio player into playing
-        setIsPlaying(true);
-      }, 50);
-    }
-    else {
+    if (!episode) {
       console.warn(`Episode with ID ${episodeId} not found in episodeDB.`);
+      return;
     }
+
+    setCurrentChannel(null);
+    setCurrentEpisode(episode);
+    setCurrentStreamUrl(episode.external_audio_url);
+    pendingMediaRef.current = null;
+
+    setIsPlaying(true);
+    setTimeout(() => {
+      // I don't like this but it's to jostle the audio player into playing
+      setIsPlaying(true);
+    }, 50);
   }, [episodeDB]);
 
   const playChannel = useCallback((channelId: Channel["id"]) => {
     const channel = channelDB[channelId];
-    if (channel) {
-      setCurrentEpisode(null);
-      setCurrentChannel(channel);
-      setCurrentStreamUrl(channel.url);
-      setIsPlaying(true);
-    }
-    else {
+    if (!channel) {
       console.warn(`Channel with ID ${channelId} not found in channelDB.`);
+      return;
     }
+
+    setCurrentEpisode(null);
+    setCurrentChannel(channel);
+    setCurrentStreamUrl(channel.external_audio_url);
+    setIsPlaying(true);
+    pendingMediaRef.current = null;
   }, [channelDB]);
 
   const playNextEpisode = () => {
@@ -94,7 +186,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       if (!nextEpisodeCandidate) continue;
       if (
         progressDB[nextEpisodeCandidate.id]?.toNumber()
-        >= nextEpisodeCandidate.duration.toNumber()
+        >= nextEpisodeCandidate.duration
       ) continue; // Already fully listened to
 
       // Found the next unlistened episode
@@ -114,7 +206,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
       if (!prevEpisodeCandidate) continue;
       if (
         progressDB[prevEpisodeCandidate.id]?.toNumber()
-        >= prevEpisodeCandidate.duration.toNumber()
+        >= prevEpisodeCandidate.duration
       ) continue; // Already fully listened to
 
       // Found the previous unlistened episode
@@ -124,43 +216,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   };
 
   // Restore current episode/channel on mount
-  const hasRestoredCurrentRef = useRef(false);
   const hasInitializedPlaybackRef = useRef(false);
-  useEffect(() => {
-    if (hasRestoredCurrentRef.current) return;
-
-    const episodeIdsLoaded = Object.keys(episodeDB).length > 0;
-    const channelIdsLoaded = Object.keys(channelDB).length > 0;
-    if (!episodeIdsLoaded && !channelIdsLoaded) return;
-
-    const storedEpisodeId = localStorage.getItem("currentEpisodeID");
-    const storedChannelId = localStorage.getItem("currentChannelID");
-
-    if (storedEpisodeId) {
-      const id = Number(storedEpisodeId);
-      const ep = episodeDB[id];
-      if (ep) {
-        hasRestoredCurrentRef.current = true;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCurrentEpisode(ep);
-        setCurrentStreamUrl(ep.url);
-        return;
-      }
-    }
-
-    if (storedChannelId) {
-      const id = Number(storedChannelId);
-      const ch = channelDB[id];
-      if (ch) {
-        hasRestoredCurrentRef.current = true;
-        setCurrentChannel(ch);
-        setCurrentStreamUrl(ch.url);
-        return;
-      }
-    }
-    hasRestoredCurrentRef.current = true;
-  }, [channelDB, episodeDB]);
-
   useEffect(() => {
     if (currentEpisode || currentChannel) {
       hasInitializedPlaybackRef.current = true;
@@ -169,10 +225,9 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   // Save currently playing episode to localStorage on change
   useEffect(() => {
-    if (!hasRestoredCurrentRef.current) return;
-
+    if (typeof window === "undefined") return;
     if (currentEpisode) {
-      localStorage.setItem("currentEpisodeID", currentEpisode.id.toString());
+      localStorage.setItem("currentEpisodeID", currentEpisode.id);
     }
     else {
       if (!hasInitializedPlaybackRef.current) return;
@@ -182,16 +237,68 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   // Save currently playing channel to localStorage on change
   useEffect(() => {
-    if (!hasRestoredCurrentRef.current) return;
-
+    if (typeof window === "undefined") return;
     if (currentChannel) {
-      localStorage.setItem("currentChannelID", currentChannel.id.toString());
+      localStorage.setItem("currentChannelID", currentChannel.id);
     }
     else {
       if (!hasInitializedPlaybackRef.current) return;
       localStorage.removeItem("currentChannelID");
     }
   }, [currentChannel]);
+
+  const currentMedia = useMemo<PlayableMedia | null>(() => {
+    if (currentEpisode) {
+      return {
+        type: "episode",
+        id: currentEpisode.id,
+        url: currentEpisode.external_audio_url,
+        title: currentEpisode.title,
+        subtitle: currentEpisode.program?.name ?? null,
+        image: currentEpisode.image_square_url ?? null,
+      };
+    }
+    if (currentChannel) {
+      return {
+        type: "channel",
+        id: currentChannel.id,
+        url: currentChannel.external_audio_url,
+        title: currentChannel.name,
+        subtitle: currentChannel.channel_type,
+        image: currentChannel.image_square_url,
+      };
+    }
+    return restoredMedia;
+  }, [currentChannel, currentEpisode, restoredMedia]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!currentMedia) {
+      localStorage.removeItem("currentMedia");
+      return;
+    }
+    localStorage.setItem("currentMedia", JSON.stringify(currentMedia));
+  }, [currentMedia]);
+
+  // currentStreamUrl is initialized from restored media if available.
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("followedPrograms", JSON.stringify(followedPrograms));
+  }, [followedPrograms]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("followedChannels", JSON.stringify(followedChannels));
+  }, [followedChannels]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const serialized = Object.fromEntries(
+      Object.entries(progressDB).map(([id, seconds]) => [id, seconds.toNumber()])
+    );
+    localStorage.setItem("progressDB", JSON.stringify(serialized));
+  }, [progressDB]);
 
   return (
     <PlayContext.Provider
@@ -200,6 +307,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         play: () => setIsPlaying(true),
         pause: () => setIsPlaying(false),
         currentStreamUrl,
+        currentMedia,
         currentProgress,
         setCurrentStreamUrl,
         setCurrentProgress,
@@ -210,6 +318,7 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         playEpisode,
         setCurrentEpisode,
         updateEpisodeProgress,
+        registerEpisode,
         episodeDB,
         isFetchingEpisodes,
         channelDB,
@@ -219,8 +328,10 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
         followedChannels,
         setFollowedChannels,
         playChannel,
+        registerChannel,
         isFetchingPrograms,
         programDB,
+        registerProgram,
         playNextEpisode,
         playPreviousEpisode,
       }}

@@ -1,4 +1,4 @@
-import { Episode, EpisodeDB, Seconds } from "@/types/types";
+import { EpisodeDB, EpisodeWithProgram, Seconds } from "@/types/types";
 
 export function episodeDBDeserializer(data: string | null): EpisodeDB {
   if (!data) return {};
@@ -10,17 +10,17 @@ export function episodeDBDeserializer(data: string | null): EpisodeDB {
       if (
         typeof episode !== "object"
         || episode === null
-        || !("publishDate" in episode)
+        || !("publish_date" in episode)
         || !("id" in episode)
       ) {
         console.warn(`Skipping invalid episode entry with id ${id}`);
         return;
       }
-      const cleanEpisode = episode as Episode;
+      const cleanEpisode = episode as EpisodeWithProgram;
 
       deserialized[cleanEpisode.id] = {
         ...cleanEpisode,
-        publishDate: new Date(cleanEpisode.publishDate),
+        publish_date: new Date(cleanEpisode.publish_date),
         duration: decodeDuration(cleanEpisode.duration),
       };
     });
@@ -32,15 +32,15 @@ export function episodeDBDeserializer(data: string | null): EpisodeDB {
   }
 }
 
-function decodeDuration(inputDuration: unknown): Seconds {
+function decodeDuration(inputDuration: unknown): number {
   if (inputDuration instanceof Seconds) {
-    return inputDuration;
+    return inputDuration.toNumber();
   }
   if (typeof inputDuration === "number") {
-    return new Seconds(inputDuration);
+    return inputDuration;
   }
   if (typeof inputDuration === "string") {
-    return new Seconds(parseFloat(inputDuration));
+    return Number.parseFloat(inputDuration);
   }
   if (
     typeof inputDuration === "object"
@@ -48,7 +48,7 @@ function decodeDuration(inputDuration: unknown): Seconds {
     && "value" in inputDuration
     && typeof inputDuration.value === "number"
   ) {
-    return new Seconds(inputDuration.value);
+    return inputDuration.value;
   }
 
   const type = typeof inputDuration;

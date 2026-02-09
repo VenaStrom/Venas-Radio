@@ -5,9 +5,6 @@ import LikeButton from "@/components/like-button";
 import SRAttribute from "@/components/sr-attribute";
 
 export default function ChannelDOM({ channel }: { channel: Channel }) {
-  const channelIdNumber = Number(channel.id);
-  const channelId = Number.isFinite(channelIdNumber) ? channelIdNumber : undefined;
-
   return (
     <li className="w-full flex flex-row h-28 items-center justify-start" id={channel.id.toString()}>
 
@@ -29,7 +26,7 @@ export default function ChannelDOM({ channel }: { channel: Channel }) {
 
           <div className="flex flex-row gap-x-4 items-center">
             <LikeButton channelID={channel.id} />
-            <PlayButton channelID={channelId} iconSize={28} />
+            <PlayButton channel={channel} iconSize={28} />
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { Channel, ChannelDB, Episode, EpisodeDB, ProgramDB, ProgressDB, Seconds } from "@/types/types";
+import { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB, Seconds } from "@/types/types";
 import { createContext } from "react";
 
 export type PlayContextType = {
@@ -7,15 +7,18 @@ export type PlayContextType = {
   pause: () => void;
 
   currentStreamUrl: string | null;
-  setCurrentStreamUrl: (url: string) => void;
+  setCurrentStreamUrl: (url: string | null) => void;
 
-  /** Number if there's a current episode or null if not and infinity if streaming  */
+  currentMedia: PlayableMedia | null;
+
+  /** Seconds if there's a current episode; null if not. */
   currentProgress: Seconds | null;
   setCurrentProgress: (elapsed: Seconds) => void;
 
-  currentEpisode: Episode | null;
-  setCurrentEpisode: (episode: Episode | null) => void;
+  currentEpisode: EpisodeWithProgram | null;
+  setCurrentEpisode: (episode: EpisodeWithProgram | null) => void;
   playEpisode: (episodeId: Episode["id"]) => void;
+  registerEpisode: (episode: EpisodeWithProgram) => void;
 
   progressDB: ProgressDB;
   updateEpisodeProgress: (episodeId: Episode["id"], elapsed: Seconds) => void;
@@ -32,12 +35,15 @@ export type PlayContextType = {
   currentChannel: Channel | null;
   setCurrentChannel: (channel: Channel | null) => void;
   playChannel: (channelId: Channel["id"]) => void;
+  registerChannel: (channel: Channel) => void;
 
-  followedPrograms: number[];
-  setFollowedPrograms: React.Dispatch<React.SetStateAction<number[]>>;
+  followedPrograms: string[];
+  setFollowedPrograms: React.Dispatch<React.SetStateAction<string[]>>;
 
-  followedChannels: number[];
-  setFollowedChannels: React.Dispatch<React.SetStateAction<number[]>>;
+  followedChannels: string[];
+  setFollowedChannels: React.Dispatch<React.SetStateAction<string[]>>;
+
+  registerProgram: (program: Program) => void;
 
   playNextEpisode: () => void;
   playPreviousEpisode: () => void;

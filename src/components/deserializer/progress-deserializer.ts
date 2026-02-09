@@ -10,12 +10,17 @@ export function progressDBDeserializer(data: string | null): ProgressDB {
     const deserialized: ProgressDB = {};
 
     Object.entries(parsed).forEach(([episodeID, progressNumber]) => {
-      if (typeof episodeID !== "string" || typeof progressNumber !== "number") {
+      const normalizedId = episodeID.toString();
+      const numericProgress = typeof progressNumber === "number"
+        ? progressNumber
+        : typeof progressNumber === "string"
+          ? Number(progressNumber)
+          : NaN;
+      if (!normalizedId || !Number.isFinite(numericProgress)) {
         console.warn(`Skipping invalid progress entry for episodeID ${episodeID}`);
         return;
       }
-      const id = parseInt(episodeID.toString()) as number;
-      deserialized[id] = Seconds.from(parseFloat(progressNumber.toString()));
+      deserialized[normalizedId] = Seconds.from(numericProgress);
     });
 
     return deserialized;

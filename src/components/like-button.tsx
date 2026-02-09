@@ -1,48 +1,44 @@
 "use client";
 
 import { HeartIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 
 export default function LikeButton({
   programID,
   channelID,
 }: {
-  programID?: number | string;
-  channelID?: number | string;
+  programID?: string;
+  channelID?: string;
 }
 ) {
-  programID = typeof programID === "string" ? parseInt(programID) : programID;
-  channelID = typeof channelID === "string" ? parseInt(channelID) : channelID;
+  const normalizedProgramId = typeof programID !== "undefined" ? programID.toString() : undefined;
+  const normalizedChannelId = typeof channelID !== "undefined" ? channelID.toString() : undefined;
 
   const { followedPrograms, setFollowedPrograms, followedChannels, setFollowedChannels } = usePlayContext();
   const liked = useMemo(() => {
-    return programID ? followedPrograms.includes(programID) || false :
-      channelID ? followedChannels.includes(channelID) || false :
+    return normalizedProgramId ? followedPrograms.includes(normalizedProgramId) || false :
+      normalizedChannelId ? followedChannels.includes(normalizedChannelId) || false :
         false;
-  }, [programID, channelID, followedPrograms, followedChannels]);
-
-  const [highlighted, setHighlighted] = useState(liked); // Local UI state for immediate feedback
-  useEffect(() => setHighlighted(liked), [liked]); // Keep local state in sync with global state
+  }, [normalizedProgramId, normalizedChannelId, followedPrograms, followedChannels]);
 
   // Save state
   const toggleLike = () => {
     const isNowLiked = !liked;
-    setHighlighted(isNowLiked);
 
-    if (programID) {
-      setFollowedPrograms(prev => {
-        const newSet = new Set<number>(prev);
-        if (isNowLiked) newSet.add(programID);
-        else newSet.delete(programID);
+    if (normalizedProgramId) {
+      setFollowedPrograms((prev) => {
+        const newSet = new Set<string>(prev);
+        if (isNowLiked) newSet.add(normalizedProgramId);
+        else newSet.delete(normalizedProgramId);
         return Array.from(newSet);
       });
     }
-    else if (channelID) {
-      setFollowedChannels(prev => {
-        const newSet = new Set<number>(prev);
-        if (isNowLiked) newSet.add(channelID);
-        else newSet.delete(channelID);
+    else if (normalizedChannelId) {
+      setFollowedChannels((prev) => {
+        const newSet = new Set<string>(prev);
+        if (isNowLiked) newSet.add(normalizedChannelId);
+        else newSet.delete(normalizedChannelId);
         return Array.from(newSet);
       });
     }
@@ -51,7 +47,7 @@ export default function LikeButton({
   return (
     <button className="size-min">
       <HeartIcon
-        className={highlighted ? "fill-[red] text-[red]" : "none"}
+        className={liked ? "fill-[red] text-[red]" : "none"}
         size={28}
         onClick={toggleLike}
       />

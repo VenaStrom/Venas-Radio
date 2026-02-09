@@ -4,12 +4,12 @@ import Image from "next/image";
 import PlayButton, { PlayButtonSkeleton } from "@/components/play-button";
 import ProgressBar from "@/components/progress-bar";
 import SRAttribute from "@/components/sr-attribute";
-import { Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import { EpisodeWithProgram, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useMemo } from "react";
 import { getLocaleTime, getRelativeTimeString } from "@/lib/time-format";
 
-export default function EpisodeDOM({ episode }: { episode: Episode; }) {
+export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }) {
   const { progressDB } = usePlayContext();
 
   const progress = useMemo(() => {
@@ -20,9 +20,13 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
   const remaining: Timestamp = useMemo(() => progress.remainingTimestamp(), [progress]);
   const percent: number = useMemo(() => progress.elapsedPercentage, [progress]);
 
+  const publishDate = useMemo(() => (
+    episode.publish_date instanceof Date ? episode.publish_date : new Date(episode.publish_date)
+  ), [episode.publish_date]);
+
   // Date and time formatting
-  const formattedDate = useMemo(() => getRelativeTimeString(episode.publishDate), [episode.publishDate]);
-  const formattedTime = useMemo(() => getLocaleTime(episode.publishDate), [episode.publishDate]);
+  const formattedDate = useMemo(() => getRelativeTimeString(publishDate), [publishDate]);
+  const formattedTime = useMemo(() => getLocaleTime(publishDate), [publishDate]);
 
   const remainingTime = useMemo<React.ReactNode>(() => {
     const isUnlistened = percent === 0;
@@ -55,7 +59,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
         className="bg-zinc-600 rounded-md"
         src={""}
         overrideSrc={(() => {
-          const url = new URL(episode.image.wide);
+          const url = new URL(episode.image_wide_url);
           url.searchParams.set("w", "256");
           url.searchParams.set("h", "144");
           return url.toString();
@@ -66,7 +70,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
 
       {/* Header Text */}
       <div className="col-start-2">
-        <p className="text-sm font-light overflow-hidden">{episode.program.name}</p>
+        <p className="text-sm font-light overflow-hidden">{episode.program?.name ?? "Okand"}</p>
         <p className="text-sm font-bold overflow-hidden">{episode.title}</p>
       </div>
 
@@ -84,7 +88,7 @@ export default function EpisodeDOM({ episode }: { episode: Episode; }) {
           {remainingTime}
         </p>
 
-        <PlayButton episodeID={episode.id} />
+        <PlayButton episode={episode} />
       </div>
     </li>
   );

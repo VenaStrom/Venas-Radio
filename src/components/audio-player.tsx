@@ -3,7 +3,7 @@
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AudioPlayerMedia, Episode, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import { EpisodeWithProgram, PlayableMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useDebounce } from "use-debounce";
 
@@ -14,7 +14,7 @@ export default function AudioControls({ className }: { className?: string }) {
     pause,
     currentStreamUrl,
     currentEpisode,
-    currentChannel,
+    currentMedia,
     progressDB,
     episodeDB,
     currentProgress,
@@ -23,45 +23,15 @@ export default function AudioControls({ className }: { className?: string }) {
     playPreviousEpisode,
   } = usePlayContext();
 
-  // Normalized media that abstracts episode and channel to the audio player
-  const currentMedia: AudioPlayerMedia | null = useMemo(() => {
-    if (!currentChannel && !currentEpisode) return null;
-
-    const type = currentChannel ? "channel" : currentEpisode ? "episode" : null;
-    if (!type) return null;
-
-    if (type === "episode" && currentEpisode) {
-      const normalizedMedia: AudioPlayerMedia = {
-        type,
-        episodeID: currentEpisode?.id,
-        url: currentEpisode?.url,
-        title: currentEpisode?.title,
-        subtitle: currentEpisode?.program.name,
-        image: currentEpisode?.image.square,
-      };
-      return normalizedMedia;
-    }
-    if (type === "channel" && currentChannel) {
-      const normalizedMedia: AudioPlayerMedia = {
-        type,
-        channelID: currentChannel?.id,
-        url: currentChannel?.url,
-        title: currentChannel?.name,
-        subtitle: currentChannel.channelType,
-        image: currentChannel?.image.square,
-      };
-      return normalizedMedia;
-    }
-    return null;
-  }, [currentChannel, currentEpisode]);
+  const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
 
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
-    if (currentMedia?.type === "episode" && currentEpisode) {
+    if (resolvedMedia?.type === "episode" && currentEpisode) {
       return new PlaybackProgress(currentEpisode.duration, currentProgress ?? Seconds.from(0));
     }
     return null;
-  }, [currentMedia?.type, currentEpisode, currentProgress]);
+  }, [resolvedMedia?.type, currentEpisode, currentProgress]);
 
   // Derived progress values
   const duration: Timestamp | null = useMemo(() => progress ? progress.durationTimestamp() : null, [progress]);
@@ -93,25 +63,25 @@ export default function AudioControls({ className }: { className?: string }) {
   // Compute sorted episodes from episodeDB to know which to preload
   const sortedEpisodes = useMemo(() => {
     const vals = Object.values(episodeDB || {});
-    return vals.sort((a: Episode, b: Episode) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
+    return vals.sort((a: EpisodeWithProgram, b: EpisodeWithProgram) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
   }, [episodeDB]);
 
   // Helper: preload next N episodes given currentEpisode
   useEffect(() => {
     if (!currentEpisode || !sortedEpisodes || sortedEpisodes.length === 0) return;
 
-    const currentIndex = sortedEpisodes.findIndex((ep: Episode) => ep.id === currentEpisode.id);
+    const currentIndex = sortedEpisodes.findIndex((ep: EpisodeWithProgram) => ep.id === currentEpisode.id);
     if (currentIndex === -1) return;
 
     const audioPreloadEls = preloadPoolRef.current;
     let poolIdx = 0;
     for (let i = currentIndex + 1; i <= Math.min(sortedEpisodes.length - 1, currentIndex + PRELOAD_COUNT); i++) {
       const ep = sortedEpisodes[i];
-      if (!ep || !ep.url) continue;
+      if (!ep || !ep.external_audio_url) continue;
       const preloadEl = audioPreloadEls[poolIdx++];
       // Only set src if different to avoid needless reloads
-      if (preloadEl && preloadEl.src !== ep.url) {
-        preloadEl.src = ep.url;
+      if (preloadEl && preloadEl.src !== ep.external_audio_url) {
+        preloadEl.src = ep.external_audio_url;
         preloadEl.preload = "auto";
         try { preloadEl.load(); } catch { /* Silent */ }
       }
@@ -160,18 +130,18 @@ export default function AudioControls({ className }: { className?: string }) {
   }, []);
 
   // Resume playback position
-  const lastResumedEpisodeIdRef = useRef<number | null>(null);
+  const lastResumedEpisodeIdRef = useRef<string | null>(null);
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
-    if (currentMedia?.type !== "episode" || !currentEpisode) return;
+    if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
 
     const episodeId = currentEpisode.id;
     if (lastResumedEpisodeIdRef.current === episodeId) return; // Already applied
 
     const saved = progressDB[episodeId];
-    const durationRounded = currentEpisode.duration.toNumber().toFixed(0);
-    const progressRounded = saved ? Math.min(currentEpisode.duration.toNumber(), saved.toNumber()).toFixed(0) : null;
+    const durationRounded = currentEpisode.duration.toFixed(0);
+    const progressRounded = saved ? Math.min(currentEpisode.duration, saved.toNumber()).toFixed(0) : null;
     if (saved && progressRounded === durationRounded) {
       // Explicitly playing a finished episode, start from beginning
       audioEl.currentTime = 0;
@@ -184,19 +154,19 @@ export default function AudioControls({ className }: { className?: string }) {
 
     // I don't want progressDB to be a dependency here
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMedia?.type, currentEpisode]);
+  }, [resolvedMedia?.type, currentEpisode]);
 
 
   // Drag to seek handling
   const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
   const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (currentMedia?.type === "channel") return; // No seeking for live channels
+    if (resolvedMedia?.type === "channel") return; // No seeking for live channels
     setDraggedProgress(parseFloat(event.target.value));
   };
   const onProgressDragEnd = () => {
     if (
       draggedProgress === null
-      || currentMedia?.type !== "episode"
+      || resolvedMedia?.type !== "episode"
       || !currentEpisode
       || !isReady
     ) {
@@ -212,7 +182,7 @@ export default function AudioControls({ className }: { className?: string }) {
     }
 
     const newElapsed = Seconds.from(
-      Math.round((draggedProgress / 100) * currentEpisode.duration.toNumber())
+      Math.round((draggedProgress / 100) * currentEpisode.duration)
     );
 
     audioEl.currentTime = newElapsed.toNumber();
@@ -237,7 +207,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const onTimeUpdate = () => {
       if (
-        currentMedia?.type !== "episode"
+        resolvedMedia?.type !== "episode"
         || !currentEpisode
         || draggedProgress !== null
       ) return;
@@ -249,7 +219,7 @@ export default function AudioControls({ className }: { className?: string }) {
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentEpisode, currentMedia?.type, draggedProgress, setCurrentProgress]);
+  }, [currentEpisode, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
 
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];
@@ -374,7 +344,7 @@ export default function AudioControls({ className }: { className?: string }) {
     // Metadata
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentMedia.title,
-      artist: currentMedia.subtitle,
+      artist: currentMedia.subtitle ?? undefined,
       album: currentMedia.type === "episode" ? "Podcastavsnitt" : "Radiokanal",
       artwork: currentMedia.image ? [
         { src: currentMedia.image, sizes: "512x512", type: "image/png" },
