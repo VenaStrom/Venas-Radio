@@ -1,6 +1,6 @@
 "use client";
 
-import ProgramDOM from "@/components/program-dom";
+import { ProgramDOM } from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
 import { Program } from "@/prisma/client/client";
 import { useEffect, useMemo, useState } from "react";
@@ -90,9 +90,8 @@ export function ProgramList({
   return (
     <ul
       className={`
-        flex-1 w-full
+        flex-1 min-h-0 w-full
         overflow-y-auto
-        h-full
         flex flex-col
         gap-y-12
         pt-4 px-6 last:pb-10
@@ -102,6 +101,7 @@ export function ProgramList({
       {programIds.map((id) => {
         const program = mergedProgramMap[id];
         return program ? <ProgramDOM key={id} program={program} /> : <ProgramDOM.Skeleton key={id} />;
+        return <ProgramDOM.Skeleton key={id} />;
       })}
     </ul>
   );

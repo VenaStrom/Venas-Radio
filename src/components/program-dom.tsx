@@ -3,7 +3,7 @@ import Image from "next/image";
 import LikeButton from "@/components/like-button";
 import { Program } from "@/prisma/client/client";
 
-export default function ProgramDOM({ program, }: { program: Program, }) {
+export function ProgramDOM({ program, }: { program: Program, }) {
   return (
     <li className="grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3">
       {/* SR Attribute */}
@@ -39,7 +39,7 @@ export default function ProgramDOM({ program, }: { program: Program, }) {
 
 function Skeleton() {
   return (
-    <li className="grid grid-cols-[96px_1fr] grid-rows-[min_96px_min_min] gap-y-2 gap-x-3">
+    <li className="grid grid-cols-[96px_1fr] grid-rows-[min_96px_min_min] gap-y-2">
       {/* SR Attribute */}
       <div className="col-span-2 h-5"></div>
 
@@ -47,17 +47,17 @@ function Skeleton() {
       <div className="bg-zinc-600 rounded-md size-20.5 animate-pulse"></div>
 
       {/* Header Text */}
-      <div className="col-start-2 grid grid-cols-[1fr_auto] gap-x-2 gap-y-1">
+      <div className="col-start-2 grid grid-cols-[1fr_auto] gap-x-1 gap-y-1 pt-2">
         {/* Program name */}
         <div className="bg-zinc-600 rounded-md col-start-1 h-5 animate-pulse"></div>
 
         {/* Other info */}
-        <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div>
-        <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div>
+        {/* <div className="bg-zinc-600 rounded-md col-start-1 h-3 animate-pulse"></div> */}
       </div>
 
       {/* Description */}
-      <div className="col-span-2 h-10 text-s pt-1 font-normal overflow-hidden animate-pulse"></div>
+        <div className="bg-zinc-600 rounded-md col-start-1 col-end-3 h-10 animate-pulse pt-1"></div>
+      {/* <div className="col-span-2 h-10 text-s pt-1 font-normal overflow-hidden animate-pulse"></div> */}
     </li>
   );
 };
