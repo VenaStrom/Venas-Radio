@@ -441,7 +441,7 @@ export default function AudioControls({ className }: { className?: string }) {
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
           <p className="font-light text-sm">{hasMounted ? currentMedia?.subtitle : ""}</p>
-          <p className="font-bold max-h-12 overflow-hidden text-ellipsis whitespace-break-spaces">
+          <p className="font-bold max-h-10 overflow-hidden wrap-break-word leading-tight">
             {hasMounted ? (currentMedia?.title || "Spelar inget") : "Spelar inget"}
           </p>
           {error && (

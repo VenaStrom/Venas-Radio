@@ -46,7 +46,7 @@ async function PlayProviderWithCookies({ children }: { children: React.ReactNode
       <MigrationHandler />
       {children}
 
-      <footer className="bg-zinc-950 flex flex-col self-end items-center">
+      <footer className="bg-zinc-950 flex flex-col self-end items-center h-(--app-footer-h) shrink-0">
         {/* Audio Controls */}
         <AudioControls />
 
@@ -89,7 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <MigrationHandler />
             {children}
 
-            <footer className="bg-zinc-950 flex flex-col self-end items-center">
+            <footer className="bg-zinc-950 flex flex-col self-end items-center h-(--app-footer-h) shrink-0">
               {/* Audio Controls */}
               <AudioControls />
 
