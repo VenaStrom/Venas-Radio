@@ -6,11 +6,17 @@ import ProgressBar from "@/components/progress-bar";
 import SRAttribute from "@/components/sr-attribute";
 import { EpisodeWithProgram, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { getLocaleTime, getRelativeTimeString } from "@/lib/time-format";
 
 export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }) {
   const { progressDB } = usePlayContext();
+
+  const hasMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const progress = useMemo(() => {
     return new PlaybackProgress(episode.duration, progressDB[episode.id] || Seconds.from(0));
@@ -28,14 +34,15 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
   const formattedDate = useMemo(() => getRelativeTimeString(publishDate), [publishDate]);
   const formattedTime = useMemo(() => getLocaleTime(publishDate), [publishDate]);
 
+  const formattedDuration = useMemo(() => duration.toFormattedString(
+    duration.minutes.toNumber() == 0
+      ? { minuteUnit: "hide" }
+      : { secondUnit: "hide" }
+  ), [duration]);
+
   const remainingTime = useMemo<React.ReactNode>(() => {
     const isUnlistened = percent === 0;
     const isListened = remaining.totalSeconds.toNumber() <= 0;
-    const formattedDuration = duration.toFormattedString(
-      duration.minutes.toNumber() == 0
-        ? { minuteUnit: "hide" }
-        : { secondUnit: "hide" }
-    );
     const formattedRemaining = remaining.toFormattedString(
       remaining.minutes.toNumber() == 0
         ? { minuteUnit: "hide" }
@@ -45,7 +52,12 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
     if (isUnlistened) return <>{formattedDuration}</>;
     if (isListened) return <>{formattedDuration}&nbsp;&nbsp;&middot;&nbsp;&nbsp;Lyssnad</>
     return <>{formattedRemaining} kvar</>
-  }, [duration, percent, remaining]);
+  }, [formattedDuration, percent, remaining]);
+
+  const displayPercent = hasMounted ? percent : 0;
+  const displayDate = hasMounted ? formattedDate : "";
+  const displayTime = hasMounted ? formattedTime : "";
+  const displayRemainingTime = hasMounted ? remainingTime : <>{formattedDuration}</>;
 
   return (
     <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>
@@ -72,14 +84,14 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
       <p className="text-xs pt-1 font-normal overflow-hidden col-span-2">{episode.description}</p>
 
       {/* Progress Bar */}
-      <ProgressBar progress={percent} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
+      <ProgressBar progress={displayPercent} className="col-span-2 rounded-sm" innerClassName="rounded-sm" />
 
       {/* Metadata */}
       <div className="col-span-2 flex flex-row justify-between items-center">
         <p className="text-xs text-zinc-400 mb-1">
-          {formattedDate} {formattedTime}
+          {displayDate} {displayTime}
           &nbsp;&nbsp;&middot;&nbsp;&nbsp;
-          {remainingTime}
+          {displayRemainingTime}
         </p>
 
         <PlayButton episode={episode} />

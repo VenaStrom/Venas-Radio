@@ -26,6 +26,11 @@ export default function AudioControls({ className }: { className?: string }) {
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
 
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
     if (resolvedMedia?.type === "episode" && currentEpisode) {
@@ -435,9 +440,9 @@ export default function AudioControls({ className }: { className?: string }) {
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
-          <p className="font-light text-sm">{currentMedia?.subtitle}</p>
+          <p className="font-light text-sm">{hasMounted ? currentMedia?.subtitle : ""}</p>
           <p className="font-bold max-h-12 overflow-hidden text-ellipsis whitespace-break-spaces">
-            {currentMedia?.title || "Spelar inget"}
+            {hasMounted ? (currentMedia?.title || "Spelar inget") : "Spelar inget"}
           </p>
           {error && (
             <p className="text-xs text-red-400 mt-1">{error}</p>
@@ -448,12 +453,14 @@ export default function AudioControls({ className }: { className?: string }) {
         </div>
 
         <p className="text-sm text-zinc-400 whitespace-nowrap">
-          {currentMedia?.type === "channel"
-            ? "Live •"
-            : !elapsed || !duration
-              ? "--:-- / --:--"
-              : `${elapsed.toString()} / ${duration.toString()}`
-          }
+          {hasMounted
+            ? (currentMedia?.type === "channel"
+              ? "Live •"
+              : !elapsed || !duration
+                ? "--:-- / --:--"
+                : `${elapsed.toString()} / ${duration.toString()}`
+            )
+            : "--:-- / --:--"}
         </p>
 
         <PlayButton iconSize={30} />
