@@ -114,8 +114,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [restoredMedia] = useState<PlayableMedia | null>(initialMedia.restoredMedia);
   const pendingMediaRef = useRef<PendingMedia>(initialMedia.pending);
 
-  const [followedPrograms, setFollowedPrograms] = useState<string[]>(() => readStoredIdList("followedPrograms"));
-  const [followedChannels, setFollowedChannels] = useState<string[]>(() => readStoredIdList("followedChannels"));
+  const [followedPrograms, setFollowedPrograms] = useState<string[]>([]);
+  const [followedChannels, setFollowedChannels] = useState<string[]>([]);
 
   const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
@@ -323,6 +323,12 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   }, [currentMedia]);
 
   // currentStreamUrl is initialized from restored media if available.
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setFollowedPrograms(readStoredIdList("followedPrograms"));
+    setFollowedChannels(readStoredIdList("followedChannels"));
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
