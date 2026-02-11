@@ -64,7 +64,7 @@ function ChannelListSkeleton() {
       className="flex-1 min-h-0 w-full flex flex-col gap-y-4 pt-4 last:pb-10"
     >
       {new Array(10).fill(0).map((_, i) => (
-          <ChannelDOM.Skeleton key={i} />
+        <ChannelDOM.Skeleton key={i} />
       ))}
     </ul>
   );

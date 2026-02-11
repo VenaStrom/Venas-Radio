@@ -1,7 +1,7 @@
 import "@/app/global.tw.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nunito_Sans, Geist, Geist_Mono } from "next/font/google";
-import { HomeIcon, SearchIcon, HeartIcon, AudioLinesIcon } from "lucide-react";
+import { HeartIcon, AudioLinesIcon, RadioIcon, NewspaperIcon } from "lucide-react";
 import Link from "next/link";
 import AudioControls from "@/components/audio-player";
 import { PlayProvider } from "@/components/play-context/play-context-provider";
@@ -42,11 +42,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Navigation Buttons */}
             <nav className="w-2/3 flex flex-row justify-between items-center py-3">
               <Link href={"/"}>
-                <HomeIcon size={44} />
+                <RadioIcon size={44} />
               </Link>
 
               <Link href={"/search"}>
-                <SearchIcon size={44} />
+                <NewspaperIcon size={40} />
               </Link>
 
               <Link href={"/feed"}>
