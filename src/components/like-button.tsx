@@ -12,33 +12,38 @@ export default function LikeButton({
   channelID?: string;
 }
 ) {
-  const normalizedProgramId = typeof programID !== "undefined" ? programID.toString() : undefined;
-  const normalizedChannelId = typeof channelID !== "undefined" ? channelID.toString() : undefined;
+  const {
+    followedPrograms,
+    setFollowedPrograms,
+    followedChannels,
+    setFollowedChannels,
+  } = usePlayContext();
 
-  const { followedPrograms, setFollowedPrograms, followedChannels, setFollowedChannels } = usePlayContext();
-  const liked = useMemo(() => {
-    return normalizedProgramId ? followedPrograms.includes(normalizedProgramId) || false :
-      normalizedChannelId ? followedChannels.includes(normalizedChannelId) || false :
-        false;
-  }, [normalizedProgramId, normalizedChannelId, followedPrograms, followedChannels]);
+  const isLiked = useMemo(() => {
+    return programID
+      ? followedPrograms.includes(programID) ?? false
+      : channelID
+        ? followedChannels.includes(channelID) ?? false
+        : false;
+  }, [programID, channelID, followedPrograms, followedChannels]);
 
   // Save state
   const toggleLike = () => {
-    const isNowLiked = !liked;
+    const isNowLiked = !isLiked;
 
-    if (normalizedProgramId) {
+    if (programID) {
       setFollowedPrograms((prev) => {
         const newSet = new Set<string>(prev);
-        if (isNowLiked) newSet.add(normalizedProgramId);
-        else newSet.delete(normalizedProgramId);
+        if (isNowLiked) newSet.add(programID);
+        else newSet.delete(programID);
         return Array.from(newSet);
       });
     }
-    else if (normalizedChannelId) {
+    else if (channelID) {
       setFollowedChannels((prev) => {
         const newSet = new Set<string>(prev);
-        if (isNowLiked) newSet.add(normalizedChannelId);
-        else newSet.delete(normalizedChannelId);
+        if (isNowLiked) newSet.add(channelID);
+        else newSet.delete(channelID);
         return Array.from(newSet);
       });
     }
@@ -47,7 +52,7 @@ export default function LikeButton({
   return (
     <button className="size-min">
       <HeartIcon
-        className={liked ? "fill-[red] text-[red]" : "none"}
+        className={isLiked ? "fill-[red] text-[red]" : "none"}
         size={28}
         onClick={toggleLike}
       />
