@@ -4,6 +4,23 @@ import ProgramDOM from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
 import { Program } from "@prisma/client";
 import { useEffect, useMemo, useState } from "react";
+import { usePlayContext } from "@/components/play-context/play-context-use";
+
+function orderProgramsByFavorites(programIds: string[], favoriteIds: Set<string>): string[] {
+  if (favoriteIds.size === 0) return programIds;
+
+  const favorites: string[] = [];
+  const others: string[] = [];
+  for (const id of programIds) {
+    if (favoriteIds.has(id)) {
+      favorites.push(id);
+    } else {
+      others.push(id);
+    }
+  }
+
+  return favorites.concat(others);
+}
 
 export function ProgramList({
   initialPrograms,
@@ -14,14 +31,18 @@ export function ProgramList({
   batchSize?: number;
   programIds: string[];
 }) {
+  const { followedPrograms } = usePlayContext();
   const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms || []).map((p) => [p.id, p])));
+  const orderedProgramIds = useMemo(() => {
+    return orderProgramsByFavorites(programIds, new Set(followedPrograms));
+  }, [programIds, followedPrograms]);
   const idBatches = useMemo(() => {
-    return programIds.reduce<string[][]>((batches, id, index) => {
+    return orderedProgramIds.reduce<string[][]>((batches, id, index) => {
       if (index % batchSize === 0) batches.push([]);
       batches[batches.length - 1].push(id);
       return batches;
     }, []);
-  }, [programIds, batchSize]);
+  }, [orderedProgramIds, batchSize]);
   const [activatedBatches, setActivatedBatches] = useState<Set<number>>(new Set());
 
   const mergedProgramMap = useMemo(() => {
@@ -35,7 +56,7 @@ export function ProgramList({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActivatedBatches(new Set());
-  }, [programIds]);
+  }, [orderedProgramIds]);
 
   const fetchPrograms = async (ids: string[]) => {
     const newPrograms = await getProgramsByIds(ids);
@@ -55,7 +76,7 @@ export function ProgramList({
   // Load on scroll
   const handleScroll = (e: React.UIEvent<HTMLUListElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const perProgramHeight = scrollHeight / programIds.length;
+    const perProgramHeight = scrollHeight / orderedProgramIds.length;
     const loadedProgramsCount = Array.from(activatedBatches).reduce((sum, index) => {
       const batch = idBatches[index];
       return batch ? sum + batch.length : sum;
@@ -98,7 +119,7 @@ export function ProgramList({
       `}
       onScroll={handleScroll}
     >
-      {programIds.map((id) => {
+      {orderedProgramIds.map((id) => {
         const program = mergedProgramMap[id];
         return program ? <ProgramDOM key={id} program={program} /> : <ProgramDOM.Skeleton key={id} />;
         return <ProgramDOM.Skeleton key={id} />;

@@ -14,9 +14,10 @@ const programSearchKeys: { name: keyof Program; weight: number }[] = [
 type GetProgramsOptions = {
   search?: string;
   userId?: string | null;
+  preferredIds?: string[];
 };
 
-export async function getPrograms({ search, userId }: GetProgramsOptions = {}) {
+export async function getPrograms({ search, userId, preferredIds }: GetProgramsOptions = {}) {
   "use cache";
   cacheTag("programs");
 
@@ -26,7 +27,8 @@ export async function getPrograms({ search, userId }: GetProgramsOptions = {}) {
   });
 
   const normalizedUserId = userId?.trim();
-  let favoriteProgramIds: Set<string> | null = null;
+  const preferred = (preferredIds || []).map((id) => id.trim()).filter(Boolean);
+  let favoriteProgramIds: Set<string> | null = preferred.length > 0 ? new Set(preferred) : null;
   if (normalizedUserId) {
     const user = await prisma.user.findUnique({
       where: { id: normalizedUserId },
@@ -34,7 +36,10 @@ export async function getPrograms({ search, userId }: GetProgramsOptions = {}) {
     });
 
     if (user?.favorite_programs?.length) {
-      favoriteProgramIds = new Set(user.favorite_programs.map((program) => program.id));
+      favoriteProgramIds = new Set([
+        ...(favoriteProgramIds ? Array.from(favoriteProgramIds) : []),
+        ...user.favorite_programs.map((program) => program.id),
+      ]);
     }
   }
 

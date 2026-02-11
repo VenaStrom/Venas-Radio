@@ -92,7 +92,33 @@ function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: Pend
   return { restoredMedia: null, pending: null };
 }
 
-export function PlayProvider({ children }: { children: ReactNode; }) {
+const likedIdsCookieLimit = 50;
+
+function writeLikedProgramsCookie(programIds: string[]) {
+  if (typeof document === "undefined") return;
+  const trimmed = programIds.map((id) => id.trim()).filter(Boolean).slice(0, likedIdsCookieLimit);
+  const encoded = encodeURIComponent(JSON.stringify(trimmed));
+  const maxAgeSeconds = 60 * 60 * 24 * 30;
+  document.cookie = `likedPrograms=${encoded}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;
+}
+
+function writeLikedChannelsCookie(channelIds: string[]) {
+  if (typeof document === "undefined") return;
+  const trimmed = channelIds.map((id) => id.trim()).filter(Boolean).slice(0, likedIdsCookieLimit);
+  const encoded = encodeURIComponent(JSON.stringify(trimmed));
+  const maxAgeSeconds = 60 * 60 * 24 * 30;
+  document.cookie = `likedChannels=${encoded}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;
+}
+
+export function PlayProvider({
+  children,
+  initialFollowedPrograms = [],
+  initialFollowedChannels = [],
+}: {
+  children: ReactNode;
+  initialFollowedPrograms?: string[];
+  initialFollowedChannels?: string[];
+}) {
   const { isLoaded, isSignedIn } = useUser();
   const [isFetchingEpisodes, _setIsFetchingEpisodes] = useState(true);
   const [isFetchingChannels, _setIsFetchingChannels] = useState(true);
@@ -114,8 +140,8 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
   const [restoredMedia] = useState<PlayableMedia | null>(initialMedia.restoredMedia);
   const pendingMediaRef = useRef<PendingMedia>(initialMedia.pending);
 
-  const [followedPrograms, setFollowedPrograms] = useState<string[]>([]);
-  const [followedChannels, setFollowedChannels] = useState<string[]>([]);
+  const [followedPrograms, setFollowedPrograms] = useState<string[]>(initialFollowedPrograms);
+  const [followedChannels, setFollowedChannels] = useState<string[]>(initialFollowedChannels);
 
   const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
@@ -326,18 +352,26 @@ export function PlayProvider({ children }: { children: ReactNode; }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setFollowedPrograms(readStoredIdList("followedPrograms"));
-    setFollowedChannels(readStoredIdList("followedChannels"));
+    const storedPrograms = readStoredIdList("followedPrograms");
+    const storedChannels = readStoredIdList("followedChannels");
+    if (storedPrograms.length > 0) {
+      setFollowedPrograms((prev) => Array.from(new Set([...prev, ...storedPrograms])));
+    }
+    if (storedChannels.length > 0) {
+      setFollowedChannels((prev) => Array.from(new Set([...prev, ...storedChannels])));
+    }
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem("followedPrograms", JSON.stringify(followedPrograms));
+    writeLikedProgramsCookie(followedPrograms);
   }, [followedPrograms]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem("followedChannels", JSON.stringify(followedChannels));
+    writeLikedChannelsCookie(followedChannels);
   }, [followedChannels]);
 
   useEffect(() => {

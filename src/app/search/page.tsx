@@ -4,6 +4,22 @@ import SearchInput from "@/app/search/search-input";
 import { Suspense } from "react";
 import ProgramDOM from "@/components/program-dom";
 import { auth } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
+
+const likedProgramsCookieKey = "likedPrograms";
+const likedProgramsCookieLimit = 50;
+
+async function readLikedProgramsFromCookie(): Promise<string[]> {
+  const store = await cookies();
+  const raw = store.get(likedProgramsCookieKey)?.value;
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw)) as string[] | number[];
+    return parsed.map((id) => id.toString()).filter(Boolean).slice(0, likedProgramsCookieLimit);
+  } catch {
+    return [];
+  }
+}
 
 type SearchPageProps = {
   searchParams?: Promise<{
@@ -23,7 +39,8 @@ async function SearchPageContent({ searchParams }: SearchPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const searchQuery = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q : "";
   const { userId } = await auth();
-  const programs = await getPrograms({ search: searchQuery, userId });
+  const preferredIds = await readLikedProgramsFromCookie();
+  const programs = await getPrograms({ search: searchQuery, userId, preferredIds });
 
   return (
     <main className="p-0 overflow-y-hidden flex flex-col">
