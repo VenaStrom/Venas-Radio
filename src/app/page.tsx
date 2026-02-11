@@ -1,4 +1,5 @@
 import ChannelDOM from "@/components/channel-dom";
+import ChannelList from "@/components/channel-list";
 import { getChannels } from "@/functions/fetchers/get-channels";
 import SearchInput from "@/app/search/search-input";
 import Link from "next/link";
@@ -49,11 +50,7 @@ async function ChannelsContent({ searchParams }: HomePageProps) {
           placeholder="Sök kanal..."
         />
       </div>
-      <ul className="w-full flex flex-col gap-y-4 pt-4 last:pb-10">
-        {channels.map((channel) => (
-          <ChannelDOM channel={channel} key={channel.id} />
-        ))}
-      </ul>
+      <ChannelList channels={channels} />
     </>
   );
 }
