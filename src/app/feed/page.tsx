@@ -4,7 +4,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import EpisodeDOM, { EpisodeSkeleton } from "@/components/episode-dom";
+import EpisodeDOM from "@/components/episode-dom";
+import EpisodeDOMSkeleton from "@/components/episode-dom-skeleton";
 import { getEpisodes } from "@/functions/fetchers/get-episodes";
 import type { EpisodeWithProgram } from "@/types/types";
 import FeedRefreshButton from "@/app/feed/feed-refresh-button";
@@ -181,7 +182,7 @@ function FeedSkeleton() {
     <main className="p-0 overflow-y-hidden flex flex-col">
       <ul className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col gap-y-8 pt-4 px-6 last:pb-10">
         {new Array(8).fill(0).map((_, i) => (
-          <EpisodeSkeleton key={i} />
+          <EpisodeDOMSkeleton key={i} />
         ))}
       </ul>
     </main>
