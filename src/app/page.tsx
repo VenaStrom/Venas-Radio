@@ -3,6 +3,7 @@ import { getChannels } from "@/functions/fetchers/get-channels";
 import SearchInput from "@/app/search/search-input";
 import Link from "next/link";
 import { Suspense } from "react";
+import { auth } from "@clerk/nextjs/server";
 
 type HomePageProps = {
   searchParams?: Promise<{
@@ -37,7 +38,8 @@ export default function HomePage({ searchParams }: HomePageProps) {
 async function ChannelsContent({ searchParams }: HomePageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const searchQuery = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q : "";
-  const channels = await getChannels({ search: searchQuery });
+  const { userId } = await auth();
+  const channels = await getChannels({ search: searchQuery, userId });
 
   return (
     <>
