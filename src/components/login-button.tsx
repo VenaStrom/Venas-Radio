@@ -45,26 +45,17 @@ export function LoginButton() {
         </SignedOut>
 
         <SignedIn>
-          <button
-            className={`
-              flex flex-row  justify-center items-center 
-              gap-x-2 
-              bg-zinc-700 hover:bg-zinc-600
-              rounded-lg px-3 py-1.5
-              cursor-pointer
-            `}
-          >
-            <UserButton
-              fallback={<LoggedInSkeleton />}
-              appearance={{
-                layout: { shimmer: false },
-                elements: {
-                  userButtonBox: `!me-0`,
-                }
-              }}
-            />
-            Inloggad
-          </button>
+          <UserButton
+            fallback={<LoggedInSkeleton />}
+            showName={true}
+            appearance={{
+              layout: { shimmer: false, },
+              elements: {
+                userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0, },
+                avatarBox: { marginRight: 0 }
+              }
+            }}
+          />
         </SignedIn>
       </Suspense>
     </div>
