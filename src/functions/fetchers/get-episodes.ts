@@ -15,14 +15,27 @@ const episodeSearchKeys: Array<FuseOptionKey<EpisodeWithProgram>> | { name: keyo
 type GetEpisodesOptions = {
   search?: string;
   programId?: string;
+  programIds?: string[];
 };
 
-export async function getEpisodes({ search, programId }: GetEpisodesOptions = {}) {
+export async function getEpisodes({ search, programId, programIds }: GetEpisodesOptions = {}) {
   "use cache";
   cacheTag("episodes");
 
+  const normalizedProgramIds = [
+    ...(programId ? [programId] : []),
+    ...(programIds || []),
+  ]
+    .map((id) => id?.toString().trim())
+    .filter((id): id is string => Boolean(id));
+  const programFilter = normalizedProgramIds.length > 0 ? Array.from(new Set(normalizedProgramIds)) : [];
+
   const episodes = await prisma.episode.findMany({
-    where: programId ? { program_id: programId } : undefined,
+    ...(
+      programFilter.length > 0
+        ? { where: { program_id: { in: programFilter } } }
+        : {}
+    ),
     include: { program: { select: { id: true, name: true } } },
     orderBy: { publish_date: "desc" },
   });
