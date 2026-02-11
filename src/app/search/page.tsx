@@ -3,6 +3,7 @@ import { ProgramList } from "@/app/search/program-list";
 import SearchInput from "@/app/search/search-input";
 import { Suspense } from "react";
 import ProgramDOM from "@/components/program-dom";
+import { auth } from "@clerk/nextjs/server";
 
 type SearchPageProps = {
   searchParams?: Promise<{
@@ -21,7 +22,8 @@ export default function SearchPage({ searchParams }: SearchPageProps) {
 async function SearchPageContent({ searchParams }: SearchPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const searchQuery = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q : "";
-  const programs = await getPrograms({ search: searchQuery });
+  const { userId } = await auth();
+  const programs = await getPrograms({ search: searchQuery, userId });
 
   return (
     <main className="p-0 overflow-y-hidden flex flex-col">

@@ -11,7 +11,12 @@ const programSearchKeys: { name: keyof Program; weight: number }[] = [
   { name: "description", weight: 0.3 },
 ];
 
-export async function getPrograms({ search }: { search?: string } = {}) {
+type GetProgramsOptions = {
+  search?: string;
+  userId?: string | null;
+};
+
+export async function getPrograms({ search, userId }: GetProgramsOptions = {}) {
   "use cache";
   cacheTag("programs");
 
@@ -20,13 +25,45 @@ export async function getPrograms({ search }: { search?: string } = {}) {
     orderBy: { name: "asc", },
   });
 
+  const normalizedUserId = userId?.trim();
+  let favoriteProgramIds: Set<string> | null = null;
+  if (normalizedUserId) {
+    const user = await prisma.user.findUnique({
+      where: { id: normalizedUserId },
+      select: { favorite_programs: { select: { id: true } } },
+    });
+
+    if (user?.favorite_programs?.length) {
+      favoriteProgramIds = new Set(user.favorite_programs.map((program) => program.id));
+    }
+  }
+
   const normalizedSearch = search?.trim();
   if (!normalizedSearch) {
-    return programs;
+    return orderProgramsByFavorites(programs, favoriteProgramIds);
   }
 
   const fuse = new Fuse(programs, { keys: programSearchKeys });
-  return fuse.search(normalizedSearch).map((result) => result.item);
+  const results = fuse.search(normalizedSearch).map((result) => result.item);
+  return orderProgramsByFavorites(results, favoriteProgramIds);
+}
+
+function orderProgramsByFavorites(programs: Program[], favoriteProgramIds: Set<string> | null): Program[] {
+  if (!favoriteProgramIds || favoriteProgramIds.size === 0) {
+    return programs;
+  }
+
+  const favorites: Program[] = [];
+  const others: Program[] = [];
+  for (const program of programs) {
+    if (favoriteProgramIds.has(program.id)) {
+      favorites.push(program);
+    } else {
+      others.push(program);
+    }
+  }
+
+  return favorites.concat(others);
 }
 
 export async function getProgramById(programId: string): Promise<Program | null> {
