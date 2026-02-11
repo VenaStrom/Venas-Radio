@@ -5,9 +5,6 @@ import { ensureEpisodeCached, getCacheTtlMs, getEpisodeCachePath } from "@/lib/a
 import { fetchEpisodeById } from "@/functions/external-fetchers/episode-fetcher";
 import { fetchProgramById } from "@/functions/external-fetchers/program-fetcher";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 const DEFAULT_CONTENT_TYPE = "audio/mpeg";
 
 async function ensureEpisodeAudioSource(episodeId: string) {
