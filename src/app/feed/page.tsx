@@ -104,8 +104,8 @@ async function FeedPageContent() {
     return (
       <main className="p-0 overflow-y-hidden flex flex-col">
         <EmptyState
-          title="Inget flode an"
-          description="Folj program for att se deras senaste avsnitt."
+          title="Inga favoriter än"
+          description="Folj program för att se deras senaste avsnitt."
         />
       </main>
     );
