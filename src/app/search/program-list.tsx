@@ -3,7 +3,7 @@
 import ProgramDOM from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
 import { Program } from "@prisma/client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 
 function orderProgramsByFavorites(programIds: string[], favoriteIds: Set<string>): string[] {
@@ -33,9 +33,13 @@ export function ProgramList({
 }) {
   const { followedPrograms } = usePlayContext();
   const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms || []).map((p) => [p.id, p])));
+  const [orderingFavorites, setOrderingFavorites] = useState<Set<string>>(
+    () => new Set(followedPrograms),
+  );
+  const previousProgramIdsRef = useRef<string[] | null>(null);
   const orderedProgramIds = useMemo(() => {
-    return orderProgramsByFavorites(programIds, new Set(followedPrograms));
-  }, [programIds, followedPrograms]);
+    return orderProgramsByFavorites(programIds, orderingFavorites);
+  }, [programIds, orderingFavorites]);
   const idBatches = useMemo(() => {
     return orderedProgramIds.reduce<string[][]>((batches, id, index) => {
       if (index % batchSize === 0) batches.push([]);
@@ -52,6 +56,14 @@ export function ProgramList({
     });
     return updatedMap;
   }, [programMap, initialPrograms]);
+
+  useEffect(() => {
+    if (previousProgramIdsRef.current !== programIds) {
+      previousProgramIdsRef.current = programIds;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOrderingFavorites(new Set(followedPrograms));
+    }
+  }, [programIds, followedPrograms]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

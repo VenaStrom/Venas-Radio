@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Channel } from "@prisma/client";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import ChannelDOM from "@/components/channel-dom";
@@ -27,9 +27,22 @@ function orderChannelsByFavorites(channels: Channel[], favoriteIds: Set<string>)
 
 export default function ChannelList({ channels }: ChannelListProps) {
   const { followedChannels } = usePlayContext();
-  const orderedChannels = useMemo(() => {
-    return orderChannelsByFavorites(channels, new Set(followedChannels));
+  const [orderingFavorites, setOrderingFavorites] = useState<Set<string>>(
+    () => new Set(followedChannels),
+  );
+  const previousChannelsRef = useRef<Channel[] | null>(null);
+
+  useEffect(() => {
+    if (previousChannelsRef.current !== channels) {
+      previousChannelsRef.current = channels;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOrderingFavorites(new Set(followedChannels));
+    }
   }, [channels, followedChannels]);
+
+  const orderedChannels = useMemo(() => {
+    return orderChannelsByFavorites(channels, orderingFavorites);
+  }, [channels, orderingFavorites]);
 
   return (
     <ul className="w-full flex flex-col gap-y-4 pt-4 last:pb-10">
