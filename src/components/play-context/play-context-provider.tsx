@@ -53,14 +53,7 @@ function serializeProgressDB(payload: ProgressDB): Record<string, number> {
 }
 
 function mergeProgress(local: ProgressDB, remote: ProgressDB): ProgressDB {
-  const merged: ProgressDB = { ...local };
-  for (const [episodeId, seconds] of Object.entries(remote)) {
-    const localSeconds = merged[episodeId];
-    if (!localSeconds || seconds.toNumber() > localSeconds.toNumber()) {
-      merged[episodeId] = seconds;
-    }
-  }
-  return merged;
+  return { ...local, ...remote };
 }
 
 function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: PendingMedia } {
@@ -384,10 +377,12 @@ export function PlayProvider({
 
   const hasLoadedRemoteRef = useRef(false);
   const pendingSyncRef = useRef<number | null>(null);
+  const [remoteProgressVersion, setRemoteProgressVersion] = useState(0);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
       hasLoadedRemoteRef.current = false;
+      setRemoteProgressVersion(0);
       return;
     }
 
@@ -401,6 +396,7 @@ export function PlayProvider({
 
         const remoteProgress = normalizeProgressPayload(data.progress);
         setProgressDB((prev) => mergeProgress(prev, remoteProgress));
+        setRemoteProgressVersion((prev) => prev + 1);
 
         if (data.followedPrograms?.length) {
           setFollowedPrograms((prev) => Array.from(new Set([...prev, ...data.followedPrograms!])));
@@ -489,6 +485,7 @@ export function PlayProvider({
         registerProgram,
         playNextEpisode,
         playPreviousEpisode,
+        remoteProgressVersion,
       }}
     >
       {children}

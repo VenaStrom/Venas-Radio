@@ -22,6 +22,7 @@ export default function AudioControls({ className }: { className?: string }) {
     setCurrentProgress,
     playNextEpisode,
     playPreviousEpisode,
+    remoteProgressVersion,
   } = usePlayContext();
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
@@ -137,14 +138,20 @@ export default function AudioControls({ className }: { className?: string }) {
   }, []);
 
   // Resume playback position
-  const lastResumedEpisodeIdRef = useRef<string | null>(null);
+  const lastResumedEpisodeRef = useRef<{ episodeId: string | null; version: number | null }>({
+    episodeId: null,
+    version: null,
+  });
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
     if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
 
     const episodeId = currentEpisode.id;
-    if (lastResumedEpisodeIdRef.current === episodeId) return; // Already applied
+    if (
+      lastResumedEpisodeRef.current.episodeId === episodeId
+      && lastResumedEpisodeRef.current.version === remoteProgressVersion
+    ) return; // Already applied for this remote version
 
     const saved = progressDB[episodeId];
     const durationRounded = currentEpisode.duration.toFixed(0);
@@ -153,15 +160,19 @@ export default function AudioControls({ className }: { className?: string }) {
       // Explicitly playing a finished episode, start from beginning
       audioEl.currentTime = 0;
       setCurrentProgress(Seconds.from(0));
-      return;
     }
-    if (saved) audioEl.currentTime = saved.toNumber();
+    else if (saved) {
+      const savedSeconds = saved.toNumber();
+      if (Math.abs(audioEl.currentTime - savedSeconds) > 1) {
+        audioEl.currentTime = savedSeconds;
+      }
+    }
 
-    lastResumedEpisodeIdRef.current = episodeId;
+    lastResumedEpisodeRef.current = { episodeId, version: remoteProgressVersion };
 
-    // I don't want progressDB to be a dependency here
+    // Avoid re-running on every progressDB update; rely on remoteProgressVersion.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedMedia?.type, currentEpisode]);
+  }, [resolvedMedia?.type, currentEpisode, remoteProgressVersion]);
 
 
   // Drag to seek handling

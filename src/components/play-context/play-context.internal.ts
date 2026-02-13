@@ -47,6 +47,9 @@ export type PlayContextType = {
 
   playNextEpisode: () => void;
   playPreviousEpisode: () => void;
+
+  /** Bumps when remote progress is loaded so consumers can re-apply seek. */
+  remoteProgressVersion: number;
 };
 
 export const PlayContext = createContext<PlayContextType | undefined>(undefined);
