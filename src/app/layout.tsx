@@ -10,6 +10,7 @@ import { Sidebar } from "@/app/sidebar";
 import { ensureEpisodePrefetchScheduler } from "@/lib/episode-prefetch-scheduler";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "@/app/metadata";
@@ -70,7 +71,9 @@ async function PlayProviderWithCookies({ children }: { children: React.ReactNode
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  ensureEpisodePrefetchScheduler();
+  if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
+    ensureEpisodePrefetchScheduler();
+  }
   return (<ClerkProvider>
     <html lang="sv" className={`${nunitoSansFont.className} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="bg-zinc-900 text-zinc-100">

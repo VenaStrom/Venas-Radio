@@ -40,21 +40,30 @@ export async function fetchEpisodes(
     return url.toString();
   });
 
-  const responses = await Promise.all(
-    programLinks.map((link) => fetch(link)
-      .then((res) => res.json())
-      .catch(e => console.error(e))
-    ),
+  const responses = await Promise.allSettled(
+    programLinks.map(async (link) => {
+      try {
+        const res = await fetch(link);
+        if (!res.ok) return null;
+        return (await res.json()) as { episodes?: SR_Episode[] };
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+    }),
   );
 
   const fetchedEpisodes: Episode[] = [];
-  for (const data of responses) {
+  for (const response of responses) {
+    if (response.status !== "fulfilled") continue;
+    const data = response.value;
+    if (!data?.episodes) continue;
     data.episodes
       .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
       .forEach((episode: SR_Episode) => {
         fetchedEpisodes.push(mapSREpisode(episode));
       });
-  };
+  }
 
   return fetchedEpisodes;
 }
