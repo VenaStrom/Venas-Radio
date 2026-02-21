@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   devIndicators: {
-    position: "bottom-right",
+    position: "top-left",
   },
   images: {
     remotePatterns: [
