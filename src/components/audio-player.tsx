@@ -104,21 +104,6 @@ export default function AudioControls({ className }: { className?: string }) {
     }
   }, [currentEpisode, sortedEpisodes]);
 
-  // Audio element setup (main playback element)
-  useEffect(() => {
-    const audioEl = audioRef.current;
-    if (!audioEl) return;
-
-    if (currentStreamUrl) {
-      audioEl.src = currentStreamUrl;
-      audioEl.preload = "auto";
-    }
-    else {
-      audioEl.removeAttribute("src");
-      audioEl.load();
-    }
-  }, [currentStreamUrl]);
-
   // Ready state handling
   const [isReady, setIsReady] = useState(false);
   useEffect(() => {
@@ -242,8 +227,11 @@ export default function AudioControls({ className }: { className?: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const maxRetries = 3;
+  const retryTimeoutRef = useRef<number | null>(null);
+  const loadAttemptRef = useRef(0);
+  const currentLoadTokenRef = useRef(0);
+  const maxLoadRetries = 3;
+  const retryDelayMs = 600;
 
   // Play/pause handling
   useEffect(() => {
@@ -266,15 +254,46 @@ export default function AudioControls({ className }: { className?: string }) {
   useEffect(() => {
     // When nothing is selected or no stream URL, clear state and exit
     if (!currentStreamUrl) {
+      const audioEl = audioRef.current;
+      if (audioEl) {
+        audioEl.removeAttribute("src");
+        try {
+          audioEl.load();
+        }
+        catch {
+          // Silent
+        }
+      }
       setIsLoading(false);
       setError(null);
-      setRetryCount(0);
+      loadAttemptRef.current = 0;
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
       return;
     }
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
     let isCancelled = false;
+    currentLoadTokenRef.current += 1;
+    const loadToken = currentLoadTokenRef.current;
+    loadAttemptRef.current = 0;
+
+    if (retryTimeoutRef.current !== null) {
+      window.clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+
+    audioEl.src = currentStreamUrl;
+    audioEl.preload = "auto";
+    try {
+      audioEl.load();
+    }
+    catch {
+      // Silent
+    }
 
     const handleLoadStart = () => {
       if (isCancelled) return;
@@ -285,7 +304,11 @@ export default function AudioControls({ className }: { className?: string }) {
     const handleCanPlay = () => {
       if (isCancelled) return;
       setIsLoading(false);
-      setRetryCount(0);
+      loadAttemptRef.current = 0;
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
       if (isPlaying) {
         audioEl.play().catch(() => {
           // Autoplay may be blocked by the browser. Ignore.
@@ -296,9 +319,27 @@ export default function AudioControls({ className }: { className?: string }) {
     const handleError = () => {
       if (isCancelled) return;
 
-      if (retryCount < maxRetries) {
-        setRetryCount(prev => prev + 1);
-        try { audioEl.load(); } catch { /* Silent */ }
+      if (loadAttemptRef.current < maxLoadRetries) {
+        loadAttemptRef.current += 1;
+        const retryUrl = `${currentStreamUrl}${currentStreamUrl.includes("?") ? "&" : "?"}retry=${loadToken}-${loadAttemptRef.current}-${Date.now()}`;
+
+        if (retryTimeoutRef.current !== null) {
+          window.clearTimeout(retryTimeoutRef.current);
+        }
+
+        retryTimeoutRef.current = window.setTimeout(() => {
+          if (isCancelled) return;
+          if (loadToken !== currentLoadTokenRef.current) return;
+
+          audioEl.src = retryUrl;
+          audioEl.preload = "auto";
+          try {
+            audioEl.load();
+          }
+          catch {
+            // Silent
+          }
+        }, retryDelayMs * loadAttemptRef.current);
       }
       else {
         setIsLoading(false);
@@ -312,11 +353,15 @@ export default function AudioControls({ className }: { className?: string }) {
 
     return () => {
       isCancelled = true;
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
       audioEl.removeEventListener("loadstart", handleLoadStart);
       audioEl.removeEventListener("canplay", handleCanPlay);
       audioEl.removeEventListener("error", handleError);
     };
-  }, [currentStreamUrl, retryCount, maxRetries, isPlaying]);
+  }, [currentStreamUrl, isPlaying]);
 
   // Keyboard shortcuts
   useEffect(() => {
