@@ -3,7 +3,7 @@
 cd /home/vr/Venas-Radio
 
 git fetch --all
-git checkout origin/main --force
+git checkout origin/dev --force
 sudo systemctl daemon-reload
 
 # Build

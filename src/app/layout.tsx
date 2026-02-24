@@ -11,6 +11,7 @@ import { ensureEpisodePrefetchScheduler } from "@/lib/episode-prefetch-scheduler
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
+import { metadata } from "@/app/metadata";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "@/app/metadata";
@@ -18,6 +19,8 @@ export { metadata } from "@/app/metadata";
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], });
+
+const iconColor = metadata.openGraph?.url?.toString().includes("dev.") ? "orange" : undefined;
 
 const likedCookieLimit = 50;
 
@@ -80,8 +83,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
           <div className="flex flex-row items-center justify-center gap-1 select-none">
-            <AudioLinesIcon />
-            <p className="font-bold text-lg">VR</p>
+            <AudioLinesIcon
+              {...{ style: { color: iconColor } }}
+            />
+            <p
+              className="font-bold text-lg"
+              {...{ style: { color: iconColor } }}
+            >
+              VR
+            </p>
           </div>
 
           <Sidebar />
