@@ -37,9 +37,6 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --app-header-h: 56px;
-    --app-footer-h: 136px;
-    --app-nav-h: 64px;
   }
 
   html {
@@ -54,12 +51,16 @@
     }
 
     & > main {
-      min-height: calc(100dvh - var(--app-header-h) - var(--app-footer-h));
       @apply w-full flex-1 overflow-y-scroll py-2 px-5;
     }
 
     & > footer {
       @apply w-full overflow-hidden;
+
+      &  nav {
+        height: 68px;
+        min-height: 68px;
+      }
     }
   }
 
