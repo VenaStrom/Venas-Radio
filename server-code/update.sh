@@ -14,4 +14,5 @@ yarn build
 chmod +x server-code/*
 
 # Restart the service
+sudo systemctl daemon-reload
 sudo systemctl restart vr-radio-start
