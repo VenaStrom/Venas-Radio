@@ -4,6 +4,7 @@ cd /home/vr/Venas-Radio
 
 git fetch --all
 git checkout origin/main --force
+sudo systemctl daemon-reload
 
 # Build
 yarn install --frozen-lockfile
@@ -14,5 +15,4 @@ yarn build
 chmod +x server-code/*
 
 # Restart the service
-sudo systemctl daemon-reload
 sudo systemctl restart vr-radio-start
