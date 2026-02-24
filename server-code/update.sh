@@ -7,6 +7,7 @@ git checkout origin/main --force
 
 # Build
 yarn install --frozen-lockfile
+yarn prisma generate
 yarn build
 
 # Make /server-code executable
