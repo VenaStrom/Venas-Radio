@@ -139,8 +139,6 @@ export function PlayProvider({
   const [episodeDB, setEpisodeDB] = useState<EpisodeDB>({});
   const [channelDB, setChannelDB] = useState<ChannelDB>({});
   const [programDB, setProgramDB] = useState<ProgramDB>({});
-  const episodeRegistryRef = useRef<EpisodeDB>({});
-  const channelRegistryRef = useRef<ChannelDB>({});
 
   const [progressDB, setProgressDB] = useState<ProgressDB>(() => readStoredProgress());
   const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
@@ -169,13 +167,11 @@ export function PlayProvider({
   }, []);
 
   const registerEpisode = useCallback((episode: EpisodeWithProgram) => {
-    episodeRegistryRef.current[episode.id] = episode;
     setEpisodeDB((prev) => (prev[episode.id] ? prev : { ...prev, [episode.id]: episode }));
     resolvePendingEpisode(episode);
   }, [resolvePendingEpisode]);
 
   const registerChannel = useCallback((channel: Channel) => {
-    channelRegistryRef.current[channel.id] = channel;
     setChannelDB((prev) => (prev[channel.id] ? prev : { ...prev, [channel.id]: channel }));
     resolvePendingChannel(channel);
   }, [resolvePendingChannel]);
@@ -206,7 +202,7 @@ export function PlayProvider({
   };
 
   const playEpisode = useCallback((episodeId: Episode["id"]) => {
-    const episode = episodeDB[episodeId] ?? episodeRegistryRef.current[episodeId];
+    const episode = episodeDB[episodeId];
     if (!episode) {
       console.warn(`Episode with ID ${episodeId} not found in episodeDB.`);
       return;
@@ -225,7 +221,7 @@ export function PlayProvider({
   }, [episodeDB]);
 
   const playChannel = useCallback((channelId: Channel["id"]) => {
-    const channel = channelDB[channelId] ?? channelRegistryRef.current[channelId];
+    const channel = channelDB[channelId];
     if (!channel) {
       console.warn(`Channel with ID ${channelId} not found in channelDB.`);
       return;

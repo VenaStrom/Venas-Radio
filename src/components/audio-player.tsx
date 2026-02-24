@@ -230,13 +230,8 @@ export default function AudioControls({ className }: { className?: string }) {
   const retryTimeoutRef = useRef<number | null>(null);
   const loadAttemptRef = useRef(0);
   const currentLoadTokenRef = useRef(0);
-  const isPlayingRef = useRef(isPlaying);
   const maxLoadRetries = 3;
   const retryDelayMs = 600;
-
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
 
   // Play/pause handling
   useEffect(() => {
@@ -314,7 +309,7 @@ export default function AudioControls({ className }: { className?: string }) {
         window.clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
       }
-      if (isPlayingRef.current) {
+      if (isPlaying) {
         audioEl.play().catch(() => {
           // Autoplay may be blocked by the browser. Ignore.
         });
@@ -366,7 +361,7 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.removeEventListener("canplay", handleCanPlay);
       audioEl.removeEventListener("error", handleError);
     };
-  }, [currentStreamUrl]);
+  }, [currentStreamUrl, isPlaying]);
 
   // Keyboard shortcuts
   useEffect(() => {
