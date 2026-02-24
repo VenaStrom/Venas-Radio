@@ -12,11 +12,11 @@ export const metadata: Metadata = {
     title: "VR Radiospelare",
     siteName: "VR Radiospelare",
     locale: "sv_SE",
-    url: "https://dev.vr.venastrom.se/",
+    url: "https://vr.venastrom.se/",
     images: [
       {
-        url: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/dev/public/icons/audio-lines.svg",
-        secureUrl: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/dev/public/icons/audio-lines.svg",
+        url: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/main/public/icons/audio-lines.svg",
+        secureUrl: "https://raw.githubusercontent.com/VenaStrom/Venas-Radio/refs/heads/main/public/icons/audio-lines.svg",
       },
     ],
   },
