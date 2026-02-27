@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=vr
 WorkingDirectory=/root/Venas-Radio
-ExecStart=/usr/bin/env bash -c "source /root/.nvm/nvm.sh && yarn run start"
+ExecStart=/bin/bash -c "source /root/.nvm/nvm.sh && yarn run start"
 Restart=always
 RestartSec=3
 
