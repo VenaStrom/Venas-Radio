@@ -19,4 +19,4 @@ chown -R vr:vr /root/Venas-Radio
 chown -R vr:vr /root/.nvm
 
 # Restart the service
-systemctl restart vr-radio-start
+systemctl restart vr-start
