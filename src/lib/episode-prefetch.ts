@@ -3,16 +3,23 @@ import { ensureEpisodeCached, getCacheTtlMs } from "@/lib/audio-cache";
 import { fetchEpisodes } from "@/functions/external-fetchers/episode-fetcher";
 
 const DEFAULT_WINDOW_DAYS = 14;
+const DEFAULT_FUTURE_DAYS = 7;
 const DEFAULT_CONCURRENCY = 4;
 
 type PrefetchOptions = {
   windowDays?: number;
+  futureDays?: number;
   concurrency?: number;
 };
 
 function getWindowStartDate(windowDays: number) {
   const now = Date.now();
   return new Date(now - windowDays * 24 * 60 * 60 * 1000);
+}
+
+function getWindowEndDate(futureDays: number) {
+  const now = Date.now();
+  return new Date(now + futureDays * 24 * 60 * 60 * 1000);
 }
 
 async function runWithLimit<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
@@ -66,7 +73,8 @@ export async function refreshEpisodesForPrograms(programIds: string[], options: 
 
   const windowDays = options.windowDays ?? DEFAULT_WINDOW_DAYS;
   const fromDate = getWindowStartDate(windowDays);
-  const toDate = new Date();
+  const futureDays = options.futureDays ?? DEFAULT_FUTURE_DAYS;
+  const toDate = getWindowEndDate(futureDays);
 
   const numericProgramIds = programIds
     .map((id) => Number(id))
