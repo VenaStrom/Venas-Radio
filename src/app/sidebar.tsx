@@ -4,7 +4,7 @@ import { LoginButton } from "@/components/login-button";
 
 export function Sidebar() {
   return (
-    <Sheet>
+    <Sheet modal={false}>
       <SheetTrigger>
         <MenuIcon size={48} />
       </SheetTrigger>

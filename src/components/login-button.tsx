@@ -7,10 +7,10 @@ import { Suspense } from "react";
 function LoggedInSkeleton() {
   return (
     <div className="flex flex-row items-center gap-3 me-1">
+      {/* Avatar */}
+      <div className={`bg-gray-700 size-8 rounded-full`}></div>
       {/* Name */}
       <div className={`bg-gray-700 w-[10ch] h-4 rounded-sm`}></div>
-      {/* Avatar */}
-      <div className={`bg-gray-700 size-10 rounded-full`}></div>
     </div>
   );
 }
@@ -52,7 +52,7 @@ export function LoginButton() {
               layout: { shimmer: false, },
               elements: {
                 userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0, },
-                avatarBox: { marginRight: 0 }
+                avatarBox: { marginRight: 0, },
               }
             }}
           />
