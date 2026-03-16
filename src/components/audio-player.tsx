@@ -24,6 +24,7 @@ export default function AudioControls({ className }: { className?: string }) {
     playNextEpisode,
     playPreviousEpisode,
     remoteProgressVersion,
+    seekTrigger,
     streamEpisodeMap,
     registerStreamSeek,
     advanceToEpisodeInStream,
@@ -54,6 +55,17 @@ export default function AudioControls({ className }: { className?: string }) {
   // pool of preloader audio elements for next N tracks
   const PRELOAD_COUNT = 5;
   const preloadPoolRef = useRef<HTMLAudioElement[]>([]);
+
+  // Always-current refs so effects with custom deps never read stale closures
+  const currentEpisodeRef = useRef(currentEpisode);
+  currentEpisodeRef.current = currentEpisode;
+  const streamEpisodeMapRef = useRef(streamEpisodeMap);
+  streamEpisodeMapRef.current = streamEpisodeMap;
+  const progressDBRef = useRef(progressDB);
+  progressDBRef.current = progressDB;
+
+  // Target stream time to apply once canplay fires after a new src/load()
+  const pendingSeekRef = useRef<number | null>(null);
 
   // Create audio elements on mount
   useEffect(() => {
@@ -138,53 +150,52 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, []);
 
-  // Resume playback position
-  const lastResumedRef = useRef<{ episodeId: string | null; version: number | null; streamUrl: string | null }>({
+  // Resume playback position.
+  // Fires only on intentional seeks (seekTrigger) and remote syncs
+  // (remoteProgressVersion). Does NOT fire on natural stream advancement so
+  // it can never seek backward into an already-playing position.
+  const lastResumedRef = useRef<{ episodeId: string | null; version: number | null }>({
     episodeId: null,
     version: null,
-    streamUrl: null,
   });
   useEffect(() => {
-    const audioEl = audioRef.current;
-    if (!audioEl) return;
-    if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
+    const episode = currentEpisodeRef.current;
+    if (!episode) return;
 
-    const episodeId = currentEpisode.id;
+    const episodeId = episode.id;
     if (
       lastResumedRef.current.episodeId === episodeId
       && lastResumedRef.current.version === remoteProgressVersion
-      && lastResumedRef.current.streamUrl === currentStreamUrl
-    ) return; // Already applied for this episode/version/stream combination
+    ) return;
 
-    const saved = progressDB[episodeId];
-    const durationRounded = currentEpisode.duration.toFixed(0);
-    const progressRounded = saved ? Math.min(currentEpisode.duration, saved.toNumber()).toFixed(0) : null;
+    const saved = progressDBRef.current[episodeId];
+    const streamOffset = streamEpisodeMapRef.current?.find((e) => e.id === episodeId)?.startTime ?? 0;
 
-    // Offset into the stream where this episode starts (0 for single-episode mode)
-    const streamOffset = streamEpisodeMap?.find((e) => e.id === episodeId)?.startTime ?? 0;
-
-    if (saved && progressRounded === durationRounded) {
-      // Explicitly playing a finished episode, start from beginning of it
-      audioEl.currentTime = streamOffset;
-      setCurrentProgress(Seconds.from(0));
+    let targetTime: number;
+    if (saved && Math.round(saved.toNumber()) >= Math.round(episode.duration)) {
+      // Finished episode explicitly replayed — restart from beginning
+      targetTime = streamOffset;
     }
     else if (saved) {
-      const targetTime = streamOffset + saved.toNumber();
+      targetTime = streamOffset + saved.toNumber();
+    }
+    else {
+      targetTime = streamOffset;
+    }
+
+    // Store for handleCanPlay (applied after load() resets currentTime).
+    // Also seek immediately if the audio is already seekable.
+    pendingSeekRef.current = targetTime;
+    const audioEl = audioRef.current;
+    if (audioEl && audioEl.readyState >= HTMLMediaElement.HAVE_METADATA) {
       if (Math.abs(audioEl.currentTime - targetTime) > 1) {
         audioEl.currentTime = targetTime;
       }
-    }
-    else {
-      // No saved progress — seek to start of episode in stream
-      if (streamOffset > 0 && Math.abs(audioEl.currentTime - streamOffset) > 1) {
-        audioEl.currentTime = streamOffset;
-      }
+      pendingSeekRef.current = null;
     }
 
-    lastResumedRef.current = { episodeId, version: remoteProgressVersion, streamUrl: currentStreamUrl };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedMedia?.type, currentEpisode, remoteProgressVersion, currentStreamUrl]);
+    lastResumedRef.current = { episodeId, version: remoteProgressVersion };
+  }, [seekTrigger, remoteProgressVersion]);
 
 
   // Drag to seek handling
@@ -367,6 +378,15 @@ export default function AudioControls({ className }: { className?: string }) {
       if (retryTimeoutRef.current !== null) {
         window.clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
+      }
+      // Apply any seek that was queued before the audio was ready.
+      // This must happen before play() so the browser starts from the right position.
+      if (pendingSeekRef.current !== null) {
+        const target = pendingSeekRef.current;
+        pendingSeekRef.current = null;
+        if (Math.abs(audioEl.currentTime - target) > 1) {
+          audioEl.currentTime = target;
+        }
       }
       if (isPlayingRef.current) {
         audioEl.play().catch(() => {
