@@ -20,9 +20,13 @@ export default function AudioControls({ className }: { className?: string }) {
     episodeDB,
     currentProgress,
     setCurrentProgress,
+    updateEpisodeProgress,
     playNextEpisode,
     playPreviousEpisode,
     remoteProgressVersion,
+    streamEpisodeMap,
+    registerStreamSeek,
+    advanceToEpisodeInStream,
   } = usePlayContext();
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
@@ -66,6 +70,18 @@ export default function AudioControls({ className }: { className?: string }) {
       }
     }
   }, []);
+
+  // Register seek function so context can seek the audio element (used by prev/next in stream mode)
+  useEffect(() => {
+    registerStreamSeek((time: number) => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = time;
+      }
+    });
+    return () => {
+      registerStreamSeek(null);
+    };
+  }, [registerStreamSeek]);
 
   // Compute sorted episodes from episodeDB to know which to preload
   const sortedEpisodes = useMemo(() => {
@@ -123,9 +139,10 @@ export default function AudioControls({ className }: { className?: string }) {
   }, []);
 
   // Resume playback position
-  const lastResumedEpisodeRef = useRef<{ episodeId: string | null; version: number | null }>({
+  const lastResumedRef = useRef<{ episodeId: string | null; version: number | null; streamUrl: string | null }>({
     episodeId: null,
     version: null,
+    streamUrl: null,
   });
   useEffect(() => {
     const audioEl = audioRef.current;
@@ -134,30 +151,40 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const episodeId = currentEpisode.id;
     if (
-      lastResumedEpisodeRef.current.episodeId === episodeId
-      && lastResumedEpisodeRef.current.version === remoteProgressVersion
-    ) return; // Already applied for this remote version
+      lastResumedRef.current.episodeId === episodeId
+      && lastResumedRef.current.version === remoteProgressVersion
+      && lastResumedRef.current.streamUrl === currentStreamUrl
+    ) return; // Already applied for this episode/version/stream combination
 
     const saved = progressDB[episodeId];
     const durationRounded = currentEpisode.duration.toFixed(0);
     const progressRounded = saved ? Math.min(currentEpisode.duration, saved.toNumber()).toFixed(0) : null;
+
+    // Offset into the stream where this episode starts (0 for single-episode mode)
+    const streamOffset = streamEpisodeMap?.find((e) => e.id === episodeId)?.startTime ?? 0;
+
     if (saved && progressRounded === durationRounded) {
-      // Explicitly playing a finished episode, start from beginning
-      audioEl.currentTime = 0;
+      // Explicitly playing a finished episode, start from beginning of it
+      audioEl.currentTime = streamOffset;
       setCurrentProgress(Seconds.from(0));
     }
     else if (saved) {
-      const savedSeconds = saved.toNumber();
-      if (Math.abs(audioEl.currentTime - savedSeconds) > 1) {
-        audioEl.currentTime = savedSeconds;
+      const targetTime = streamOffset + saved.toNumber();
+      if (Math.abs(audioEl.currentTime - targetTime) > 1) {
+        audioEl.currentTime = targetTime;
+      }
+    }
+    else {
+      // No saved progress — seek to start of episode in stream
+      if (streamOffset > 0 && Math.abs(audioEl.currentTime - streamOffset) > 1) {
+        audioEl.currentTime = streamOffset;
       }
     }
 
-    lastResumedEpisodeRef.current = { episodeId, version: remoteProgressVersion };
+    lastResumedRef.current = { episodeId, version: remoteProgressVersion, streamUrl: currentStreamUrl };
 
-    // Avoid re-running on every progressDB update; rely on remoteProgressVersion.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedMedia?.type, currentEpisode, remoteProgressVersion]);
+  }, [resolvedMedia?.type, currentEpisode, remoteProgressVersion, currentStreamUrl]);
 
 
   // Drag to seek handling
@@ -184,12 +211,11 @@ export default function AudioControls({ className }: { className?: string }) {
       return;
     }
 
-    const newElapsed = Seconds.from(
-      Math.round((draggedProgress / 100) * currentEpisode.duration)
-    );
+    const episodeElapsed = (draggedProgress / 100) * currentEpisode.duration;
+    const streamOffset = streamEpisodeMap?.find((e) => e.id === currentEpisode.id)?.startTime ?? 0;
 
-    audioEl.currentTime = newElapsed.toNumber();
-    setCurrentProgress(newElapsed);
+    audioEl.currentTime = streamOffset + episodeElapsed;
+    setCurrentProgress(Seconds.from(Math.round(episodeElapsed)));
 
     setDraggedProgress(null);
     play();
@@ -215,14 +241,42 @@ export default function AudioControls({ className }: { className?: string }) {
         || draggedProgress !== null
       ) return;
 
-      setCurrentProgress(Seconds.from(audioEl.currentTime));
+      const t = audioEl.currentTime;
+
+      if (streamEpisodeMap) {
+        // Find which episode we're currently in based on stream time
+        const activeInfo = streamEpisodeMap.find(
+          (e) => t >= e.startTime && t < e.startTime + e.duration,
+        );
+        if (!activeInfo) return;
+
+        // Notify context if we've crossed an episode boundary
+        if (activeInfo.id !== currentEpisode.id) {
+          advanceToEpisodeInStream(t);
+        }
+
+        // Always save progress episode-relatively
+        updateEpisodeProgress(activeInfo.id, Seconds.from(t - activeInfo.startTime));
+      }
+      else {
+        // Single-episode mode: progress is just currentTime
+        setCurrentProgress(Seconds.from(t));
+      }
     };
 
     audioEl.addEventListener("timeupdate", onTimeUpdate);
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentEpisode, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
+  }, [
+    currentEpisode,
+    resolvedMedia?.type,
+    draggedProgress,
+    setCurrentProgress,
+    updateEpisodeProgress,
+    streamEpisodeMap,
+    advanceToEpisodeInStream,
+  ]);
 
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];
@@ -453,22 +507,20 @@ export default function AudioControls({ className }: { className?: string }) {
 
   }, [currentMedia, pause, play, playNextEpisode, playPreviousEpisode]);
 
-  // Play next episode when currentEpisode ends
+  // When the entire stream ends (all episodes finished), just stop playback
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
     const onEnded = () => {
-      if (currentMedia?.type === "episode") {
-        playNextEpisode();
-      }
+      pause();
     };
 
     audioEl.addEventListener("ended", onEnded);
     return () => {
       audioEl.removeEventListener("ended", onEnded);
     };
-  }, [currentMedia, playNextEpisode]);
+  }, [pause]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>

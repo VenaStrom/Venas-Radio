@@ -1,5 +1,5 @@
-import { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB, Seconds } from "@/types/types";
-import { createContext } from "react";
+import { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB, Seconds, StreamEpisodeInfo } from "@/types/types";
+import { createContext, Dispatch, SetStateAction } from "react";
 
 export type PlayContextType = {
   isPlaying: boolean;
@@ -38,10 +38,10 @@ export type PlayContextType = {
   registerChannel: (channel: Channel) => void;
 
   followedPrograms: string[];
-  setFollowedPrograms: React.Dispatch<React.SetStateAction<string[]>>;
+  setFollowedPrograms: Dispatch<SetStateAction<string[]>>;
 
   followedChannels: string[];
-  setFollowedChannels: React.Dispatch<React.SetStateAction<string[]>>;
+  setFollowedChannels: Dispatch<SetStateAction<string[]>>;
 
   registerProgram: (program: Program) => void;
 
@@ -50,6 +50,24 @@ export type PlayContextType = {
 
   /** Bumps when remote progress is loaded so consumers can re-apply seek. */
   remoteProgressVersion: number;
+
+  /**
+   * Time-ordered map of episodes in the current continuous stream.
+   * Null when playing a channel or no stream is active.
+   */
+  streamEpisodeMap: StreamEpisodeInfo[] | null;
+
+  /**
+   * Registered by audio-player so context functions (prev/next) can seek the
+   * underlying <audio> element without having to own a ref to it.
+   */
+  registerStreamSeek: (fn: ((time: number) => void) | null) => void;
+
+  /**
+   * Called by audio-player's timeupdate handler with the raw stream time.
+   * Updates currentEpisode when a boundary has been crossed.
+   */
+  advanceToEpisodeInStream: (streamTime: number) => void;
 };
 
 export const PlayContext = createContext<PlayContextType | undefined>(undefined);
