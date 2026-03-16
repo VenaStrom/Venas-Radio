@@ -180,6 +180,7 @@ export function PlayProvider({
 
   // Stream state
   const [streamEpisodeMap, setStreamEpisodeMap] = useState<StreamEpisodeInfo[] | null>(null);
+  const [seekTrigger, setSeekTrigger] = useState(0);
   // Ref holding a seek function registered by the audio-player
   const seekInStreamRef = useRef<((time: number) => void) | null>(null);
   const registerStreamSeek = useCallback((fn: ((time: number) => void) | null) => {
@@ -201,6 +202,7 @@ export function PlayProvider({
     // sortedEpisodes contains this episode.
     setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
     setStreamEpisodeMap(null);
+    setSeekTrigger((t) => t + 1);
     pendingMediaRef.current = null;
   }, []);
 
@@ -265,6 +267,7 @@ export function PlayProvider({
       setStreamEpisodeMap(null);
       setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
     }
+    setSeekTrigger((t) => t + 1);
 
     setIsPlaying(true);
     setTimeout(() => {
@@ -370,6 +373,7 @@ export function PlayProvider({
     const map = buildStreamEpisodeMap(queue);
     setStreamEpisodeMap(map);
     setCurrentStreamUrl(getContinuousStreamUrl(queue.map((ep) => ep.id)));
+    setSeekTrigger((t) => t + 1); // preserve playback position through the upgrade
   // Only react to sortedEpisodes changes (or first time currentEpisode is set)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedEpisodes, currentEpisode]);
@@ -584,6 +588,7 @@ export function PlayProvider({
         playNextEpisode,
         playPreviousEpisode,
         remoteProgressVersion,
+        seekTrigger,
         streamEpisodeMap,
         registerStreamSeek,
         advanceToEpisodeInStream,

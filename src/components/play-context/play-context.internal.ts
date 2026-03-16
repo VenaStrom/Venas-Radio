@@ -52,6 +52,13 @@ export type PlayContextType = {
   remoteProgressVersion: number;
 
   /**
+   * Increments on intentional seeks (playEpisode, restore, stream upgrade).
+   * Does NOT increment on natural stream advancement so the resume effect
+   * never clobbers the continuously-playing position.
+   */
+  seekTrigger: number;
+
+  /**
    * Time-ordered map of episodes in the current continuous stream.
    * Null when playing a channel or no stream is active.
    */
