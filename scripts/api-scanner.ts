@@ -13,6 +13,7 @@ import { isObj } from "../src/types";
 
 const cacheDir = "scripts/.cache";
 const channelsCacheFile = `${cacheDir}/channels.json`;
+const programsCacheFile = `${cacheDir}/programs.json`;
 
 if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir);
@@ -20,72 +21,12 @@ if (!fs.existsSync(cacheDir)) {
 
 const main = async () => {
   const rawChannels = await fetchChannels();
-  const channelProps: Record<string, number | Record<string, number>> = {};
-
-  for (const channel of rawChannels) {
-    for (const prop in channel) {
-      if (Array.isArray(channel)) {
-        console.warn("Unexpected array in channel", { channel, prop });
-        continue;
-      }
-      const val: JSONValue = channel[prop] as JSONValue;
-      if (typeof val !== "object") {
-        channelProps[prop] = channelProps[prop]
-          ? (channelProps[prop] as number) + 1
-          : 1;
-      }
-      else {
-        channelProps[prop] ??= {};
-        // eslint-disable-next-line @typescript-eslint/no-for-in-array
-        for (const subProp in val) {
-          if (Array.isArray(val)) {
-            console.warn("Unexpected array in channel prop", { channel, prop, val, subProp });
-            continue;
-          }
-          const subVal: JSONValue = val[subProp] as JSONValue;
-          if (typeof subVal === "string") {
-            (channelProps[prop] as Record<string, number>)[subProp] ??= 0;
-            (channelProps[prop] as Record<string, number>)[subProp]++;
-          }
-        }
-      }
-    }
-  }
+  const channelProps = parseProps(rawChannels);
   console.log({ channelProps });
 
 
   const rawPrograms = await fetchPrograms();
-  const programProps: Record<string, number | Record<string, number>> = {};
-
-  for (const program of rawPrograms) {
-    for (const prop in program) {
-      if (Array.isArray(program)) {
-        console.warn("Unexpected array in program", { program, prop });
-        continue;
-      }
-      const val: JSONValue = program[prop] as JSONValue;
-      if (typeof val !== "object") {
-        programProps[prop] = programProps[prop]
-          ? (programProps[prop] as number) + 1
-          : 1;
-      }
-      else {
-        programProps[prop] ??= {};
-        // eslint-disable-next-line @typescript-eslint/no-for-in-array
-        for (const subProp in val) {
-          if (Array.isArray(val)) {
-            console.warn("Unexpected array in program prop", { program, prop, val, subProp });
-            continue;
-          }
-          const subVal: JSONValue = val[subProp] as JSONValue;
-          if (typeof subVal === "string") {
-            (programProps[prop] as Record<string, number>)[subProp] ??= 0;
-            (programProps[prop] as Record<string, number>)[subProp]++;
-          }
-        }
-      }
-    }
-  }
+  const programProps = parseProps(rawPrograms);
   console.log({ programProps });
 };
 
@@ -140,7 +81,64 @@ async function fetchChannels(): Promise<Record<string, unknown>[]> {
   return raw_channels;
 }
 
+type ParsedPropStats = {
+  primitive: number;
+  object: number;
+  array: number;
+  objectStringProps: Record<string, number>;
+};
+
+type ParsedProps = Record<string, ParsedPropStats>;
+
+function parseProps(items: Record<string, unknown>[]): ParsedProps {
+  const parsedProps: ParsedProps = {};
+
+  for (const item of items) {
+    for (const prop in item) {
+      const val: JSONValue = item[prop] as JSONValue;
+      const propStats = parsedProps[prop] ?? {
+        primitive: 0,
+        object: 0,
+        array: 0,
+        objectStringProps: {},
+      };
+
+      if (Array.isArray(val)) {
+        propStats.array++;
+      }
+      else if (!isObj(val)) {
+        propStats.primitive++;
+      }
+      else {
+        propStats.object++;
+        for (const subProp in val) {
+          const subVal: JSONValue = val[subProp] as JSONValue;
+          if (typeof subVal === "string") {
+            propStats.objectStringProps[subProp] ??= 0;
+            propStats.objectStringProps[subProp]++;
+          }
+        }
+      }
+
+      parsedProps[prop] = propStats;
+    }
+  }
+
+  return parsedProps;
+}
+
 async function fetchPrograms(): Promise<Record<string, unknown>[]> {
+  const cachedPrograms = fs.existsSync(programsCacheFile)
+    ? JSON.parse(fs.readFileSync(programsCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedPrograms) {
+    console.info(`Using cached programs (${programsCacheFile.length}) from`, programsCacheFile);
+    return cachedPrograms;
+  }
+
+  console.info("Fetching programs from API...");
+
   const raw_programs = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
     .catch((e: unknown) => {
       console.error("Failed to fetch programs", e);
@@ -166,6 +164,10 @@ async function fetchPrograms(): Promise<Record<string, unknown>[]> {
     console.error("Failed to fetch programs", raw_programs);
     throw new Error("Failed to fetch programs");
   }
+
+  fs.writeFileSync(programsCacheFile, JSON.stringify(raw_programs, null, 2));
+
+  console.info(`Programs (${programsCacheFile.length}) saved to ${programsCacheFile}`);
 
   return raw_programs;
 }

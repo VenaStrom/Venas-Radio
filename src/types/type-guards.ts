@@ -7,7 +7,6 @@ export function isObj(value: unknown): value is Record<string, unknown> {
     || typeof value !== "object"
     || Array.isArray(value)
   ) {
-    console.warn("Value is not an object:", value);
     return false;
   }
 
