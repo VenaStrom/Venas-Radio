@@ -20,7 +20,6 @@ if (!fs.existsSync(cacheDir)) {
 
 const main = async () => {
   const rawChannels = await fetchChannels();
-
   const channelProps: Record<string, number | Record<string, number>> = {};
 
   for (const channel of rawChannels) {
@@ -52,8 +51,42 @@ const main = async () => {
       }
     }
   }
+  console.log({ channelProps });
 
-  console.log({ propMap: channelProps });
+
+  const rawPrograms = await fetchPrograms();
+  const programProps: Record<string, number | Record<string, number>> = {};
+
+  for (const program of rawPrograms) {
+    for (const prop in program) {
+      if (Array.isArray(program)) {
+        console.warn("Unexpected array in program", { program, prop });
+        continue;
+      }
+      const val: JSONValue = program[prop] as JSONValue;
+      if (typeof val !== "object") {
+        programProps[prop] = programProps[prop]
+          ? (programProps[prop] as number) + 1
+          : 1;
+      }
+      else {
+        programProps[prop] ??= {};
+        // eslint-disable-next-line @typescript-eslint/no-for-in-array
+        for (const subProp in val) {
+          if (Array.isArray(val)) {
+            console.warn("Unexpected array in program prop", { program, prop, val, subProp });
+            continue;
+          }
+          const subVal: JSONValue = val[subProp] as JSONValue;
+          if (typeof subVal === "string") {
+            (programProps[prop] as Record<string, number>)[subProp] ??= 0;
+            (programProps[prop] as Record<string, number>)[subProp]++;
+          }
+        }
+      }
+    }
+  }
+  console.log({ programProps });
 };
 
 main()
@@ -105,4 +138,34 @@ async function fetchChannels(): Promise<Record<string, unknown>[]> {
   console.info(`Channels (${channelsCacheFile.length}) saved to ${channelsCacheFile}`);
 
   return raw_channels;
+}
+
+async function fetchPrograms(): Promise<Record<string, unknown>[]> {
+  const raw_programs = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
+    .catch((e: unknown) => {
+      console.error("Failed to fetch programs", e);
+      return null;
+    })
+    .then(res => res?.json())
+    .then((data: unknown) => {
+      if (
+        !data
+        || !isObj(data)
+        || !("programs" in data)
+        || !Array.isArray(data.programs)
+        || !data.programs.every((program: unknown) => isObj(program))
+      ) {
+        console.error("Invalid programs response", data);
+        return null;
+      }
+
+      return data.programs;
+    });
+
+  if (!raw_programs) {
+    console.error("Failed to fetch programs", raw_programs);
+    throw new Error("Failed to fetch programs");
+  }
+
+  return raw_programs;
 }
