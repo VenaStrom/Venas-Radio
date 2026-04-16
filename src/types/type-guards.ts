@@ -1,6 +1,6 @@
 import type { EpisodeWithProgram } from "@/types";
 
-export function isObj(value: unknown): value is object {
+export function isObj(value: unknown): value is Record<string, unknown> {
   if (
     value === null
     || value === undefined

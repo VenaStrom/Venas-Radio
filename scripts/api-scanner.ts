@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import type { JSONValue } from "../src/types";
 import { isObj } from "../src/types";
 
 // Programs:
@@ -18,7 +19,61 @@ if (!fs.existsSync(cacheDir)) {
 }
 
 const main = async () => {
+  const rawChannels = await fetchChannels();
+
+  const channelProps: Record<string, number | Record<string, number>> = {};
+
+  for (const channel of rawChannels) {
+    for (const prop in channel) {
+      if (Array.isArray(channel)) {
+        console.warn("Unexpected array in channel", { channel, prop });
+        continue;
+      }
+      const val: JSONValue = channel[prop] as JSONValue;
+      if (typeof val !== "object") {
+        channelProps[prop] = channelProps[prop]
+          ? (channelProps[prop] as number) + 1
+          : 1;
+      }
+      else {
+        channelProps[prop] ??= {};
+        // eslint-disable-next-line @typescript-eslint/no-for-in-array
+        for (const subProp in val) {
+          if (Array.isArray(val)) {
+            console.warn("Unexpected array in channel prop", { channel, prop, val, subProp });
+            continue;
+          }
+          const subVal: JSONValue = val[subProp] as JSONValue;
+          if (typeof subVal === "string") {
+            (channelProps[prop] as Record<string, number>)[subProp] ??= 0;
+            (channelProps[prop] as Record<string, number>)[subProp]++;
+          }
+        }
+      }
+    }
+  }
+
+  console.log({ propMap: channelProps });
+};
+
+main()
+  .catch((e: unknown) => {
+    console.error("Failed to run API scanner", e);
+    process.exit(1);
+  });
+
+async function fetchChannels(): Promise<Record<string, unknown>[]> {
+  const cachedChannels = fs.existsSync(channelsCacheFile)
+    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedChannels) {
+    console.info(`Using cached channels ${channelsCacheFile.length} from`, channelsCacheFile);
+    return cachedChannels;
+  }
+
   console.info("Fetching channels from API...");
+
   const raw_channels = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false")
     .catch((e: unknown) => {
       console.error("Failed to fetch channels", e);
@@ -39,14 +94,15 @@ const main = async () => {
 
       return data.channels;
     });
-  if (raw_channels) fs.writeFileSync(channelsCacheFile, JSON.stringify(raw_channels, null, 2));
+
+  if (!raw_channels) {
+    console.error("Failed to fetch channels", raw_channels);
+    throw new Error("Failed to fetch channels");
+  }
+
+  fs.writeFileSync(channelsCacheFile, JSON.stringify(raw_channels, null, 2));
+
   console.info(`Channels (${channelsCacheFile.length}) saved to ${channelsCacheFile}`);
 
-
-};
-
-main()
-  .catch((e: unknown) => {
-    console.error("Failed to run API scanner", e);
-    process.exit(1);
-  });
+  return raw_channels;
+}
