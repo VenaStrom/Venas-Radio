@@ -1,5 +1,5 @@
-import { Program } from "@prisma/client";
-import { SR_Program } from "@/types/api/program";
+import type { Program } from "@prisma/client";
+import type { SR_Program } from "@/types/api/program";
 
 function mapSRProgram(program: SR_Program): Program {
   return {

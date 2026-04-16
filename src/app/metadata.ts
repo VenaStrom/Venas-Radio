@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import packageJson from "../../package.json" with { type: "json" };
 
 export const metadata: Metadata = {

@@ -1,5 +1,5 @@
-import { Channel } from "@prisma/client";
-import { SR_Channel } from "@/types/api/channel";
+import type { Channel } from "@prisma/client";
+import type { SR_Channel } from "@/types/api/channel";
 
 export async function fetchChannels(): Promise<Channel[]> {
   const baseURL = new URL("https://api.sr.se/api/v2/channels");

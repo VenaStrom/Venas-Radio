@@ -1,5 +1,6 @@
 import fs from "node:fs";
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { ensureEpisodeCached, getCacheTtlMs, getEpisodeCachePath } from "@/lib/audio-cache";
 import { fetchEpisodeById } from "@/functions/external-fetchers/episode-fetcher";

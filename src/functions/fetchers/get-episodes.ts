@@ -4,7 +4,8 @@ import "server-only";
 import prisma from "@/lib/prisma";
 import { cacheTag } from "next/cache";
 import type { EpisodeWithProgram } from "@/types/types";
-import Fuse, { FuseOptionKey } from "fuse.js";
+import type { FuseOptionKey } from "fuse.js";
+import Fuse from "fuse.js";
 
 const episodeSearchKeys: Array<FuseOptionKey<EpisodeWithProgram>> | { name: keyof EpisodeWithProgram; weight: number }[] = [
   { name: "title", weight: 0.6 },

@@ -1,5 +1,5 @@
-import { Episode } from "@prisma/client";
-import { SR_Episode } from "@/types/api/episode";
+import type { Episode } from "@prisma/client";
+import type { SR_Episode } from "@/types/api/episode";
 
 function mapSREpisode(episode: SR_Episode): Episode {
   return {

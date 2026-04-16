@@ -2,7 +2,7 @@
 
 import ProgramDOM from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
-import { Program } from "@prisma/client";
+import type { Program } from "@prisma/client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 

@@ -1,4 +1,5 @@
-import { ProgressDB, Seconds } from "@/types/types";
+import type { ProgressDB} from "@/types/types";
+import { Seconds } from "@/types/types";
 
 export function progressDBDeserializer(data: string | null): ProgressDB {
   if (!data) {

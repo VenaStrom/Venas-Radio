@@ -1,4 +1,5 @@
-import { EpisodeDB, EpisodeWithProgram, Seconds } from "@/types/types";
+import type { EpisodeDB, EpisodeWithProgram} from "@/types/types";
+import { Seconds } from "@/types/types";
 
 export function episodeDBDeserializer(data: string | null): EpisodeDB {
   if (!data) return {};

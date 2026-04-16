@@ -3,7 +3,7 @@
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { usePlayContext } from "@/components/play-context/play-context-use";
-import { Channel, EpisodeWithProgram } from "@/types/types";
+import type { Channel, EpisodeWithProgram } from "@/types/types";
 
 export default function PlayButton({
   episodeID,

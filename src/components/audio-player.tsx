@@ -3,7 +3,8 @@
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EpisodeWithProgram, PlayableMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import type { EpisodeWithProgram, PlayableMedia, Timestamp } from "@/types/types";
+import { PlaybackProgress, Seconds } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useDebounce } from "use-debounce";
 import { getEpisodeAudioUrl } from "@/lib/episode-audio";

@@ -1,4 +1,4 @@
-import { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB, Seconds } from "@/types/types";
+import type { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB, Seconds } from "@/types/types";
 import { createContext } from "react";
 
 export type PlayContextType = {
