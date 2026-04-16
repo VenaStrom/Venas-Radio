@@ -59,5 +59,5 @@ export function LoginButton() {
         </SignedIn>
       </Suspense>
     </div>
-  )
+  );
 }

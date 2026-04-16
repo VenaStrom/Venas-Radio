@@ -51,8 +51,8 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
     );
 
     if (isUnlistened) return <>{formattedDuration}</>;
-    if (isListened) return <>{formattedDuration}&nbsp;&nbsp;&middot;&nbsp;&nbsp;Lyssnad</>
-    return <>{formattedRemaining} kvar</>
+    if (isListened) return <>{formattedDuration}&nbsp;&nbsp;&middot;&nbsp;&nbsp;Lyssnad</>;
+    return <>{formattedRemaining} kvar</>;
   }, [formattedDuration, percent, remaining]);
 
   const displayPercent = hasMounted ? percent : 0;
