@@ -36,7 +36,7 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
   const formattedTime = useMemo(() => getLocaleTime(publishDate), [publishDate]);
 
   const formattedDuration = useMemo(() => duration.toFormattedString(
-    duration.minutes.toNumber() == 0
+    duration.minutes.toNumber() === 0
       ? { minuteUnit: "hide" }
       : { secondUnit: "hide" }
   ), [duration]);
@@ -45,7 +45,7 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
     const isUnlistened = percent === 0;
     const isListened = remaining.totalSeconds.toNumber() <= 0;
     const formattedRemaining = remaining.toFormattedString(
-      remaining.minutes.toNumber() == 0
+      remaining.minutes.toNumber() === 0
         ? { minuteUnit: "hide" }
         : { secondUnit: "hide" }
     );
