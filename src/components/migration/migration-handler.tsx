@@ -188,7 +188,7 @@ export default function MigrationHandler() {
           <Button variant="secondary" onClick={onDismiss} disabled={isMigrating}>
             Inte nu
           </Button>
-          <Button onClick={onMigrate} disabled={isMigrating}>
+          <Button onClick={() => onMigrate} disabled={isMigrating}>
             {isMigrating ? "Flyttar..." : "Flytta inställningar"}
           </Button>
         </div>

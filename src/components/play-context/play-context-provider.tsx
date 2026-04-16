@@ -2,7 +2,7 @@
 
 import type { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB } from "@/types/types";
 import { Seconds } from "@/types/types";
-import type { ReactNode} from "react";
+import type { ReactNode } from "react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { PlayContext } from "@/components/play-context/play-context.internal";
@@ -399,11 +399,11 @@ export function PlayProvider({
         setProgressDB((prev) => mergeProgress(prev, remoteProgress));
         setRemoteProgressVersion((prev) => prev + 1);
 
-        if (data.followedPrograms?.length) {
-          setFollowedPrograms((prev) => Array.from(new Set([...prev, ...data.followedPrograms!])));
+        if (!!data.followedPrograms) {
+          setFollowedPrograms(prev => [...new Set<string>([...prev, ...data.followedPrograms ?? []])]);
         }
-        if (data.followedChannels?.length) {
-          setFollowedChannels((prev) => Array.from(new Set([...prev, ...data.followedChannels!])));
+        if (!!data.followedChannels) {
+          setFollowedChannels(prev => [...new Set<string>([...prev, ...data.followedChannels ?? []])]);
         }
       }
       finally {

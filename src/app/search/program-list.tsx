@@ -117,7 +117,14 @@ export function ProgramList({
       .map((index) => idBatches[index])
       .filter((batch): batch is string[] => Boolean(batch))
       .filter((batch) => batch.some((id) => !mergedProgramMap[id]));
-    batchesToFetch.forEach((batch) => fetchPrograms(batch));
+
+    Promise.all(batchesToFetch.map((batch) => fetchPrograms(batch)))
+      .then(() => {
+        console.info(`Fetched programs for batches: ${Array.from(activatedBatches).join(", ")}`);
+      })
+      .catch((e: unknown) => {
+        console.error("Error fetching programs:", e);
+      });
   }, [activatedBatches, idBatches, mergedProgramMap, programMap]);
 
   return (

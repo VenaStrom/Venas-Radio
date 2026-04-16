@@ -48,7 +48,7 @@ export default function FeedRefreshButton({ programIds }: { programIds: string[]
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <Button onClick={handleClick} disabled={isLoading || programIds.length === 0}>
+      <Button onClick={() => handleClick} disabled={isLoading || programIds.length === 0}>
         {isLoading ? "Hamtar avsnitt..." : "Hamta senaste avsnitten"}
       </Button>
       {error ? <p className="text-xs text-red-400">{error}</p> : null}
