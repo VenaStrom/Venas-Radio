@@ -1,11 +1,23 @@
-import type { EpisodeDB, EpisodeWithProgram} from "@/types/types";
+import { isEpisodeWithProgram } from "@/types";
+import type { EpisodeDB, JSONValue } from "@/types/types";
 import { Seconds } from "@/types/types";
 
 export function episodeDBDeserializer(data: string | null): EpisodeDB {
   if (!data) return {};
   try {
-    const parsed = JSON.parse(data);
+    const parsed = JSON.parse(data) as JSONValue;
+
+    if (
+      !parsed
+      || typeof parsed !== "object"
+      || Array.isArray(parsed)
+    ) {
+      console.warn("Invalid episodeDB format. Expected an object with episodeID keys and episode data values.");
+      return {};
+    }
+
     const deserialized: EpisodeDB = {};
+
     Object.entries(parsed).forEach(([id, episode]) => {
       // Type guard
       if (
@@ -17,12 +29,15 @@ export function episodeDBDeserializer(data: string | null): EpisodeDB {
         console.warn(`Skipping invalid episode entry with id ${id}`);
         return;
       }
-      const cleanEpisode = episode as EpisodeWithProgram;
+      if (!isEpisodeWithProgram(episode)) {
+        console.warn(`Skipping episode entry with id ${id} due to missing program data`);
+        return;
+      }
 
-      deserialized[cleanEpisode.id] = {
-        ...cleanEpisode,
-        publish_date: new Date(cleanEpisode.publish_date),
-        duration: decodeDuration(cleanEpisode.duration),
+      deserialized[episode.id] = {
+        ...episode,
+        publish_date: new Date(episode.publish_date),
+        duration: decodeDuration(episode.duration),
       };
     });
     return deserialized;

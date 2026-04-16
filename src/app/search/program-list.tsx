@@ -134,7 +134,6 @@ export function ProgramList({
       {orderedProgramIds.map((id) => {
         const program = mergedProgramMap[id];
         return program ? <ProgramDOM key={id} program={program} /> : <ProgramDOM.Skeleton key={id} />;
-        return <ProgramDOM.Skeleton key={id} />;
       })}
     </ul>
   );

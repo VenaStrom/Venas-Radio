@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { isObj, type JSONValue } from "@/types";
 
 export default function FeedRefreshButton({ programIds }: { programIds: string[] }) {
   const router = useRouter();
@@ -21,17 +22,26 @@ export default function FeedRefreshButton({ programIds }: { programIds: string[]
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        const message = typeof payload?.error === "string"
-          ? payload.error
-          : "Kunde inte hamta avsnitt.";
-        throw new Error(message);
+        const payload = await response.json() as JSONValue;
+
+        if (
+          !!payload
+          && isObj(payload)
+          && "error" in payload
+          && typeof payload.error === "string"
+        ) {
+          throw new Error(payload.error);
+        }
+        throw new Error("Kunde inte hamta avsnitt.");
       }
 
       router.refresh();
-    } catch (caught) {
+    }
+    catch (caught) {
+      console.warn("Error fetching episodes:", caught);
       setError(caught instanceof Error ? caught.message : "Kunde inte hamta avsnitt.");
-    } finally {
+    }
+    finally {
       setIsLoading(false);
     }
   };
