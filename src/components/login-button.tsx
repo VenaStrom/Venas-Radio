@@ -49,11 +49,11 @@ export function LoginButton() {
             fallback={<LoggedInSkeleton />}
             showName={true}
             appearance={{
-              layout: { shimmer: false, },
+              layout: { shimmer: false },
               elements: {
-                userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0, },
-                avatarBox: { marginRight: 0, },
-              }
+                userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0 },
+                avatarBox: { marginRight: 0 },
+              },
             }}
           />
         </SignedIn>

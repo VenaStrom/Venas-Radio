@@ -22,8 +22,8 @@ export async function getPrograms({ search, userId, preferredIds }: GetProgramsO
   cacheTag("programs");
 
   const programs = await prisma.program.findMany({
-    where: { archived: false, },
-    orderBy: { name: "asc", },
+    where: { archived: false },
+    orderBy: { name: "asc" },
   });
 
   const normalizedUserId = userId?.trim();
@@ -76,7 +76,7 @@ export async function getProgramById(programId: string): Promise<Program | null>
   cacheTag("programs");
 
   const program = await prisma.program.findUnique({
-    where: { id: programId, },
+    where: { id: programId },
   });
 
   return program;
@@ -87,8 +87,8 @@ export async function getProgramsByIds(programIds: string[]): Promise<Program[]>
   cacheTag("programs");
 
   const programs = await prisma.program.findMany({
-    where: { id: { in: programIds, }, archived: false, },
-    orderBy: { name: "asc", },
+    where: { id: { in: programIds }, archived: false },
+    orderBy: { name: "asc" },
   });
 
   return programs;

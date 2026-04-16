@@ -15,8 +15,8 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 export { metadata } from "@/app/metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], });
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 const likedCookieLimit = 50;
 

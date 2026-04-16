@@ -51,7 +51,7 @@ function getDateKey(date: Date): string {
 function formatDateHeader(date: Date, todayKey: string, formatter: Intl.RelativeTimeFormat): string {
   const dateKey = getDateKey(date);
   const dayDiff = Math.round(
-    (new Date(dateKey).getTime() - new Date(todayKey).getTime()) / (1000 * 60 * 60 * 24)
+    (new Date(dateKey).getTime() - new Date(todayKey).getTime()) / (1000 * 60 * 60 * 24),
   );
   const allowedRelativeDays = [-2, -1, 0, 1, 2];
 
@@ -61,7 +61,7 @@ function formatDateHeader(date: Date, todayKey: string, formatter: Intl.Relative
   } else {
     label = date.toLocaleDateString(
       "sv-SE",
-      { weekday: "long", month: "short", day: "numeric" }
+      { weekday: "long", month: "short", day: "numeric" },
     );
   }
 

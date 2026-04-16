@@ -184,7 +184,7 @@ export default function AudioControls({ className }: { className?: string }) {
     }
 
     const newElapsed = Seconds.from(
-      Math.round((draggedProgress / 100) * currentEpisode.duration)
+      Math.round((draggedProgress / 100) * currentEpisode.duration),
     );
 
     audioEl.currentTime = newElapsed.toNumber();

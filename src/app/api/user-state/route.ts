@@ -63,7 +63,7 @@ export async function GET() {
   }
 
   const progress = Object.fromEntries(
-    user.episode_progress.map((entry) => [entry.episode_id, entry.progress])
+    user.episode_progress.map((entry) => [entry.episode_id, entry.progress]),
   );
 
   return NextResponse.json({
@@ -140,8 +140,8 @@ export async function POST(request: Request) {
             episode_id: episodeId,
             progress: value,
           },
-        })
-      )
+        }),
+      ),
     );
   }
 

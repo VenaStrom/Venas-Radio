@@ -16,7 +16,7 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
   const hasMounted = useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   );
 
   const progress = useMemo(() => {
@@ -38,7 +38,7 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
   const formattedDuration = useMemo(() => duration.toFormattedString(
     duration.minutes.toNumber() === 0
       ? { minuteUnit: "hide" }
-      : { secondUnit: "hide" }
+      : { secondUnit: "hide" },
   ), [duration]);
 
   const remainingTime = useMemo<React.ReactNode>(() => {
@@ -47,7 +47,7 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
     const formattedRemaining = remaining.toFormattedString(
       remaining.minutes.toNumber() === 0
         ? { minuteUnit: "hide" }
-        : { secondUnit: "hide" }
+        : { secondUnit: "hide" },
     );
 
     if (isUnlistened) return <>{formattedDuration}</>;

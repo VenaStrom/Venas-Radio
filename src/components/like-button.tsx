@@ -10,7 +10,7 @@ export default function LikeButton({
 }: {
   programID?: string;
   channelID?: string;
-}
+},
 ) {
   const {
     followedPrograms,

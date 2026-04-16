@@ -3,7 +3,7 @@ import Image from "next/image";
 import SRAttribute from "@/components/sr-attribute";
 import LikeButton from "@/components/like-button";
 
-export default function ProgramDOM({ program, }: { program: Program, }) {
+export default function ProgramDOM({ program }: { program: Program, }) {
   return (
     <li className="grid grid-cols-[82px_1fr] grid-rows-[min_82px_min_min] gap-y-2 gap-x-3">
       {/* SR Attribute */}

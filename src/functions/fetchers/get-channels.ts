@@ -21,7 +21,7 @@ export async function getChannels({ search, userId }: GetChannelsOptions = {}) {
   cacheTag("channels");
 
   const channels = await prisma.channel.findMany({
-    orderBy: { name: "asc", },
+    orderBy: { name: "asc" },
   });
 
   const normalizedUserId = userId?.trim();
@@ -70,7 +70,7 @@ export async function getChannelById(channelId: string): Promise<Channel | null>
   cacheTag("channels");
 
   const channel = await prisma.channel.findUnique({
-    where: { id: channelId, },
+    where: { id: channelId },
   });
 
   return channel;
@@ -81,8 +81,8 @@ export async function getChannelsByIds(channelIds: string[]): Promise<Channel[]>
   cacheTag("channels");
 
   const channels = await prisma.channel.findMany({
-    where: { id: { in: channelIds, }, },
-    orderBy: { name: "asc", },
+    where: { id: { in: channelIds } },
+    orderBy: { name: "asc" },
   });
 
   return channels;

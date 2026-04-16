@@ -49,7 +49,7 @@ function normalizeProgressPayload(payload?: Record<string, number>): ProgressDB 
 
 function serializeProgressDB(payload: ProgressDB): Record<string, number> {
   return Object.fromEntries(
-    Object.entries(payload).map(([episodeId, seconds]) => [episodeId, seconds.toNumber()])
+    Object.entries(payload).map(([episodeId, seconds]) => [episodeId, seconds.toNumber()]),
   );
 }
 
@@ -371,7 +371,7 @@ export function PlayProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const serialized = Object.fromEntries(
-      Object.entries(progressDB).map(([id, seconds]) => [id, seconds.toNumber()])
+      Object.entries(progressDB).map(([id, seconds]) => [id, seconds.toNumber()]),
     );
     localStorage.setItem("progressDB", JSON.stringify(serialized));
   }, [progressDB]);

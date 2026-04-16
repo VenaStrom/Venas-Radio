@@ -38,7 +38,7 @@ export async function fetchPrograms(): Promise<Program[]> {
         && Array.isArray(data["programs"])
         && data["programs"].every(isSR_Program)
         ? data["programs"]
-        : []
+        : [],
     );
 
   const programs: Program[] = response.map((program: SR_Program) => mapSRProgram(program));

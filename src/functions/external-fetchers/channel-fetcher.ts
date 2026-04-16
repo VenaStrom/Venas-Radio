@@ -18,7 +18,7 @@ export async function fetchChannels(): Promise<Channel[]> {
         && Array.isArray(data.channels)
         && data.channels.every(isSR_Channel)
         ? data.channels
-        : []
+        : [],
     );
 
   const allChannels: Channel[] = response.map((channel: SR_Channel) => ({
