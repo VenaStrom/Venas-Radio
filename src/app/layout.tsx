@@ -12,7 +12,6 @@ import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
-// eslint-disable-next-line react-refresh/only-export-components
 export { metadata } from "@/app/metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
