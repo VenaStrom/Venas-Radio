@@ -1,6 +1,7 @@
 import { Config, defineConfig, globalIgnores } from "eslint/config";
 import nextTS from "eslint-config-next/typescript";
 import nextVitals from "eslint-config-next/core-web-vitals";
+import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 const nonAppTsBaseConfig = tseslint.configs.recommendedTypeChecked;
@@ -46,12 +47,13 @@ const tsCommonRules: Config["rules"] = {
   "@typescript-eslint/no-for-in-array": "error",
   "@/no-useless-assignment": "warn",
   "eqeqeq": ["error", "smart"],
-  // "semi": ["error", "always"],
-  // "comma-dangle": ["error", "always-multiline",], // Would be nice but not tweakable enough
+  "semi": ["error", "always"],
+  "comma-dangle": ["error", "always-multiline",], // Would be nice but not tweakable enough
 };
 
 export default defineConfig([
   { // App linting
+    ...reactRefresh.configs.next,
     name: "App src/",
     files: ["src/**/*.{ts,tsx}"],
     extends: [
@@ -115,5 +117,6 @@ export default defineConfig([
     "build/**/*",
     "ignore/**/*",
     "next-env.d.ts",
+    "src/components/ui/**/*", // Shadcn UI components don't follow nobody's rules :sweat_smile:
   ]),
 ]);
