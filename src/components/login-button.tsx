@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Suspense } from "react";
 
 function LoggedInSkeleton() {
@@ -19,7 +19,7 @@ export function LoginButton() {
   return (
     <div className={`flex flex-row items-center justify-center`}>
       <Suspense fallback={<LoggedInSkeleton />}>
-        <SignedOut>
+        <Show when={"signed-out"}>
           <SignInButton>
             <button
               className={`
@@ -42,9 +42,9 @@ export function LoginButton() {
               Logga in
             </button>
           </SignInButton>
-        </SignedOut>
+        </Show>
 
-        <SignedIn>
+        <Show when={"signed-in"}>
           <UserButton
             fallback={<LoggedInSkeleton />}
             showName={true}
@@ -56,7 +56,7 @@ export function LoginButton() {
               },
             }}
           />
-        </SignedIn>
+        </Show>
       </Suspense>
     </div>
   );

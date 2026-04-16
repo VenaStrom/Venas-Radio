@@ -1,4 +1,4 @@
-import { Config, defineConfig, globalIgnores } from "eslint/config";
+import {Config, defineConfig, globalIgnores } from "eslint/config";
 import nextTS from "eslint-config-next/typescript";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import reactRefresh from "eslint-plugin-react-refresh";
