@@ -107,8 +107,6 @@ export default defineConfig([
   },
   globalIgnores([
     "src/prisma/generated/**/*",
-    "scripts/prisma/**",
-    "**/scripts/prisma/**",
     "node_modules/**/*",
     "prisma/**/*",
     ".next/**/*",

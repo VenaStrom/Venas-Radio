@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "yarn lint && yarn next build",
     "start": "next start",
-    "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto"
+    "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto",
+    "api-scanner": "tsx scripts/api-scanner.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.2.2",

@@ -45,3 +45,4 @@ src/prisma/
 # cache
 .audio-cache/
 .eslintcache
+scripts/.cache/
