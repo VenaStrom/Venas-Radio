@@ -41,4 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 src/prisma/
+
+# cache
 .audio-cache/
+.eslintcache
