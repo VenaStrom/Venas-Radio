@@ -1,5 +1,8 @@
 import type { Program } from "@prisma/client";
 import type { SR_Program } from "@/types/api/program";
+import type { JSONValue } from "@/types";
+import { isObj } from "@/types";
+import { isSR_Program } from "@/types/api/type-guards";
 
 function mapSRProgram(program: SR_Program): Program {
   return {
@@ -27,8 +30,16 @@ export async function fetchPrograms(): Promise<Program[]> {
   baseURL.searchParams.append("isarchived", "false");
 
   const response: SR_Program[] = await fetch(baseURL.toString())
-    .then((res) => res.json())
-    .then((data) => data.programs);
+    .then(res => res.json() as Promise<JSONValue>)
+    .then(data =>
+      isObj(data)
+        && "programs" in data
+        && data["programs"] !== null
+        && Array.isArray(data["programs"])
+        && data["programs"].every(isSR_Program)
+        ? data["programs"]
+        : []
+    );
 
   const programs: Program[] = response.map((program: SR_Program) => mapSRProgram(program));
 

@@ -67,6 +67,7 @@ export default function PlayButton({
       case "channel":
         return globalIsPlaying && currentChannel?.id === id;
 
+      case null:
       default:
         return false;
     }

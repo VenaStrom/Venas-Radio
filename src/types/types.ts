@@ -35,3 +35,5 @@ export type PlayableMedia = {
   subtitle?: string | null;
   image?: string | null;
 };
+
+export type JSONValue = Partial<{ [key: string]: JSONValue }> | JSONValue[] | string | number | boolean | null;
