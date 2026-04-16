@@ -2,11 +2,6 @@ import fs from "node:fs";
 import type { JSONValue } from "../src/types";
 import { isObj } from "../src/types";
 
-// Programs:
-// https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false
-// https://api.sr.se/api/v2/programs/PROGRAM_ID?format=json
-// https://api.sr.se/api/v2/programs/get?id=PROGRAM_ID&format=json
-
 // Episodes:
 // https://api.sr.se/api/v2/episodes/index?fromdate=YYYY-MM-DD&todate=YYYY-MM-DD&format=json&pagination=false&audioquality=high&programid=PROGRAM_ID
 // https://api.sr.se/api/v2/episodes/get?id=EPISODE_ID&format=json&audioquality=high
@@ -14,6 +9,7 @@ import { isObj } from "../src/types";
 const cacheDir = "scripts/.cache";
 const channelsCacheFile = `${cacheDir}/channels.json`;
 const programsCacheFile = `${cacheDir}/programs.json`;
+const programsSingleCacheFile = `${cacheDir}/programs-single.json`;
 
 if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir);
@@ -24,10 +20,13 @@ const main = async () => {
   const channelProps = parseProps(rawChannels);
   console.log({ channelProps });
 
-
   const rawPrograms = await fetchPrograms();
   const programProps = parseProps(rawPrograms);
   console.log({ programProps });
+
+  const rawSinglePrograms = await fetchSinglePrograms(rawPrograms);
+  const programSingleProps = parseProps(rawSinglePrograms);
+  console.log({ programSingleProps });
 };
 
 main()
@@ -35,51 +34,6 @@ main()
     console.error("Failed to run API scanner", e);
     process.exit(1);
   });
-
-async function fetchChannels(): Promise<Record<string, unknown>[]> {
-  const cachedChannels = fs.existsSync(channelsCacheFile)
-    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>[]
-    : null;
-
-  if (cachedChannels) {
-    console.info(`Using cached channels ${channelsCacheFile.length} from`, channelsCacheFile);
-    return cachedChannels;
-  }
-
-  console.info("Fetching channels from API...");
-
-  const raw_channels = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false")
-    .catch((e: unknown) => {
-      console.error("Failed to fetch channels", e);
-      return null;
-    })
-    .then(res => res?.json())
-    .then((data: unknown) => {
-      if (
-        !data
-        || !isObj(data)
-        || !("channels" in data)
-        || !Array.isArray(data.channels)
-        || !data.channels.every((channel: unknown) => isObj(channel))
-      ) {
-        console.error("Invalid channels response", data);
-        return null;
-      }
-
-      return data.channels;
-    });
-
-  if (!raw_channels) {
-    console.error("Failed to fetch channels", raw_channels);
-    throw new Error("Failed to fetch channels");
-  }
-
-  fs.writeFileSync(channelsCacheFile, JSON.stringify(raw_channels, null, 2));
-
-  console.info(`Channels (${channelsCacheFile.length}) saved to ${channelsCacheFile}`);
-
-  return raw_channels;
-}
 
 type ParsedPropStats = {
   primitive: number;
@@ -127,6 +81,51 @@ function parseProps(items: Record<string, unknown>[]): ParsedProps {
   return parsedProps;
 }
 
+async function fetchChannels(): Promise<Record<string, unknown>[]> {
+  const cachedChannels = fs.existsSync(channelsCacheFile)
+    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedChannels) {
+    console.info(`Using cached channels ${channelsCacheFile.length} from`, channelsCacheFile);
+    return cachedChannels;
+  }
+
+  console.info("Fetching channels from API...");
+
+  const rawChannels = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false")
+    .catch((e: unknown) => {
+      console.error("Failed to fetch channels", e);
+      return null;
+    })
+    .then(res => res?.json())
+    .then((data: unknown) => {
+      if (
+        !data
+        || !isObj(data)
+        || !("channels" in data)
+        || !Array.isArray(data.channels)
+        || !data.channels.every((channel: unknown) => isObj(channel))
+      ) {
+        console.error("Invalid channels response", data);
+        return null;
+      }
+
+      return data.channels;
+    });
+
+  if (!rawChannels) {
+    console.error("Failed to fetch channels", rawChannels);
+    throw new Error("Failed to fetch channels");
+  }
+
+  fs.writeFileSync(channelsCacheFile, JSON.stringify(rawChannels, null, 2));
+
+  console.info(`Channels (${rawChannels.length}) saved to ${channelsCacheFile}`);
+
+  return rawChannels;
+}
+
 async function fetchPrograms(): Promise<Record<string, unknown>[]> {
   const cachedPrograms = fs.existsSync(programsCacheFile)
     ? JSON.parse(fs.readFileSync(programsCacheFile, "utf-8")) as Record<string, unknown>[]
@@ -139,7 +138,7 @@ async function fetchPrograms(): Promise<Record<string, unknown>[]> {
 
   console.info("Fetching programs from API...");
 
-  const raw_programs = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
+  const rawPrograms = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
     .catch((e: unknown) => {
       console.error("Failed to fetch programs", e);
       return null;
@@ -160,14 +159,61 @@ async function fetchPrograms(): Promise<Record<string, unknown>[]> {
       return data.programs;
     });
 
-  if (!raw_programs) {
-    console.error("Failed to fetch programs", raw_programs);
+  if (!rawPrograms) {
+    console.error("Failed to fetch programs", rawPrograms);
     throw new Error("Failed to fetch programs");
   }
 
-  fs.writeFileSync(programsCacheFile, JSON.stringify(raw_programs, null, 2));
+  fs.writeFileSync(programsCacheFile, JSON.stringify(rawPrograms, null, 2));
 
-  console.info(`Programs (${programsCacheFile.length}) saved to ${programsCacheFile}`);
+  console.info(`Programs (${rawPrograms.length}) saved to ${programsCacheFile}`);
 
-  return raw_programs;
+  return rawPrograms;
+}
+
+async function fetchSinglePrograms(programs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+  const cachedPrograms = fs.existsSync(programsSingleCacheFile)
+    ? JSON.parse(fs.readFileSync(programsSingleCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedPrograms) {
+    console.info(`Using cached single programs (${programsSingleCacheFile.length}) from`, programsSingleCacheFile);
+    return cachedPrograms;
+  }
+
+  const programIds = programs
+    .map(program => program.id)
+    .filter((id): id is number => typeof id === "number");
+
+  console.info(`Fetching single program payloads for ${programIds.length} programs...`);
+
+  const singlePrograms = await Promise.all(
+    programIds.map(async (id) => {
+      let data: unknown;
+
+      try {
+        const response = await fetch(`https://api.sr.se/api/v2/programs/get?id=${id}&format=json`);
+        data = await response.json() as unknown;
+      }
+      catch (e: unknown) {
+        console.error("Failed to fetch single program", { id, e });
+        return null;
+      }
+
+      if (!data || !isObj(data) || !("program" in data) || !isObj(data.program)) {
+        console.error("Invalid single program response", { id, data });
+        return null;
+      }
+
+      return data.program;
+    }),
+  );
+
+  const validSinglePrograms = singlePrograms.filter((program): program is Record<string, unknown> => !!program);
+
+  fs.writeFileSync(programsSingleCacheFile, JSON.stringify(validSinglePrograms, null, 2));
+
+  console.info(`Single programs (${validSinglePrograms.length}) saved to ${programsSingleCacheFile}`);
+
+  return validSinglePrograms;
 }
