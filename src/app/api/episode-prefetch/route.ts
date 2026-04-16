@@ -18,10 +18,11 @@ function normalizeIdList(input: unknown): string[] {
 }
 
 export async function POST(request: Request) {
-  let payload: PrefetchPayload | null = null;
+  let payload: PrefetchPayload | null;
   try {
     payload = (await request.json()) as PrefetchPayload;
-  } catch {
+  }
+  catch {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 

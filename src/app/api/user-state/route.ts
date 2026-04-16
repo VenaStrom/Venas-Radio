@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let payload: UserStatePayload | null = null;
+  let payload: UserStatePayload | null;
   try {
     payload = (await request.json()) as UserStatePayload;
   } catch {

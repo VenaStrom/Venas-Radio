@@ -55,7 +55,7 @@ function formatDateHeader(date: Date, todayKey: string, formatter: Intl.Relative
   );
   const allowedRelativeDays = [-2, -1, 0, 1, 2];
 
-  let label = "";
+  let label: string;
   if (allowedRelativeDays.includes(dayDiff)) {
     label = formatter.format(dayDiff, "day");
   } else {

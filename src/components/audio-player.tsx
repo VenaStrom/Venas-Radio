@@ -54,9 +54,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
   // Create audio elements on mount
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = document.createElement("audio");
-    }
+    audioRef.current ??= document.createElement("audio");
 
     // Initialize preload pool
     if (preloadPoolRef.current.length === 0) {
@@ -98,7 +96,7 @@ export default function AudioControls({ className }: { className?: string }) {
     // Clear remaining pool slots (if any)
     for (; poolIdx < audioPreloadEls.length; poolIdx++) {
       const el = audioPreloadEls[poolIdx];
-      if (el && el.src) {
+      if (el?.src) {
         el.removeAttribute("src");
         try { el.load(); } catch { /* Silent */ }
       }
@@ -200,9 +198,7 @@ export default function AudioControls({ className }: { className?: string }) {
     setDraggedProgress(parseFloat(event.currentTarget.value));
   };
   // For immediate non-debounced visual feedback
-  const displayedPercent = draggedProgress !== null
-    ? draggedProgress
-    : (percent ?? 0);
+  const displayedPercent = draggedProgress ?? (percent ?? 0);
 
   // Time update handling
   useEffect(() => {
@@ -245,7 +241,7 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
 
     if (isPlaying) {
-      audioEl.play().catch((e) => {
+      audioEl.play().catch((e: unknown) => {
         if (e instanceof DOMException && e.name === "AbortError") return; // Ignore abort errors
         console.error("Error playing audio:", e);
         setError("Kunde inte spela upp ljudströmmen.");
@@ -427,14 +423,14 @@ export default function AudioControls({ className }: { className?: string }) {
       navigator.mediaSession.setActionHandler("seekbackward", (details) => {
         const audioEl = audioRef.current;
         if (audioEl) {
-          const skipTime = details.seekOffset || 10;
+          const skipTime = details.seekOffset ?? 10;
           audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
         }
       });
       navigator.mediaSession.setActionHandler("seekforward", (details) => {
         const audioEl = audioRef.current;
         if (audioEl) {
-          const skipTime = details.seekOffset || 10;
+          const skipTime = details.seekOffset ?? 10;
           audioEl.currentTime = Math.min(audioEl.currentTime + skipTime, audioEl.duration);
         }
       });

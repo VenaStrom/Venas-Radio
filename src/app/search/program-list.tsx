@@ -32,7 +32,7 @@ export function ProgramList({
   programIds: string[];
 }) {
   const { followedPrograms } = usePlayContext();
-  const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms || []).map((p) => [p.id, p])));
+  const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms ?? []).map((p) => [p.id, p])));
   const [orderingFavorites, setOrderingFavorites] = useState<Set<string>>(
     () => new Set(followedPrograms),
   );
@@ -51,7 +51,7 @@ export function ProgramList({
 
   const mergedProgramMap = useMemo(() => {
     const updatedMap = { ...programMap };
-    (initialPrograms || []).forEach((program) => {
+    (initialPrograms ?? []).forEach((program) => {
       updatedMap[program.id] = program;
     });
     return updatedMap;

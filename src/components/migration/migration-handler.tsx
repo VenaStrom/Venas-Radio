@@ -154,7 +154,7 @@ export default function MigrationHandler() {
     setShowPrompt(false);
   };
 
-  if (!showPrompt || !originInfo || originInfo.hostname !== OLD_DOMAIN) return null;
+  if (!showPrompt || originInfo?.hostname !== OLD_DOMAIN) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

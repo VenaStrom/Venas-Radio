@@ -25,7 +25,7 @@ export async function getEpisodes({ search, programId, programIds }: GetEpisodes
 
   const normalizedProgramIds = [
     ...(programId ? [programId] : []),
-    ...(programIds || []),
+    ...(programIds ?? []),
   ]
     .map((id) => id?.toString().trim())
     .filter((id): id is string => Boolean(id));

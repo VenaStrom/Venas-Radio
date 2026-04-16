@@ -151,7 +151,7 @@ export function PlayProvider({
 
   const resolvePendingEpisode = useCallback((episode: EpisodeWithProgram) => {
     const pending = pendingMediaRef.current;
-    if (!pending || pending.type !== "episode" || pending.id !== episode.id) return;
+    if (pending?.type !== "episode" || pending.id !== episode.id) return;
     setCurrentChannel(null);
     setCurrentEpisode(episode);
     setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
@@ -160,7 +160,7 @@ export function PlayProvider({
 
   const resolvePendingChannel = useCallback((channel: Channel) => {
     const pending = pendingMediaRef.current;
-    if (!pending || pending.type !== "channel" || pending.id !== channel.id) return;
+    if (pending?.type !== "channel" || pending.id !== channel.id) return;
     setCurrentEpisode(null);
     setCurrentChannel(channel);
     setCurrentStreamUrl(channel.external_audio_url);

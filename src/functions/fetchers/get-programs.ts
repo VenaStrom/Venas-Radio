@@ -27,7 +27,7 @@ export async function getPrograms({ search, userId, preferredIds }: GetProgramsO
   });
 
   const normalizedUserId = userId?.trim();
-  const preferred = (preferredIds || []).map((id) => id.trim()).filter(Boolean);
+  const preferred = (preferredIds ?? []).map((id) => id.trim()).filter(Boolean);
   let favoriteProgramIds: Set<string> | null = preferred.length > 0 ? new Set(preferred) : null;
   if (normalizedUserId) {
     const user = await prisma.user.findUnique({
