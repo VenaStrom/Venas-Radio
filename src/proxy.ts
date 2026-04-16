@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware(async (_auth, _req): Promise<Response> => {
+export default clerkMiddleware((_auth, _req): Response => {
   const response = NextResponse.next();
 
   return response;
