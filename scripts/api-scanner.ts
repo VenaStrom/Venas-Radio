@@ -10,6 +10,9 @@ const cacheDir = "scripts/.cache";
 const channelsCacheFile = `${cacheDir}/channels.json`;
 const programsCacheFile = `${cacheDir}/programs.json`;
 const programsSingleCacheFile = `${cacheDir}/programs-single.json`;
+const defaultEpisodeSampleSize = 25;
+const defaultEpisodeSeed = 20260416;
+const defaultEpisodeDaysBack = 30;
 
 if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir);
@@ -27,6 +30,10 @@ const main = async () => {
   const rawSinglePrograms = await fetchSinglePrograms(rawPrograms);
   const programSingleProps = parseProps(rawSinglePrograms);
   console.log({ programSingleProps });
+
+  const rawEpisodes = await fetchEpisodesForSampledPrograms(rawPrograms);
+  const episodeProps = parseProps(rawEpisodes);
+  console.log({ episodeProps });
 };
 
 main()
@@ -43,6 +50,7 @@ type ParsedPropStats = {
 };
 
 type ParsedProps = Record<string, ParsedPropStats>;
+type EpisodesIndexResponse = { episodes: unknown[] };
 
 function parseProps(items: Record<string, unknown>[]): ParsedProps {
   const parsedProps: ParsedProps = {};
@@ -217,3 +225,102 @@ async function fetchSinglePrograms(programs: Record<string, unknown>[]): Promise
 
   return validSinglePrograms;
 }
+
+async function fetchEpisodesForSampledPrograms(programs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+  const seed = Number(process.env.API_SCANNER_EPISODE_SEED ?? defaultEpisodeSeed);
+  const sampleSize = Number(process.env.API_SCANNER_EPISODE_SAMPLE_SIZE ?? defaultEpisodeSampleSize);
+  const daysBack = Number(process.env.API_SCANNER_EPISODE_DAYS_BACK ?? defaultEpisodeDaysBack);
+
+  const toDate = new Date();
+  const fromDate = new Date(toDate);
+  fromDate.setDate(fromDate.getDate() - daysBack);
+
+  const toDateStr = formatDateYYYYMMDD(toDate);
+  const fromDateStr = formatDateYYYYMMDD(fromDate);
+  const episodesCacheFile = `${cacheDir}/episodes-seed-${seed}-sample-${sampleSize}-from-${fromDateStr}-to-${toDateStr}.json`;
+
+  const cachedEpisodes = fs.existsSync(episodesCacheFile)
+    ? JSON.parse(fs.readFileSync(episodesCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedEpisodes) {
+    console.info(`Using cached episodes (${cachedEpisodes.length}) from`, episodesCacheFile);
+    return cachedEpisodes;
+  }
+
+  const programIds = programs
+    .map(program => program.id)
+    .filter((id): id is number => typeof id === "number");
+
+  const sampledProgramIds = sampleWithoutReplacement(programIds, sampleSize, seed);
+
+  console.info(`Fetching one-month episode payloads for ${sampledProgramIds.length} sampled programs...`, {
+    seed,
+    sampleSize,
+    fromDate: fromDateStr,
+    toDate: toDateStr,
+  });
+
+  const episodesByProgram: Record<string, unknown>[][] = await Promise.all(
+    sampledProgramIds.map(async (programId) => {
+      let data: unknown;
+
+      try {
+        const response = await fetch(`https://api.sr.se/api/v2/episodes/index?fromdate=${fromDateStr}&todate=${toDateStr}&format=json&pagination=false&audioquality=high&programid=${programId}`);
+        data = await response.json() as unknown;
+      }
+      catch (e: unknown) {
+        console.error("Failed to fetch episodes for program", { programId, e });
+        return [];
+      }
+
+      if (!isEpisodesIndexResponse(data)) {
+        console.error("Invalid episodes response", { programId, data });
+        return [];
+      }
+
+      return data.episodes.filter((episode: unknown): episode is Record<string, unknown> => isObj(episode));
+    }),
+  );
+
+  const episodes: Record<string, unknown>[] = [];
+  for (const episodesForProgram of episodesByProgram) {
+    episodes.push(...episodesForProgram);
+  }
+
+  fs.writeFileSync(episodesCacheFile, JSON.stringify(episodes, null, 2));
+
+  console.info(`Episodes (${episodes.length}) saved to ${episodesCacheFile}`);
+
+  return episodes;
+}
+
+function isEpisodesIndexResponse(value: unknown): value is EpisodesIndexResponse {
+  return isObj(value) && "episodes" in value && Array.isArray(value.episodes);
+}
+
+function formatDateYYYYMMDD(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function sampleWithoutReplacement(values: number[], requestedCount: number, seed: number): number[] {
+  const rng = seededRng(seed);
+  const sampled = [...values];
+
+  for (let i = sampled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [sampled[i], sampled[j]] = [sampled[j], sampled[i]];
+  }
+
+  return sampled.slice(0, Math.max(0, Math.min(requestedCount, sampled.length)));
+}
+
+function seededRng(seed: number): () => number {
+  let state = seed >>> 0;
+
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
