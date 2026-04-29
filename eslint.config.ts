@@ -1,8 +1,8 @@
 import type { Config } from "eslint/config";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
-
-const nonAppTsBaseConfig = tseslint.configs.recommendedTypeChecked;
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
 
 const tsCommonRules: Config["rules"] = {
   "prefer-const": "warn",
@@ -46,15 +46,18 @@ const tsCommonRules: Config["rules"] = {
   "@/no-useless-assignment": "warn",
   "eqeqeq": ["error", "smart"],
   "semi": ["error", "always"],
-  "comma-dangle": ["error", "always-multiline"],
+  "comma-dangle": ["warn", "always-multiline"],
   "quotes": ["error", "double", { avoidEscape: true }],
 };
 
 export default defineConfig([
   { // App linting
+    ...reactRefresh.configs.recommended,
     name: "App",
     files: ["src/app/**/*.{ts,tsx}"],
     extends: [
+      reactHooks.configs.flat.recommended,
+      ...tseslint.configs.recommendedTypeChecked,
     ],
     rules: {
       "react-hooks/set-state-in-effect": "warn",
@@ -73,7 +76,7 @@ export default defineConfig([
     name: "API",
     files: ["src/api/**/*.{ts,tsx}"],
     extends: [
-      ...nonAppTsBaseConfig,
+      ...tseslint.configs.recommendedTypeChecked,
     ],
     rules: {
       ...tsCommonRules,
@@ -89,7 +92,7 @@ export default defineConfig([
     name: "scripts",
     files: ["scripts/**/*.{ts,tsx}", "*.config.ts"],
     extends: [
-      ...nonAppTsBaseConfig,
+      ...tseslint.configs.recommendedTypeChecked,
     ],
     rules: {
       ...tsCommonRules,
