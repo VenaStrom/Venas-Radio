@@ -4,9 +4,10 @@
   "description": "A radio player by and for Vena.",
   "private": true,
   "scripts": {
-    "dev": "cd src/app && vite",
+    "dev": "cd src/app && vite & yarn server",
     "build": "yarn lint && yarn vite build",
     "start": "vite preview",
+    "server": "tsx src/api/server.ts",
     "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "jiti": "^2.6.1",
     "tailwindcss": "^4.2.4",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^8.0.10"

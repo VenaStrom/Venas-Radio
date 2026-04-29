@@ -74,7 +74,7 @@ export default defineConfig([
   },
   { // Api linting
     name: "API",
-    files: ["src/api/**/*.{ts,tsx}"],
+    files: ["src/api/**/*.{ts,tsx}", "src/types/**/*.{ts,tsx}"],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
     ],
