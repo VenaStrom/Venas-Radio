@@ -3,46 +3,5 @@
   "version": "0.0.0",
   "description": "A radio player by and for Vena.",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "yarn lint && yarn next build",
-    "start": "next start",
-    "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto",
-    "api-scanner": "tsx scripts/api-scanner.ts"
-  },
-  "dependencies": {
-    "@clerk/nextjs": "^7.2.2",
-    "@prisma/adapter-mariadb": "^7.7.0",
-    "@prisma/client": "^7.7.0",
-    "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-label": "^2.1.8",
-    "@radix-ui/react-slot": "^1.2.4",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dotenv": "^17.4.2",
-    "fuse.js": "^7.3.0",
-    "lucide-react": "^1.8.0",
-    "next": "^16.2.4",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "sharp": "^0.34.5",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss-animate": "^1.0.7",
-    "tsx": "^4.21.0",
-    "use-debounce": "^10.1.1"
-  },
-  "devDependencies": {
-    "@types/node": "^25.6.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.2",
-    "eslint-config-next": "^16.2.4",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "prisma": "^7.7.0",
-    "shadcn": "^3.8.4",
-    "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.58.2"
-  },
-  "packageManager": "yarn@4.14.0+sha512.31053dd4c730c75e8665ad00bbfe07a7bed08aef54c5edfd8d484463680180b1c87035a61b9e15ff2cad310a329176cac433009e2d402ac69d1386f9445d7ccb"
+  "scripts": {}
 }
