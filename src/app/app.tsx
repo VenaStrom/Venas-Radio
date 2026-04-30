@@ -1,32 +1,18 @@
-import { isObj } from "@/types";
 import "./global.tw.css";
+import { isObj } from "@/types";
 import type React from "react";
 
 export function App(): React.ReactNode {
   async function fetchApi() {
     const res = await fetch("/api/hello");
-    const rawBody = await res.text();
-
     if (!res.ok) {
-      throw new Error(`API request failed with status ${res.status}: ${rawBody.slice(0, 160)}`);
+      throw new Error(`API request failed with status ${res.status}`);
     }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      throw new Error(`Expected JSON but received '${contentType || "unknown"}': ${rawBody.slice(0, 160)}`);
-    }
-
-    let data: unknown;
-    try {
-      data = JSON.parse(rawBody) as unknown;
-    } catch {
-      throw new Error(`Invalid JSON response: ${rawBody.slice(0, 160)}`);
-    }
-
-    if (!isObj(data)) {
+    const json = await res.json() as unknown;
+    if (!isObj(json)) {
       throw new Error("API response is not an object");
     }
-    alert(`API response: ${JSON.stringify(data)}`);
+    console.log({ json });
   }
 
   return (
