@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "cd src/app && vite & yarn server",
-    "build": "yarn lint && yarn vite build",
-    "start": "vite preview",
+    "build": "yarn lint && (tsc -p ./tsconfig.build.json & (cd src/app && yarn vite build))",
+    "start": "yarn server & vite preview",
     "server": "tsx src/api/server.ts",
     "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto"
   },

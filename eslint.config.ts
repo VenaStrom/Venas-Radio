@@ -114,6 +114,7 @@ export default defineConfig([
     ".next/**/*",
     "out/**/*",
     "dist/**/*",
+    "dist-server/**/*",
     "build/**/*",
     "ignore/**/*",
     "next-env.d.ts",

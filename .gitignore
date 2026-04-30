@@ -46,3 +46,6 @@ src/prisma/
 .audio-cache/
 .eslintcache
 scripts/.cache/
+
+dist/
+dist-server/
