@@ -49,6 +49,10 @@ const main = async () => {
   console.info({ episodeProps });
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
   generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episode");
+
+  // Make index file in types/api that exports all generated types
+  const indexContent = `export type * from "./channels";\nexport type * from "./programs";\nexport type * from "./programs-single";\nexport type * from "./episodes";`;
+  fs.writeFileSync(`${typeGenOutputDir}/index.d.ts`, indexContent);
 };
 
 main()

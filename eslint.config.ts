@@ -47,7 +47,7 @@ const tsCommonRules: Config["rules"] = {
   "eqeqeq": ["error", "smart"],
   "semi": ["error", "always"],
   "comma-dangle": ["warn", "always-multiline"],
-  "quotes": ["error", "double", { avoidEscape: true }],
+  "quotes": ["error", "double", { avoidEscape: true, allowTemplateLiterals: true }],
 };
 
 export default defineConfig([
