@@ -66,6 +66,7 @@ type TypeTree = Set<Typeof> | Typeof[] | Typeof | { [key: string]: TypeTree } | 
 function parseObjType(inTree: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
   const tree: TypeTree = {};
 
+  // Early array handling
   if (Array.isArray(inTree)) {
     return inTree.map(item => isObj(item) ? parseObjType(item) : typeof item as Typeof);
   }
@@ -145,9 +146,9 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
   }
 }
 
-async function fetchChannels(): Promise<Record<string, unknown>[]> {
+async function fetchChannels(): Promise<Record<string, unknown>> {
   const cachedChannels = fs.existsSync(channelsCacheFile)
-    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>[]
+    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>
     : null;
 
   if (cachedChannels) {
@@ -167,15 +168,11 @@ async function fetchChannels(): Promise<Record<string, unknown>[]> {
       if (
         !data
         || !isObj(data)
-        || !("channels" in data)
-        || !Array.isArray(data.channels)
-        || !data.channels.every((channel: unknown) => isObj(channel))
       ) {
         console.error("Invalid channels response", data);
         return null;
       }
-
-      return data.channels;
+      return data;
     });
 
   if (!rawChannels) {
@@ -185,7 +182,7 @@ async function fetchChannels(): Promise<Record<string, unknown>[]> {
 
   fs.writeFileSync(channelsCacheFile, JSON.stringify(rawChannels, null, 2));
 
-  console.info(`Channels (${rawChannels.length}) saved to ${channelsCacheFile}`);
+  console.info(`Channels (${Object.keys(rawChannels).length}) saved to ${channelsCacheFile}`);
 
   return rawChannels;
 }
