@@ -9,8 +9,8 @@ export function App(): React.ReactNode {
     <header className="flex flex-row items-center px-2 py-2 bg-zinc-950">
       {/* Logo */}
       <div className="flex flex-row items-center gap-1 select-none">
-        <AudioLinesIcon className="size-6" />
-        <p className="font-bold text-lg">VR</p>
+        <AudioLinesIcon className="size-7" />
+        <p className="font-bold text-xl">VR</p>
       </div>
 
       {/* Spacer */}
