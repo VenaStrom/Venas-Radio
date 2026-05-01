@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "cd src/app && vite & yarn server",
     "build": "yarn lint && (tsc -p ./tsconfig.build.json & (cd src/app && yarn vite build))",
-    "start": "yarn server & vite preview",
-    "server": "tsx src/api/server.ts",
+    "start": "node dist-server/api/server.js",
+    "server": "tsx --watch src/api/server.ts",
     "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto"
   },
   "dependencies": {
@@ -31,5 +31,6 @@
     "typescript-eslint": "^8.59.1",
     "vite": "^8.0.10"
   },
-  "packageManager": "yarn@4.14.1"
+  "packageManager": "yarn@4.14.1",
+  "type": "module"
 }
