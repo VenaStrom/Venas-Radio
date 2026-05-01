@@ -3,5 +3,14 @@
 @layer base {
   body {
     @apply bg-zinc-900 text-zinc-100 h-dvh;
+    @apply flex flex-col;
+
+    & > main {
+      @apply flex-1;
+    }
+  }
+
+  ::-webkit-scrollbar {
+    scrollbar-width: thin;
   }
 }

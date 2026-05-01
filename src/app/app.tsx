@@ -1,35 +1,46 @@
+import { AudioLinesIcon, HeartIcon, MenuIcon, NewspaperIcon, RadioIcon } from "@/app/components/icons";
 import "./global.tw.css";
-import { isObj } from "@/types";
 import type React from "react";
 
 export function App(): React.ReactNode {
-  async function fetchApi() {
-    const res = await fetch("/api/hello");
-    if (!res.ok) {
-      throw new Error(`API request failed with status ${res.status}`);
-    }
-    const json = await res.json() as unknown;
-    if (!isObj(json)) {
-      throw new Error("API response is not an object");
-    }
-    console.log({ json });
-  }
+  return (<>
+    <header className="flex flex-row items-center px-2 py-2 bg-zinc-950">
+      {/* Logo */}
+      <div className="flex flex-row items-center gap-1 select-none">
+        <AudioLinesIcon className="size-6" />
+        <p className="font-bold text-lg">VR</p>
+      </div>
 
-  return (
-    <main>
-      Hello world!
+      {/* Spacer */}
+      <span className="flex-1"></span>
 
-      Ping port 3000 to see the API response.
+      {/* Options */}
+      <MenuIcon className="size-8" />
+    </header>
 
-      <button onClick={() => {
-        fetchApi()
-          .catch((err: unknown) => {
-            console.error("Error fetching API:", err);
-            alert("Failed to fetch API. Check console for details.");
-          });
-      }}>
-        Ping API
-      </button>
-    </main>
+    <main>APP</main>
+
+    {/* Navigation Buttons */}
+    <footer className="bg-zinc-950 pb-4">
+      {/* Audio controls */}
+      <div>
+        CONTROLS
+      </div>
+
+      <nav className="flex flex-row justify-between items-center px-9">
+        <a href={"/"}>
+          <RadioIcon className="size-10" />
+        </a>
+
+        <a href={"/search"}>
+          <NewspaperIcon className="size-10" />
+        </a>
+
+        <a href={"/feed"}>
+          <HeartIcon className="size-10" />
+        </a>
+      </nav>
+    </footer>
+  </>
   );
 }
