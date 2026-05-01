@@ -1,5 +1,4 @@
 import { isObj } from "@/types";
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 
 const cacheDir = "scripts/.cache";
@@ -15,7 +14,7 @@ const defaultEpisodeSampleSize = 25;
 const defaultEpisodeSeed = 20260416;
 const defaultEpisodeDaysBack = 30;
 
-const typeGenOutputDir = "src/types/api";
+const typeGenOutputDir = "src/types/sr-api";
 const typeGenChannelsFile = `${typeGenOutputDir}/channels.d.ts`;
 const typeGenProgramsFile = `${typeGenOutputDir}/programs.d.ts`;
 const typeGenProgramsSingleFile = `${typeGenOutputDir}/programs-single.d.ts`;
@@ -30,25 +29,25 @@ const main = async () => {
   const channelProps = parseObjType({ channels: rawChannels });
   console.info({ channelProps });
   fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
-  generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channel");
+  generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels");
 
   const rawPrograms = await fetchPrograms();
   const programProps = parseObjType({ programs: rawPrograms });
   console.info({ programProps });
   fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
-  generateTSFiles(programProps, typeGenProgramsFile, "SR_Program");
+  generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs");
 
   const rawSinglePrograms = await fetchSinglePrograms(rawPrograms);
-  const programSingleProps = parseObjType({ singleFetchPrograms: rawSinglePrograms });
+  const programSingleProps = parseObjType(rawSinglePrograms);
   console.info({ programSingleProps });
   fs.writeFileSync(programsSingleResultFile, JSON.stringify(programSingleProps, null, 2));
-  generateTSFiles(programSingleProps, typeGenProgramsSingleFile, "SR_ProgramSingle");
+  generateTSFiles(programSingleProps, typeGenProgramsSingleFile, "SR_ProgramSingles");
 
   const rawEpisodes = await fetchEpisodesForSampledPrograms(rawPrograms);
   const episodeProps = parseObjType(rawEpisodes);
   console.info({ episodeProps });
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
-  generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episode");
+  generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episodes");
 
   // Make index file in types/api that exports all generated types
   const indexContent = `export type * from "./channels";\nexport type * from "./programs";\nexport type * from "./programs-single";\nexport type * from "./episodes";`;
@@ -64,8 +63,12 @@ main()
 type Typeof = "string" | "number" | "boolean" | "undefined";
 type TypeTree = Set<Typeof> | Typeof[] | Typeof | { [key: string]: TypeTree } | TypeTree[];
 
-function parseObjType(inTree: Record<string, unknown>): TypeTree {
+function parseObjType(inTree: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
   const tree: TypeTree = {};
+
+  if (Array.isArray(inTree)) {
+    return inTree.map(item => isObj(item) ? parseObjType(item) : typeof item as Typeof);
+  }
 
   // Recurse to type every key
   for (const key in inTree) {
