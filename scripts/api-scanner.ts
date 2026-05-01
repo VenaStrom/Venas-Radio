@@ -45,8 +45,8 @@ main()
     process.exit(1);
   });
 
-type Typeof = string & {};
-type TypeTree = Set<Typeof> | { [key: string]: TypeTree } | TypeTree[];
+type Typeof = "string" | "number" | "boolean" | "undefined";
+type TypeTree = Set<Typeof> | Typeof[] | Typeof | { [key: string]: TypeTree } | TypeTree[];
 
 function parseObjType(inTree: Record<string, unknown>): TypeTree {
   const tree: TypeTree = {};
@@ -54,7 +54,7 @@ function parseObjType(inTree: Record<string, unknown>): TypeTree {
   for (const key in inTree) {
     const value = inTree[key];
 
-    console.log({ typeof: typeof value });
+    console.log({ typeof: typeof value, value });
 
     // Objects
     if (isObj(value)) {
@@ -69,7 +69,16 @@ function parseObjType(inTree: Record<string, unknown>): TypeTree {
     // Primitives
     else {
       tree[key] ??= new Set<Typeof>();
-      (tree[key] as Set<Typeof>).add(typeof value);
+      (tree[key] as Set<Typeof>).add(typeof value as Typeof);
+    }
+  }
+
+  // Set<Typeof> -> Typeof[]
+  for (const key in tree) {
+    if (tree[key] instanceof Set) {
+      tree[key] = tree[key].size === 1
+        ? tree[key].values().next().value ?? "undefined"
+        : Array.from(tree[key]);
     }
   }
 
