@@ -82,6 +82,16 @@ function parseObjType(inTree: Record<string, unknown>): TypeTree {
     }
   }
 
+  // Collapse identical arrays
+  for (const key in tree) {
+    if (Array.isArray(tree[key])) {
+      const array = tree[key] as TypeTree[];
+      if (array.length > 0 && array.every(item => JSON.stringify(item) === JSON.stringify(array[0]))) {
+        tree[key] = [array[0] ?? "undefined"];
+      }
+    }
+  }
+
   return tree;
 }
 
