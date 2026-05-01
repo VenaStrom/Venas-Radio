@@ -120,19 +120,21 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     }
     else if (Array.isArray(tree)) {
       if (tree.length === 0) return "unknown[]";
-      const itemType = generateTSType(tree[0] ?? "undefined");
+      const itemType = generateTSType(tree[0] ?? "undefined", depth);
       return `${itemType}[]`;
     }
     else if (tree instanceof Set) {
       return Array.from(tree).join(" | ");
     }
     else if (typeof tree === "object") {
+      const entryIndent = "  ".repeat(depth);
+      const closingIndent = "  ".repeat(Math.max(0, depth - 1));
       const entries = Object.entries(tree).map(([key, subtree]) => {
         const optional = subtree === "undefined" || (Array.isArray(subtree) && subtree.includes("undefined")) ? "?" : "";
         const type = generateTSType(subtree, depth + 1);
-        return `${"  ".repeat(depth + 1)}${key}${optional}: ${type};`;
+        return `${entryIndent}${key}${optional}: ${type};`;
       });
-      return `{\n${entries.join("\n")}\n}`;
+      return `{\n${entries.join("\n")}\n${closingIndent}}`;
     }
     else {
       return "unknown";
