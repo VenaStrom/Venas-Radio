@@ -6,6 +6,7 @@ const {
   DEV_HOST,
   DEV_ORIGINS,
 } = process.env;
+
 export default defineConfig({
   plugins: [
     tailwindcss(),

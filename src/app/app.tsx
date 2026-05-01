@@ -15,29 +15,29 @@ export function App(): React.ReactNode {
       <span className="flex-1"></span>
 
       {/* Options */}
-      <MenuIcon className="size-8" />
+      <MenuIcon className="size-10 me-2" />
     </header>
 
     <main>APP</main>
 
     {/* Navigation Buttons */}
-    <footer className="bg-zinc-950 pb-4">
+    <footer className="bg-zinc-950 pb-8">
       {/* Audio controls */}
       <div>
         CONTROLS
       </div>
 
-      <nav className="flex flex-row justify-between items-center px-9">
+      <nav className="flex flex-row justify-between items-center px-13">
         <a href={"/"}>
-          <RadioIcon className="size-10" />
+          <RadioIcon className="size-12" />
         </a>
 
         <a href={"/search"}>
-          <NewspaperIcon className="size-10" />
+          <NewspaperIcon className="size-12" />
         </a>
 
         <a href={"/feed"}>
-          <HeartIcon className="size-10" />
+          <HeartIcon className="size-12" />
         </a>
       </nav>
     </footer>
