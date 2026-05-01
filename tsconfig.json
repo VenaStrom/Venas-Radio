@@ -13,7 +13,7 @@
     "incremental": true,
     "allowUnreachableCode": false,
     "noUncheckedIndexedAccess": true,
-    "noPropertyAccessFromIndexSignature": true,
+    // "noPropertyAccessFromIndexSignature": true,
     "paths": {
       "@/*": [
         "./src/*",

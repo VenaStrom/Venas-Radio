@@ -8,7 +8,8 @@
     "build": "yarn lint && (tsc -p ./tsconfig.build.json & (cd src/app && yarn vite build))",
     "start": "node dist-server/api/server.js",
     "server": "tsx --watch src/api/server.ts",
-    "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto"
+    "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto",
+    "api:types": "tsx scripts/api-scanner.ts"
   },
   "dependencies": {
     "express": "^5.2.1",

@@ -1,0 +1,313 @@
+import { isObj } from "@/types";
+import fs from "node:fs";
+
+const cacheDir = "scripts/.cache";
+const channelsCacheFile = `${cacheDir}/channels.json`;
+const programsCacheFile = `${cacheDir}/programs.json`;
+const programsSingleCacheFile = `${cacheDir}/programs-single.json`;
+const resultDir = "scripts/.cache/results";
+const channelsResultFile = `${resultDir}/channels.json`;
+const programsResultFile = `${resultDir}/programs.json`;
+const programsSingleResultFile = `${resultDir}/programs-single.json`;
+const episodesResultFile = `${resultDir}/episodes.json`;
+const defaultEpisodeSampleSize = 25;
+const defaultEpisodeSeed = 20260416;
+const defaultEpisodeDaysBack = 30;
+
+if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+if (!fs.existsSync(resultDir)) fs.mkdirSync(resultDir);
+
+const main = async () => {
+  const rawChannels = await fetchChannels();
+  const channelProps = parseObjType({ channels: rawChannels });
+  console.info({ channelProps });
+  fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
+
+  const rawPrograms = await fetchPrograms();
+  const programProps = parseObjType({ programs: rawPrograms });
+  console.info({ programProps });
+  fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
+
+  const rawSinglePrograms = await fetchSinglePrograms(rawPrograms);
+  const programSingleProps = parseObjType({ singleFetchPrograms: rawSinglePrograms });
+  console.info({ programSingleProps });
+  fs.writeFileSync(programsSingleResultFile, JSON.stringify(programSingleProps, null, 2));
+
+  const rawEpisodes = await fetchEpisodesForSampledPrograms(rawPrograms);
+  const episodeProps = parseObjType({ episodes: rawEpisodes });
+  console.info({ episodeProps });
+  fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
+};
+
+main()
+  .catch((e: unknown) => {
+    console.error("Failed to run API scanner", e);
+    process.exit(1);
+  });
+
+type Typeof = string & {};
+type TypeTree = Set<Typeof> | { [key: string]: TypeTree } | TypeTree[];
+
+function parseObjType(inTree: Record<string, unknown>): TypeTree {
+  const tree: TypeTree = {};
+
+  for (const key in inTree) {
+    const value = inTree[key];
+
+    console.log({ typeof: typeof value });
+
+    // Objects
+    if (isObj(value)) {
+      tree[key] = parseObjType(value);
+    }
+
+    // Arrays
+    else if (Array.isArray(value)) {
+      (tree[key] as TypeTree[]) = value.map(parseObjType);
+    }
+
+    // Primitives
+    else {
+      tree[key] ??= new Set<Typeof>();
+      (tree[key] as Set<Typeof>).add(typeof value);
+    }
+  }
+
+  return tree;
+}
+
+async function fetchChannels(): Promise<Record<string, unknown>[]> {
+  const cachedChannels = fs.existsSync(channelsCacheFile)
+    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedChannels) {
+    console.info(`Using cached channels ${channelsCacheFile.length} from`, channelsCacheFile);
+    return cachedChannels;
+  }
+
+  console.info("Fetching channels from API...");
+
+  const rawChannels = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false")
+    .catch((e: unknown) => {
+      console.error("Failed to fetch channels", e);
+      return null;
+    })
+    .then(res => res?.json())
+    .then((data: unknown) => {
+      if (
+        !data
+        || !isObj(data)
+        || !("channels" in data)
+        || !Array.isArray(data.channels)
+        || !data.channels.every((channel: unknown) => isObj(channel))
+      ) {
+        console.error("Invalid channels response", data);
+        return null;
+      }
+
+      return data.channels;
+    });
+
+  if (!rawChannels) {
+    console.error("Failed to fetch channels", rawChannels);
+    throw new Error("Failed to fetch channels");
+  }
+
+  fs.writeFileSync(channelsCacheFile, JSON.stringify(rawChannels, null, 2));
+
+  console.info(`Channels (${rawChannels.length}) saved to ${channelsCacheFile}`);
+
+  return rawChannels;
+}
+
+async function fetchPrograms(): Promise<Record<string, unknown>[]> {
+  const cachedPrograms = fs.existsSync(programsCacheFile)
+    ? JSON.parse(fs.readFileSync(programsCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedPrograms) {
+    console.info(`Using cached programs (${programsCacheFile.length}) from`, programsCacheFile);
+    return cachedPrograms;
+  }
+
+  console.info("Fetching programs from API...");
+
+  const rawPrograms = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
+    .catch((e: unknown) => {
+      console.error("Failed to fetch programs", e);
+      return null;
+    })
+    .then(res => res?.json())
+    .then((data: unknown) => {
+      if (
+        !data
+        || !isObj(data)
+        || !("programs" in data)
+        || !Array.isArray(data.programs)
+        || !data.programs.every((program: unknown) => isObj(program))
+      ) {
+        console.error("Invalid programs response", data);
+        return null;
+      }
+
+      return data.programs;
+    });
+
+  if (!rawPrograms) {
+    console.error("Failed to fetch programs", rawPrograms);
+    throw new Error("Failed to fetch programs");
+  }
+
+  fs.writeFileSync(programsCacheFile, JSON.stringify(rawPrograms, null, 2));
+
+  console.info(`Programs (${rawPrograms.length}) saved to ${programsCacheFile}`);
+
+  return rawPrograms;
+}
+
+async function fetchSinglePrograms(programs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+  const cachedPrograms = fs.existsSync(programsSingleCacheFile)
+    ? JSON.parse(fs.readFileSync(programsSingleCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedPrograms) {
+    console.info(`Using cached single programs (${programsSingleCacheFile.length}) from`, programsSingleCacheFile);
+    return cachedPrograms;
+  }
+
+  const programIds = programs
+    .map(program => program.id)
+    .filter((id): id is number => typeof id === "number");
+
+  console.info(`Fetching single program payloads for ${programIds.length} programs...`);
+
+  const singlePrograms = await Promise.all(
+    programIds.map(async (id) => {
+      let data: unknown;
+
+      try {
+        const response = await fetch(`https://api.sr.se/api/v2/programs/get?id=${id}&format=json`);
+        data = await response.json() as unknown;
+      }
+      catch (e: unknown) {
+        console.error("Failed to fetch single program", { id, e });
+        return null;
+      }
+
+      if (!data || !isObj(data) || !("program" in data) || !isObj(data.program)) {
+        console.error("Invalid single program response", { id, data });
+        return null;
+      }
+
+      return data.program;
+    }),
+  );
+
+  const validSinglePrograms = singlePrograms.filter((program): program is Record<string, unknown> => !!program);
+
+  fs.writeFileSync(programsSingleCacheFile, JSON.stringify(validSinglePrograms, null, 2));
+
+  console.info(`Single programs (${validSinglePrograms.length}) saved to ${programsSingleCacheFile}`);
+
+  return validSinglePrograms;
+}
+
+async function fetchEpisodesForSampledPrograms(programs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+  const seed = Number(process.env.API_SCANNER_EPISODE_SEED ?? defaultEpisodeSeed);
+  const sampleSize = Number(process.env.API_SCANNER_EPISODE_SAMPLE_SIZE ?? defaultEpisodeSampleSize);
+  const daysBack = Number(process.env.API_SCANNER_EPISODE_DAYS_BACK ?? defaultEpisodeDaysBack);
+
+  const toDate = new Date();
+  const fromDate = new Date(toDate);
+  fromDate.setDate(fromDate.getDate() - daysBack);
+
+  const toDateStr = formatDateYYYYMMDD(toDate);
+  const fromDateStr = formatDateYYYYMMDD(fromDate);
+  const episodesCacheFile = `${cacheDir}/episodes-seed-${seed}-sample-${sampleSize}-from-${fromDateStr}-to-${toDateStr}.json`;
+
+  const cachedEpisodes = fs.existsSync(episodesCacheFile)
+    ? JSON.parse(fs.readFileSync(episodesCacheFile, "utf-8")) as Record<string, unknown>[]
+    : null;
+
+  if (cachedEpisodes) {
+    console.info(`Using cached episodes (${cachedEpisodes.length}) from`, episodesCacheFile);
+    return cachedEpisodes;
+  }
+
+  const programIds = programs
+    .map(program => program.id)
+    .filter((id): id is number => typeof id === "number");
+
+  const sampledProgramIds = sampleWithoutReplacement(programIds, sampleSize, seed);
+
+  console.info(`Fetching one-month episode payloads for ${sampledProgramIds.length} sampled programs...`, {
+    seed,
+    sampleSize,
+    fromDate: fromDateStr,
+    toDate: toDateStr,
+  });
+
+  const episodesByProgram: Record<string, unknown>[][] = await Promise.all(
+    sampledProgramIds.map(async (programId) => {
+      let data: unknown;
+
+      try {
+        const response = await fetch(`https://api.sr.se/api/v2/episodes/index?fromdate=${fromDateStr}&todate=${toDateStr}&format=json&pagination=false&audioquality=high&programid=${programId}`);
+        data = await response.json() as unknown;
+      }
+      catch (err: unknown) {
+        console.error("Failed to fetch episodes for program", { programId, err });
+        return [];
+      }
+
+      if (
+        !data
+        || typeof data !== "object"
+        || !("episodes" in data)
+        || Array.isArray(data.episodes)
+      ) {
+        console.error("Invalid episodes response structure", { programId, data });
+        return [];
+      }
+
+      return (data.episodes as Record<string, unknown>[]).filter(isObj);
+    }),
+  );
+
+  const episodes: Record<string, unknown>[] = [];
+  for (const episodesForProgram of episodesByProgram) {
+    episodes.push(...episodesForProgram);
+  }
+
+  fs.writeFileSync(episodesCacheFile, JSON.stringify(episodes, null, 2));
+
+  console.info(`Episodes (${episodes.length}) saved to ${episodesCacheFile}`);
+
+  return episodes;
+}
+
+function formatDateYYYYMMDD(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function sampleWithoutReplacement(values: number[], requestedCount: number, seed: number): number[] {
+  const rng = seededRng(seed);
+  const sampled = [...values];
+
+  for (let i = sampled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [sampled[i], sampled[j]] = [sampled[j] as number, sampled[i] as number];
+  }
+
+  return sampled.slice(0, Math.max(0, Math.min(requestedCount, sampled.length)));
+}
+
+function seededRng(seed: number): () => number {
+  let state = seed >>> 0;
+
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
