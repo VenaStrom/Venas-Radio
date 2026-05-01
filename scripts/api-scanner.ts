@@ -54,8 +54,6 @@ function parseObjType(inTree: Record<string, unknown>): TypeTree {
   for (const key in inTree) {
     const value = inTree[key];
 
-    console.log({ typeof: typeof value, value });
-
     // Objects
     if (isObj(value)) {
       tree[key] = parseObjType(value);
