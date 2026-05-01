@@ -13,4 +13,8 @@
   ::-webkit-scrollbar {
     scrollbar-width: thin;
   }
+
+  button {
+    @apply cursor-pointer;
+  }
 }

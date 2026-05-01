@@ -1,6 +1,8 @@
-import { AudioLinesIcon, HeartIcon, MenuIcon, NewspaperIcon, RadioIcon } from "@/app/components/icons";
 import "./global.tw.css";
 import type React from "react";
+import { AudioLinesIcon, HeartIcon, MenuIcon, NewspaperIcon, RadioIcon } from "@/app/components/icons";
+import { Link } from "@/app/components/link";
+import { Router } from "@/app/components/router";
 
 export function App(): React.ReactNode {
   return (<>
@@ -18,7 +20,7 @@ export function App(): React.ReactNode {
       <MenuIcon className="size-10 me-2" />
     </header>
 
-    <main>APP</main>
+    <Router route={window.location.pathname} />
 
     {/* Navigation Buttons */}
     <footer className="bg-zinc-950 pb-8">
@@ -28,17 +30,17 @@ export function App(): React.ReactNode {
       </div>
 
       <nav className="flex flex-row justify-between items-center px-13">
-        <a href={"/"}>
+        <Link href={"/"}>
           <RadioIcon className="size-12" />
-        </a>
+        </Link>
 
-        <a href={"/search"}>
+        <Link href={"/search"}>
           <NewspaperIcon className="size-12" />
-        </a>
+        </Link>
 
-        <a href={"/feed"}>
+        <Link href={"/feed"}>
           <HeartIcon className="size-12" />
-        </a>
+        </Link>
       </nav>
     </footer>
   </>
