@@ -1,0 +1,17 @@
+{
+  "$schema": "https://www.schemastore.org/web-manifest-combined.json",
+  "id": "venas-radio",
+  "short_name": "VRadio",
+  "name": "Venas Radio",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#f4f4f5",
+  "background_color": "#18181b"
+}
