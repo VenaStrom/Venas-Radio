@@ -1,4 +1,6 @@
 import type { Channel } from "@/api/lib/prisma/generated";
+import { FollowButton } from "@/app/components/buttons/follow";
+import { PlayButton } from "@/app/components/buttons/play";
 import SR_Attribute from "@/app/components/cards/sr-attribute";
 
 export function ChannelCard({ channel }: { channel: Channel }): React.ReactNode {
@@ -22,10 +24,8 @@ export function ChannelCard({ channel }: { channel: Channel }): React.ReactNode 
           </p>
 
           <div className="flex flex-row gap-x-4 items-center">
-            {/* <LikeButton channelID={channel.id} /> */}
-            {/* <PlayButton channel={channel} iconSize={28} /> */}
-            <span>LIKE</span>
-            <span>PLAY</span>
+            <FollowButton playId={channel.id} />
+            <PlayButton playId={channel.id} />
           </div>
         </div>
 

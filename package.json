@@ -9,7 +9,8 @@
     "start": "node dist-server/api/server.js",
     "server": "tsx --watch src/api/server.ts",
     "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto",
-    "api:types": "tsx scripts/api-scanner.ts"
+    "api:types": "tsx scripts/api-scanner.ts",
+    "rm-dist": "rm -rf dist dist-server .cache-seed scripts/.cache .eslintcache tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.8.0",

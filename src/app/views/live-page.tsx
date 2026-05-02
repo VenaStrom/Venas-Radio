@@ -8,30 +8,27 @@ export function LivePage(): React.ReactNode {
   const [page, _setPage] = useState<number>(1);
   const [channels, setChannels] = useState<Channel[]>([]);
 
+  const [totalChannels, setTotalChannels] = useState<number>(pageSize * 4);
+
   // Get channels on mount
   useEffect(() => {
     async function fetchChannels() {
-      const res = await fetch(`/api/channels?page=${page}&pagesize=${pageSize}`)
-        .then(res => res.json() as unknown)
-        .then(data => {
-          if (typeof data !== "object" || data === null) {
-            console.error(`Invalid response: no data`, { data });
-            return null;
-          }
-          if (!Array.isArray(data)) {
-            console.error(`Invalid response: "channels" is not an array`, { data });
-            return null;
-          }
-          if (!data.every(isChannel)) {
-            console.error(`Invalid response: some items in "channels" are not valid Channel objects`, { data });
-            return null;
-          }
-          return data;
-        });
+      const res = await fetch(`/api/channels?page=${page}&pagesize=${pageSize}`);
+      const data = await res.json() as {
+        channels: Channel[];
+        progress: number;
+        total: number;
+      };
+
+      if (!data.channels.every(isChannel)) {
+        throw new Error("Invalid channel data received from server.");
+      }
+
+      setTotalChannels(data.total);
 
       setChannels(prev => !prev ? prev : [
         ...prev,
-        ...res ?? [],
+        ...data.channels,
       ]);
     }
 
@@ -53,7 +50,9 @@ export function LivePage(): React.ReactNode {
 
       {/* Live */}
       <section className="h-(--live-section-height) overflow-y-auto">
-        <ul className="px-6 flex flex-col gap-y-4">
+        <span className="ps-4 text-center italic text-xs text-zinc-500">Kanaler {totalChannels}</span>
+
+        <ul className="px-6 flex flex-col gap-y-4 last:pb-20">
           {channels.map(c => (
             <ChannelCard key={c.id} channel={c} />
           ))}
