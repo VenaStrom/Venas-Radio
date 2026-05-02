@@ -10,7 +10,6 @@ export function LivePage(): React.ReactNode {
   const [allIds, setAllIds] = useState<number[] | null>(null);
   const [channels, setChannels] = useState<Record<number, Channel>>({});
   const [totalChannels, setTotalChannels] = useState<number>(52);
-  const [progress, setProgress] = useState<number>(0);
 
   // Get channels on mount
   useEffect(() => {
@@ -29,7 +28,6 @@ export function LivePage(): React.ReactNode {
 
       setTotalChannels(data.total);
       setAllIds(data.allIds);
-      setProgress(data.progress);
       setChannels(prev => {
         const newLookup = { ...prev };
         for (const channel of data.channels) newLookup[channel.id] = channel;
@@ -48,12 +46,14 @@ export function LivePage(): React.ReactNode {
     const channelList = document.getElementById("channel-ul") as HTMLUListElement | null;
     if (!channelList) return;
 
+    const margin = 300; // Trigger loading a bit before reaching the end
+
     function onScroll() {
       const firstUnloaded = channelList?.querySelector("li[id^='to-be-loaded-']");
       if (firstUnloaded) {
         if (firstUnloaded) {
           const rect = firstUnloaded.getBoundingClientRect();
-          if (rect.top < window.innerHeight) {
+          if (rect.top < window.innerHeight + margin) {
             // Remove id to mark as loaded (and prevent multiple triggers)
             firstUnloaded.removeAttribute("id");
 
@@ -76,12 +76,11 @@ export function LivePage(): React.ReactNode {
         <p>
           Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokanaler och -program från Sveriges Radio, via deras <a href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</a>.
         </p>
-        <span className="ps-4 text-center italic text-xs text-zinc-500">Kanaler {totalChannels} - inladdade {(progress * 100).toFixed(2)}%</span>
       </section>
 
       {/* Live */}
       <section className="h-(--live-section-height) overflow-y-auto" id="channel-ul">
-        <span className="ps-4 text-center italic text-xs text-zinc-500">Kanaler {totalChannels}</span>
+        <span className="ps-4 text-center italic text-xs text-zinc-500">{totalChannels} kanaler</span>
 
         <ul className="px-6 flex flex-col gap-y-4 last:pb-20">
           {allIds
