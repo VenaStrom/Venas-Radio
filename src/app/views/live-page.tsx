@@ -42,9 +42,9 @@ export function LivePage(): React.ReactNode {
   }, [page]);
 
   return (
-    <main>
+    <main className="flex flex-col gap-y-8">
       {/* Intro section */}
-      <section className="w-full flex flex-col items-center text-center mt-12">
+      <section className="w-full flex flex-col items-center text-center mt-12 h-(--intro-section-height)">
         <h1 className="text-2xl">Välkommen till Venas Radio</h1>
         <p>
           Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokanaler och -program från Sveriges Radio, via deras <a href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</a>.
@@ -52,8 +52,8 @@ export function LivePage(): React.ReactNode {
       </section>
 
       {/* Live */}
-      <section>
-        <ul>
+      <section className="h-(--live-section-height) overflow-y-auto">
+        <ul className="px-6 flex flex-col gap-y-4">
           {channels.map(c => (
             <ChannelCard key={c.id} channel={c} />
           ))}
