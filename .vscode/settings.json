@@ -1,7 +1,10 @@
 {
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
-  "cSpell.words": [],
+  "cSpell.words": [
+    "dbgenerated",
+    "xmltv"
+  ],
   "cSpell.language": "en,sv-SE",
   "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

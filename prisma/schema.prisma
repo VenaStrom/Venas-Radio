@@ -8,43 +8,62 @@ datasource db {
   provider = "mysql"
 }
 
+model User {
+  // Might just do clerk id :woman_shrugging:
+  id            Int       @id
+  likedChannels Channel[]
+  likedPrograms Program[]
+}
+
+model Progress {
+  episodeId Int
+  userId    Int
+  progress  Int
+
+  @@id([episodeId, userId])
+}
+
 model Channel {
-  id                Int       @id
-  name              String
-  image             String
-  imagetemplate     String
-  color             String
-  tagline           String
-  siteurl           String
-  liveaudio_id      Int
-  liveaudio_url     String
-  liveaudio_statkey String
-  scheduleurl       String
-  channeltype       String
-  xmltvid           String
-  episodes          Episode[]
-  programs          Program[]
+  id            Int        @id
+  name          String
+  image         String
+  imageTemplate String
+  color         String
+  tagline       String
+  siteUrl       String
+  scheduleUrl   String
+  channelType   String
+  xmltvId       String
+  liveAudio     LiveAudio?
+  programs      Program[]
+  user          User?      @relation(fields: [userId], references: [id])
+  userId        Int?
+}
+
+model LiveAudio {
+  id        Int     @id
+  url       String
+  statKey   String
+  channelId Int     @unique
+  channel   Channel @relation(fields: [channelId], references: [id])
 }
 
 model Episode {
-  id                Int     @id
+  id                Int                   @id
   title             String
   description       String
   url               String
-  audiopreference   String
-  audiopriority     String
-  audiopresentation String
-  publishdateutc    String
-  imageurl          String
-  imageurltemplate  String
+  audioPreference   String
+  audioPriority     String
+  audioPresentation String
+  publishDateUtc    String
+  imageUrl          String
+  imageUrlTemplate  String
   photographer      String
-  programID         Int
-  program           Program @relation(fields: [programID], references: [id])
-  channelID         Int
-  channel           Channel @relation(fields: [channelID], references: [id])
-
-  broadcast_json     Json @db.Json
-  broadcasttime_json Json @db.Json
+  programId         Int
+  program           Program               @relation(fields: [programId], references: [id])
+  broadcast         EpisodeBroadcast?
+  broadcastTime     EpisodeBroadcastTime?
 }
 
 model Program {
@@ -53,28 +72,69 @@ model Program {
   description              String
   email                    String
   phone                    String
-  programurl               String
-  programslug              String
-  broadcastinfo            String
-  hasondemand              Boolean
-  haspod                   Boolean
+  programUrl               String
+  programSlug              String
+  broadcastInfo            String
+  hasOnDemand              Boolean
+  hasPod                   Boolean
   archived                 Boolean
-  programimage             String
-  programimagetemplate     String
-  programimagetemplatewide String
-  programimagewide         String
-  socialimage              String
-  socialimagetemplate      String
-  responsibleeditor        String
-  channelID                Int
-  channel                  Channel               @relation(fields: [channelID], references: [id])
-  socialmediaplatforms     SocialMediaPlatform[]
+  programImage             String
+  programImageTemplate     String
+  programImageTemplateWide String
+  programImageWide         String
+  socialImage              String
+  socialImageTemplate      String
+  responsibleEditor        String
+  channelId                Int
+  channel                  Channel               @relation(fields: [channelId], references: [id])
+  socialMediaPlatforms     SocialMediaPlatform[]
   episodes                 Episode[]
+  user                     User?                 @relation(fields: [userId], references: [id])
+  userId                   Int?
 }
 
 model SocialMediaPlatform {
-  platform    String  @id
-  platformurl String
-  programID   Int
-  program     Program @relation(fields: [programID], references: [id])
+  platform    String
+  platformUrl String
+  programId   Int
+  program     Program @relation(fields: [programId], references: [id])
+
+  @@id([programId, platform])
+  @@unique([programId, platform])
+}
+
+model EpisodeBroadcast {
+  episodeId        Int                       @id
+  availableStopUtc String
+  episode          Episode                   @relation(fields: [episodeId], references: [id])
+  playlist         EpisodeBroadcastPlaylist?
+  broadcastFiles   EpisodeBroadcastFile[]
+}
+
+model EpisodeBroadcastPlaylist {
+  broadcastId    Int              @id
+  duration       Int
+  publishDateUtc String
+  url            String
+  statKey        String
+  broadcast      EpisodeBroadcast @relation(fields: [broadcastId], references: [episodeId])
+}
+
+model EpisodeBroadcastFile {
+  id             Int              @id
+  duration       Int
+  publishDateUtc String
+  url            String
+  statKey        String
+  broadcastId    Int
+  broadcast      EpisodeBroadcast @relation(fields: [broadcastId], references: [episodeId])
+
+  @@index([broadcastId])
+}
+
+model EpisodeBroadcastTime {
+  episodeId    Int     @id
+  startTimeUtc String
+  endTimeUtc   String
+  episode      Episode @relation(fields: [episodeId], references: [id])
 }
