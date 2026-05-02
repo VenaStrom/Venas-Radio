@@ -35,5 +35,6 @@
     "dist-server",
     "dist",
     "prisma/generated",
+    "src/prisma/"
   ],
 }
