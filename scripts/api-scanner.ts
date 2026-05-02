@@ -170,42 +170,29 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
   fs.writeFileSync(outputFile, content);
 
   function generateTSType(tree: TypeTree, depth: number = 1): string {
-    if (typeof tree === "string") {
-      return tree;
+    if (typeof tree !== "object") throw new Error("Unexpected string in type tree");
+
+    // Set of types
+    if (tree instanceof Set) {
+      return Array.from(tree).join(" | ");
     }
+    // Array
     else if (Array.isArray(tree)) {
       if (tree.length === 0) return "unknown[]";
+
       const onlyItem = tree[0];
       if (!onlyItem) throw new Error("Unexpected empty array in type tree");
+
       const itemType = generateTSType(onlyItem, depth);
       return `${itemType}[]`;
     }
-    else if (tree instanceof Set) {
-      return Array.from(tree).join(" | ");
-    }
-    else if (typeof tree === "object") {
-      const entryIndent = "  ".repeat(depth);
-      const closingIndent = "  ".repeat(Math.max(0, depth - 1));
-      const entries = Object.entries(tree).map(([key, subtree]) => {
-        if (subtree instanceof Set) {
-          const optional = subtree.has("undefined") ? "?" : "";
-          const type = generateTSType(subtree, depth + 1);
-          return `${entryIndent}${key}${optional}: ${type};`;
-        }
-        else if (Array.isArray(subtree)) {
-          if (subtree.length === 0) return `${entryIndent}${key}: unknown[];`;
-          const onlyItem = subtree[0];
-          if (!onlyItem) return `${entryIndent}${key}: unknown[];`;
-          const itemType = generateTSType(onlyItem, depth + 1);
-          return `${entryIndent}${key}: ${itemType}[];`;
-        }
-        else {
-          const optional = Object.values(subtree).some(val => val instanceof Set && val.has("undefined")) ? "?" : "";
-          const type = generateTSType(subtree, depth + 1);
-          return `${entryIndent}${key}${optional}: ${type};`;
-        }
+    // Else recurse
+    else if (isObj(tree)) {
+      let result = "{\n";
+      Object.entries(tree).forEach(([key, val]) => {
+        result += `${"  ".repeat(depth)}${key}: ${generateTSType(val, depth + 1)};\n`;
       });
-      return `{\n${entries.join("\n")}\n${closingIndent}}`;
+      return result + `${"  ".repeat(depth - 1)}}`;
     }
     else {
       console.warn("Unexpected tree node type during TS generation", { tree, depth });

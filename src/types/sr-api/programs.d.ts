@@ -3,11 +3,11 @@ export type SR_Programs_Response = {
   copyright: string;
   programs: {
     description: string;
-    broadcastinfo?: string | undefined;
+    broadcastinfo: string | undefined;
     email: string;
     phone: string;
     programurl: string;
-    programslug?: string | undefined;
+    programslug: string | undefined;
     programimage: string;
     programimagetemplate: string;
     programimagewide: string;
@@ -20,7 +20,7 @@ export type SR_Programs_Response = {
     responsibleeditor: string;
     id: number;
     name: string;
-    payoff?: string | undefined;
-    socialmediaplatforms?: undefined;
+    payoff: string | undefined;
+    socialmediaplatforms: undefined;
   }[];
 };

@@ -7,9 +7,9 @@ export type SR_Channels_Response = {
     color: string;
     tagline: string;
     siteurl: string;
-    scheduleurl?: string | undefined;
+    scheduleurl: string | undefined;
     channeltype: string;
-    xmltvid?: string | undefined;
+    xmltvid: string | undefined;
     id: number;
     name: string;
   }[];
