@@ -40,4 +40,4 @@ export type SR_Episodes_Response = {
     };
     channelid: number;
   }[];
-}[];
+};

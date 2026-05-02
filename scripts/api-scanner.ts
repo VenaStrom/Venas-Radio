@@ -48,7 +48,10 @@ const main = async () => {
   const rawEpisodes = await fetchEpisodesForSampledPrograms(programIDs);
   const episodeProps = parseObjType(rawEpisodes);
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
-  generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episodes_Response");
+  if (Array.isArray(episodeProps) && typeof episodeProps[0] === "object")
+    generateTSFiles(episodeProps[0], typeGenEpisodesFile, "SR_Episodes_Response");
+  else
+    generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episodes_Response");
   console.info("Episodes done");
 
   // Make index file in types/api that exports all generated types
