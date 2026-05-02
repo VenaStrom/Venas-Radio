@@ -1,7 +1,7 @@
 import "./global.tw.css";
 import type React from "react";
 import { AudioLinesIcon, HeartIcon, MenuIcon, NewspaperIcon, RadioIcon } from "@/app/components/icons";
-import { Link } from "@/app/components/link";
+import { Link } from "@/app/components/buttons/link";
 import { Router } from "@/app/components/router";
 
 export function App(): React.ReactNode {
