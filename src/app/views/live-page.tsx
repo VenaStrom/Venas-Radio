@@ -4,12 +4,13 @@ import { isChannel } from "@/types";
 import { useEffect, useState } from "react";
 
 export function LivePage(): React.ReactNode {
-  const pageSize = 20;
-  const [page, _setPage] = useState<number>(1);
+  const pageSize = 10;
+  const [page, setPage] = useState<number>(1);
 
   const [allIds, setAllIds] = useState<number[] | null>(null);
   const [channels, setChannels] = useState<Record<number, Channel>>({});
   const [totalChannels, setTotalChannels] = useState<number>(52);
+  const [progress, setProgress] = useState<number>(0);
 
   // Get channels on mount
   useEffect(() => {
@@ -28,6 +29,7 @@ export function LivePage(): React.ReactNode {
 
       setTotalChannels(data.total);
       setAllIds(data.allIds);
+      setProgress(data.progress);
       setChannels(prev => {
         const newLookup = { ...prev };
         for (const channel of data.channels) newLookup[channel.id] = channel;
@@ -41,6 +43,31 @@ export function LivePage(): React.ReactNode {
       });
   }, [page]);
 
+  // On scroll handler
+  useEffect(() => {
+    const channelList = document.getElementById("channel-ul") as HTMLUListElement | null;
+    if (!channelList) return;
+
+    function onScroll() {
+      const firstUnloaded = channelList?.querySelector("li[id^='to-be-loaded-']");
+      if (firstUnloaded) {
+        if (firstUnloaded) {
+          const rect = firstUnloaded.getBoundingClientRect();
+          if (rect.top < window.innerHeight) {
+            // Remove id to mark as loaded (and prevent multiple triggers)
+            firstUnloaded.removeAttribute("id");
+
+            console.info("Load page");
+            setPage(prev => prev + 1);
+          }
+        }
+      }
+    }
+
+    channelList.addEventListener("scroll", onScroll);
+    return () => channelList.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <main className="flex flex-col gap-y-8">
       {/* Intro section */}
@@ -49,10 +76,11 @@ export function LivePage(): React.ReactNode {
         <p>
           Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokanaler och -program från Sveriges Radio, via deras <a href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</a>.
         </p>
+        <span className="ps-4 text-center italic text-xs text-zinc-500">Kanaler {totalChannels} - inladdade {(progress * 100).toFixed(2)}%</span>
       </section>
 
       {/* Live */}
-      <section className="h-(--live-section-height) overflow-y-auto">
+      <section className="h-(--live-section-height) overflow-y-auto" id="channel-ul">
         <span className="ps-4 text-center italic text-xs text-zinc-500">Kanaler {totalChannels}</span>
 
         <ul className="px-6 flex flex-col gap-y-4 last:pb-20">
@@ -60,7 +88,7 @@ export function LivePage(): React.ReactNode {
             ? allIds.map((id) => (
               channels[id]
                 ? <ChannelCard key={id} channel={channels[id]} />
-                : <ChannelCard.Skeleton key={id} />
+                : <ChannelCard.Skeleton key={id} id={`to-be-loaded-${id}`} />
             ))
             : new Array(pageSize).fill(0).map((_, i) =>
               <ChannelCard.Skeleton key={"channel-skeleton-" + i} />,

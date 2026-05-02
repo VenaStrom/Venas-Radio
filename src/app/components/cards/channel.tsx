@@ -45,9 +45,9 @@ export function ChannelCard({ channel }: { channel: Channel }): React.ReactNode 
   );
 }
 
-function Skeleton() {
+function Skeleton({ id }: { id?: string }): React.ReactNode {
   return (
-    <li className="flex flex-row h-28 items-center gap-x-4 w-full">
+    <li className="flex flex-row h-28 items-center gap-x-4 w-full" {...id ? { id } : {}}>
       {/* Thumbnail */}
       <div className="bg-zinc-600 rounded-md size-24 animate-pulse"></div>
 
