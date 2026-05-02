@@ -34,5 +34,6 @@
     "build",
     "dist-server",
     "dist",
+    "prisma/generated",
   ],
 }
