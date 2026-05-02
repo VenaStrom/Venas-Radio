@@ -7,7 +7,8 @@ git checkout origin/main --force
 systemctl daemon-reload
 
 # Build
-yarn install --frozen-lockfile
+corepack enable
+yarn install --immutable --immutable-cache
 yarn prisma generate
 yarn build
 
