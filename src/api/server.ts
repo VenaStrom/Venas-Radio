@@ -14,7 +14,7 @@ app.get("/api/channels", (req, res) => {
 
   const cache = readFileSync(".cache/channels.json", "utf-8");
   try {
-    const channels = JSON.parse(cache);
+    const channels = JSON.parse(cache) as unknown[];
     const start = (Number(page) - 1) * Number(pageSize);
     const end = start + Number(pageSize);
     res.json(channels.slice(start, end));

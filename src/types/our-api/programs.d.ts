@@ -1,29 +1,29 @@
 
-export type SR_Programs_Response = {
-  description: string;
+export type Program = {
+  archived: boolean;
   broadcastinfo: string;
+  description: string;
   email: string;
+  hasondemand: boolean;
+  haspod: boolean;
+  id: number;
+  name: string;
   phone: string;
-  programurl: string;
-  programslug: string;
   programimage: string;
   programimagetemplate: string;
-  programimagewide: string;
   programimagetemplatewide: string;
+  programimagewide: string;
+  programslug: string;
+  programurl: string;
+  responsibleeditor: string;
   socialimage: string;
   socialimagetemplate: string;
-  socialmediaplatforms: {
-    platform: string;
-    platformurl: string;
-  }[];
   channel: {
     id: number;
     name: string;
   };
-  archived: boolean;
-  hasondemand: boolean;
-  haspod: boolean;
-  responsibleeditor: string;
-  id: number;
-  name: string;
+  socialmediaplatforms: {
+    platform: string;
+    platformurl: string;
+  }[];
 };
