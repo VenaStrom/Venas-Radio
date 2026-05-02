@@ -1,13 +1,29 @@
-import { HeartIcon } from "@/app/components/icons";
+import { FilledHeartIcon, HeartIcon } from "@/app/components/icons";
 import { useState } from "react";
 
-export function FollowButton({ playId, className = "" }: { playId: number, className?: string }): React.ReactNode {
+export function FollowButton({
+  channelId,
+  episodeId,
+  className = "",
+}: {
+  channelId?: number,
+  episodeId?: number,
+  className?: string,
+}): React.ReactNode {
   const [isFollowed, setIsFollowed] = useState<boolean>(false);
 
+  const playId = !!channelId ? "channel-" : !!episodeId ? "episode-" : "" + (channelId ?? episodeId);
+  if (!playId) { console.error("FollowButton requires either channelId or episodeId"); return null; }
+
+  function onClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    setIsFollowed(!isFollowed);
+  }
+
   return (
-    <button className={` ${className}`} id={`follow-btn-${playId}`}>
+    <button className={` ${className}`} id={`follow-btn-${playId}`} onClick={onClick} type="button">
       {isFollowed
-        ? <HeartIcon className="size-7 text-red-500" />
+        ? <FilledHeartIcon className="size-7 text-red-400 " />
         : <HeartIcon className="size-7" />
       }
     </button>
