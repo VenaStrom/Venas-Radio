@@ -5,6 +5,8 @@
     @apply bg-zinc-900 text-zinc-100 h-dvh;
     @apply flex flex-col;
 
+    font-family: "Noto Sans", sans-serif;
+
     & > main {
       @apply flex-1;
     }
@@ -16,5 +18,15 @@
 
   button {
     @apply cursor-pointer;
+  }
+
+  a {
+    @apply text-blue-500 hover:underline;
+    &:hover {
+      @apply text-blue-400;
+    }
+    &:visited {
+      @apply text-purple-500;
+    }
   }
 }
