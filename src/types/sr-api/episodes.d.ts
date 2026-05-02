@@ -1,40 +1,43 @@
 
-export type SR_Episodes = {
-  id: number;
-  title: string;
-  description: string;
-  url: string;
-  program: {
+export type SR_Episodes_Response = {
+  copyright: string;
+  episodes: {
     id: number;
-    name: string;
-  };
-  audiopreference: string;
-  audiopriority: string;
-  audiopresentation: string;
-  publishdateutc: string;
-  imageurl: string;
-  imageurltemplate: string;
-  photographer: string;
-  broadcast: {
-    availablestoputc: string;
-    playlist: {
-      duration: number;
-      publishdateutc: string;
+    title: string;
+    description: string;
+    url: string;
+    program: {
       id: number;
-      url: string;
-      statkey: string;
+      name: string;
     };
-    broadcastfiles: {
-      duration: number;
-      publishdateutc: string;
-      id: number;
-      url: string;
-      statkey: string;
-    }[];
-  };
-  broadcasttime: {
-    starttimeutc: string;
-    endtimeutc: string;
-  };
-  channelid: number;
+    audiopreference: string;
+    audiopriority: string;
+    audiopresentation: string;
+    publishdateutc: string;
+    imageurl: string;
+    imageurltemplate: string;
+    photographer: string;
+    broadcast: {
+      availablestoputc: string;
+      playlist: {
+        duration: number;
+        publishdateutc: string;
+        id: number;
+        url: string;
+        statkey: string;
+      };
+      broadcastfiles: {
+        duration: number;
+        publishdateutc: string;
+        id: number;
+        url: string;
+        statkey: string;
+      }[];
+    };
+    broadcasttime: {
+      starttimeutc: string;
+      endtimeutc: string;
+    };
+    channelid: number;
+  }[];
 }[];

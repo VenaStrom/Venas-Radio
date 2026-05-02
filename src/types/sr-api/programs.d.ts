@@ -1,5 +1,6 @@
 
-export type SR_Programs = {
+export type SR_Programs_Response = {
+  copyright: string;
   programs: {
     description: string;
     broadcastinfo: string;

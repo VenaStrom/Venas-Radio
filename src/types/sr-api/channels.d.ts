@@ -1,5 +1,6 @@
 
-export type SR_Channels = {
+export type SR_Channels_Response = {
+  copyright: string;
   channels: {
     image: string;
     imagetemplate: string;

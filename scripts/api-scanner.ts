@@ -26,28 +26,30 @@ if (!fs.existsSync(typeGenOutputDir)) fs.mkdirSync(typeGenOutputDir);
 
 const main = async () => {
   const rawChannels = await fetchChannels();
-  const channelProps = parseObjType({ channels: rawChannels });
-  console.info({ channelProps });
+  const channelProps = parseObjType(rawChannels);
   fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
-  generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels");
+  generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels_Response");
+  console.info("Channels done");
 
   const rawPrograms = await fetchPrograms();
-  const programProps = parseObjType({ programs: rawPrograms });
-  console.info({ programProps });
+  const programProps = parseObjType(rawPrograms);
   fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
-  generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs");
+  generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs_Response");
+  console.info("Programs done");
 
-  const rawSinglePrograms = await fetchSinglePrograms(rawPrograms);
+  const programIDs = (rawPrograms.programs as { id: number }[]).map(p => p.id);
+
+  const rawSinglePrograms = await fetchSinglePrograms(programIDs);
   const programSingleProps = parseObjType(rawSinglePrograms);
-  console.info({ programSingleProps });
   fs.writeFileSync(programsSingleResultFile, JSON.stringify(programSingleProps, null, 2));
-  generateTSFiles(programSingleProps, typeGenProgramsSingleFile, "SR_ProgramSingles");
+  generateTSFiles(programSingleProps, typeGenProgramsSingleFile, "SR_ProgramSingles_Responses");
+  console.info("Program singles done");
 
-  const rawEpisodes = await fetchEpisodesForSampledPrograms(rawPrograms);
+  const rawEpisodes = await fetchEpisodesForSampledPrograms(programIDs);
   const episodeProps = parseObjType(rawEpisodes);
-  console.info({ episodeProps });
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
-  generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episodes");
+  generateTSFiles(episodeProps, typeGenEpisodesFile, "SR_Episodes_Response");
+  console.info("Episodes done");
 
   // Make index file in types/api that exports all generated types
   const indexContent = `export type * from "./channels";\nexport type * from "./programs";\nexport type * from "./programs-single";\nexport type * from "./episodes";`;
@@ -110,6 +112,12 @@ function parseObjType(inTree: Record<string, unknown> | Record<string, unknown>[
       }
     }
   }
+  if (Array.isArray(tree)) {
+    const array = tree as TypeTree[];
+    if (array.length > 0 && array.every(item => JSON.stringify(item) === JSON.stringify(array[0]))) {
+      return [array[0] ?? "undefined"];
+    }
+  }
 
   return tree;
 }
@@ -165,10 +173,7 @@ async function fetchChannels(): Promise<Record<string, unknown>> {
     })
     .then(res => res?.json())
     .then((data: unknown) => {
-      if (
-        !data
-        || !isObj(data)
-      ) {
+      if (!data || !isObj(data)) {
         console.error("Invalid channels response", data);
         return null;
       }
@@ -182,14 +187,14 @@ async function fetchChannels(): Promise<Record<string, unknown>> {
 
   fs.writeFileSync(channelsCacheFile, JSON.stringify(rawChannels, null, 2));
 
-  console.info(`Channels (${Object.keys(rawChannels).length}) saved to ${channelsCacheFile}`);
+  console.info(`Channels (${(rawChannels.channels as unknown[]).length}) saved to ${channelsCacheFile}`);
 
   return rawChannels;
 }
 
-async function fetchPrograms(): Promise<Record<string, unknown>[]> {
+async function fetchPrograms(): Promise<Record<string, unknown>> {
   const cachedPrograms = fs.existsSync(programsCacheFile)
-    ? JSON.parse(fs.readFileSync(programsCacheFile, "utf-8")) as Record<string, unknown>[]
+    ? JSON.parse(fs.readFileSync(programsCacheFile, "utf-8")) as Record<string, unknown>
     : null;
 
   if (cachedPrograms) {
@@ -206,18 +211,11 @@ async function fetchPrograms(): Promise<Record<string, unknown>[]> {
     })
     .then(res => res?.json())
     .then((data: unknown) => {
-      if (
-        !data
-        || !isObj(data)
-        || !("programs" in data)
-        || !Array.isArray(data.programs)
-        || !data.programs.every((program: unknown) => isObj(program))
-      ) {
+      if (!data || !isObj(data)) {
         console.error("Invalid programs response", data);
         return null;
       }
-
-      return data.programs;
+      return data;
     });
 
   if (!rawPrograms) {
@@ -227,12 +225,12 @@ async function fetchPrograms(): Promise<Record<string, unknown>[]> {
 
   fs.writeFileSync(programsCacheFile, JSON.stringify(rawPrograms, null, 2));
 
-  console.info(`Programs (${rawPrograms.length}) saved to ${programsCacheFile}`);
+  console.info(`Programs (${(rawPrograms as { programs: unknown[] })["programs"].length}) saved to ${programsCacheFile}`);
 
   return rawPrograms;
 }
 
-async function fetchSinglePrograms(programs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+async function fetchSinglePrograms(programIDs: number[]): Promise<Record<string, unknown>[]> {
   const cachedPrograms = fs.existsSync(programsSingleCacheFile)
     ? JSON.parse(fs.readFileSync(programsSingleCacheFile, "utf-8")) as Record<string, unknown>[]
     : null;
@@ -242,31 +240,27 @@ async function fetchSinglePrograms(programs: Record<string, unknown>[]): Promise
     return cachedPrograms;
   }
 
-  const programIds = programs
-    .map(program => program.id)
-    .filter((id): id is number => typeof id === "number");
-
-  console.info(`Fetching single program payloads for ${programIds.length} programs...`);
+  console.info(`Fetching single program payloads for ${programIDs.length} programs...`);
 
   const singlePrograms = await Promise.all(
-    programIds.map(async (id) => {
+    programIDs.map(async (id) => {
       let data: unknown;
 
       try {
         const response = await fetch(`https://api.sr.se/api/v2/programs/get?id=${id}&format=json`);
         data = await response.json() as unknown;
       }
-      catch (e: unknown) {
-        console.error("Failed to fetch single program", { id, e });
+      catch (err: unknown) {
+        console.error("Failed to fetch single program", { id, err });
         return null;
       }
 
-      if (!data || !isObj(data) || !("program" in data) || !isObj(data.program)) {
+      if (!data || !isObj(data)) {
         console.error("Invalid single program response", { id, data });
         return null;
       }
 
-      return data.program;
+      return data;
     }),
   );
 
@@ -279,7 +273,7 @@ async function fetchSinglePrograms(programs: Record<string, unknown>[]): Promise
   return validSinglePrograms;
 }
 
-async function fetchEpisodesForSampledPrograms(programs: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
+async function fetchEpisodesForSampledPrograms(programIDs: number[]): Promise<Record<string, unknown>[]> {
   const seed = Number(process.env.API_SCANNER_EPISODE_SEED ?? defaultEpisodeSeed);
   const sampleSize = Number(process.env.API_SCANNER_EPISODE_SAMPLE_SIZE ?? defaultEpisodeSampleSize);
   const daysBack = Number(process.env.API_SCANNER_EPISODE_DAYS_BACK ?? defaultEpisodeDaysBack);
@@ -301,11 +295,7 @@ async function fetchEpisodesForSampledPrograms(programs: Record<string, unknown>
     return cachedEpisodes;
   }
 
-  const programIds = programs
-    .map(program => program.id)
-    .filter((id): id is number => typeof id === "number");
-
-  const sampledProgramIds = sampleWithoutReplacement(programIds, sampleSize, seed);
+  const sampledProgramIds = sampleWithoutReplacement(programIDs, sampleSize, seed);
 
   console.info(`Fetching one-month episode payloads for ${sampledProgramIds.length} sampled programs...`, {
     seed,
@@ -314,7 +304,7 @@ async function fetchEpisodesForSampledPrograms(programs: Record<string, unknown>
     toDate: toDateStr,
   });
 
-  const episodesByProgram: Record<string, unknown>[][] = await Promise.all(
+  const episodesByProgram: (Record<string, unknown> | null)[] = await Promise.all(
     sampledProgramIds.map(async (programId) => {
       let data: unknown;
 
@@ -324,26 +314,22 @@ async function fetchEpisodesForSampledPrograms(programs: Record<string, unknown>
       }
       catch (err: unknown) {
         console.error("Failed to fetch episodes for program", { programId, err });
-        return [];
+        return null;
       }
 
-      if (
-        !data
-        || typeof data !== "object"
-        || !("episodes" in data)
-        || Array.isArray(data.episodes)
-      ) {
+      if (!isObj(data)) {
         console.error("Invalid episodes response structure", { programId, data });
-        return [];
+        return null;
       }
 
-      return (data.episodes as Record<string, unknown>[]).filter(isObj);
+      return data;
     }),
   );
 
   const episodes: Record<string, unknown>[] = [];
   for (const episodesForProgram of episodesByProgram) {
-    episodes.push(...episodesForProgram);
+    if (!episodesForProgram) continue;
+    episodes.push(episodesForProgram);
   }
 
   fs.writeFileSync(episodesCacheFile, JSON.stringify(episodes, null, 2));
