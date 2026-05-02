@@ -66,19 +66,22 @@ main()
   });
 
 type Typeof = "string" | "number" | "boolean" | "undefined";
-type TypeTree = Set<Typeof> | Typeof[] | Typeof | { [key: string]: TypeTree } | TypeTree[];
+type TypeTree = Set<Typeof> | { [key: string]: TypeTree } | TypeTree[];
 
-function parseObjType(inTree: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
+function parseObjType(inputTree: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
   const tree: TypeTree = {};
 
   // Early array handling
-  if (Array.isArray(inTree)) {
-    return inTree.map(item => isObj(item) ? parseObjType(item) : typeof item as Typeof);
+  if (Array.isArray(inputTree)) {
+    return inputTree.map(item => isObj(item)
+      ? parseObjType(item) // Branch
+      : new Set([typeof item as Typeof]), // Leaf
+    );
   }
 
   // Recurse to type every key
-  for (const key in inTree) {
-    const value = inTree[key];
+  for (const key in inputTree) {
+    const value = inputTree[key];
 
     // Objects
     if (isObj(value)) {
@@ -87,7 +90,60 @@ function parseObjType(inTree: Record<string, unknown> | Record<string, unknown>[
 
     // Arrays
     else if (Array.isArray(value)) {
-      (tree[key] as TypeTree[]) = value.map(parseObjType);
+      // Primitive array
+      if (value.every(item => !isObj(item))) {
+        tree[key] = new Set(value.map(item => typeof item as Typeof));
+      }
+      else if (value.every(item => isObj(item))) {
+        const parsedArray = value.map(parseObjType);
+
+        // Count props and types
+        const propsCount: Record<string, number> = {};
+        const propsTypes: Record<string, Set<Typeof>> = {};
+        for (const item of parsedArray) {
+          if (!isObj(item)) continue;
+          for (const prop in item) {
+            const val = item[prop];
+            if (!val) continue;
+            if (!(val instanceof Set)) continue;
+
+            propsCount[prop] ??= 0;
+            propsCount[prop]++;
+
+            propsTypes[prop] ??= new Set<Typeof>();
+            for (const t of val) {
+              propsTypes[prop].add(t);
+            }
+          }
+        }
+
+        const diffProps = Object.keys(propsCount).filter(prop => propsCount[prop] !== value.length);
+
+        // Put "undefined" on missing props
+        for (const prop in propsTypes) {
+          if (diffProps.includes(prop)) {
+            const val = propsTypes[prop];
+            if (!val) continue;
+            propsTypes[prop] = new Set([...val, "undefined"]);
+          }
+        }
+
+        const collapsedArray: { [key: string]: TypeTree } = {};
+        for (const prop in propsTypes) {
+          const val = propsTypes[prop];
+          if (!val) continue;
+          collapsedArray[prop] = val;
+        }
+
+        tree[key] = [collapsedArray];
+      }
+      else {
+        console.warn("Mixed array types detected at key", key, "with value", value);
+        tree[key] = value.map(item => isObj(item)
+          ? parseObjType(item) // Branch
+          : new Set([typeof item as Typeof]), // Leaf
+        );
+      }
     }
 
     // Primitives
@@ -97,29 +153,13 @@ function parseObjType(inTree: Record<string, unknown> | Record<string, unknown>[
     }
   }
 
-  // Set<Typeof> -> Typeof[]
-  for (const key in tree) {
-    if (tree[key] instanceof Set) {
-      tree[key] = tree[key].size === 1
-        ? tree[key].values().next().value ?? "undefined"
-        : Array.from(tree[key]);
-    }
-  }
-
-  // Collapse identical arrays
-  for (const key in tree) {
-    if (Array.isArray(tree[key])) {
-      const array = tree[key] as TypeTree[];
-      if (array.length > 0 && array.every(item => JSON.stringify(item) === JSON.stringify(array[0]))) {
-        tree[key] = [array[0] ?? "undefined"];
-      }
-    }
-  }
-  if (Array.isArray(tree)) {
-    const array = tree as TypeTree[];
-    if (array.length > 0 && array.every(item => JSON.stringify(item) === JSON.stringify(array[0]))) {
-      return [array[0] ?? "undefined"];
-    }
+  // Type guarding
+  if (
+    Array.isArray(tree)
+    || tree instanceof Set
+    || typeof tree === "string"
+  ) {
+    throw new Error("Unexpected tree structure after parsing");
   }
 
   return tree;
@@ -135,7 +175,9 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     }
     else if (Array.isArray(tree)) {
       if (tree.length === 0) return "unknown[]";
-      const itemType = generateTSType(tree[0] ?? "undefined", depth);
+      const onlyItem = tree[0];
+      if (!onlyItem) throw new Error("Unexpected empty array in type tree");
+      const itemType = generateTSType(onlyItem, depth);
       return `${itemType}[]`;
     }
     else if (tree instanceof Set) {
@@ -145,13 +187,28 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
       const entryIndent = "  ".repeat(depth);
       const closingIndent = "  ".repeat(Math.max(0, depth - 1));
       const entries = Object.entries(tree).map(([key, subtree]) => {
-        const optional = subtree === "undefined" || (Array.isArray(subtree) && subtree.includes("undefined")) ? "?" : "";
-        const type = generateTSType(subtree, depth + 1);
-        return `${entryIndent}${key}${optional}: ${type};`;
+        if (subtree instanceof Set) {
+          const optional = subtree.has("undefined") ? "?" : "";
+          const type = generateTSType(subtree, depth + 1);
+          return `${entryIndent}${key}${optional}: ${type};`;
+        }
+        else if (Array.isArray(subtree)) {
+          if (subtree.length === 0) return `${entryIndent}${key}: unknown[];`;
+          const onlyItem = subtree[0];
+          if (!onlyItem) return `${entryIndent}${key}: unknown[];`;
+          const itemType = generateTSType(onlyItem, depth + 1);
+          return `${entryIndent}${key}: ${itemType}[];`;
+        }
+        else {
+          const optional = Object.values(subtree).some(val => val instanceof Set && val.has("undefined")) ? "?" : "";
+          const type = generateTSType(subtree, depth + 1);
+          return `${entryIndent}${key}${optional}: ${type};`;
+        }
       });
       return `{\n${entries.join("\n")}\n${closingIndent}}`;
     }
     else {
+      console.warn("Unexpected tree node type during TS generation", { tree, depth });
       return "unknown";
     }
   }

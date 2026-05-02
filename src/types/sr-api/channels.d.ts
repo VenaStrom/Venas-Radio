@@ -7,14 +7,9 @@ export type SR_Channels_Response = {
     color: string;
     tagline: string;
     siteurl: string;
-    liveaudio: {
-      id: number;
-      url: string;
-      statkey: string;
-    };
-    scheduleurl: string;
+    scheduleurl?: string | undefined;
     channeltype: string;
-    xmltvid?: string;
+    xmltvid?: string | undefined;
     id: number;
     name: string;
   }[];
