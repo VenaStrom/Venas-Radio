@@ -31,10 +31,11 @@ app.get("/api/channels", async (req, res) => {
 
   const total = await prisma.channel.count();
   const takeChannels = await prisma.channel.findMany({ skip, take });
+  const allIds = await prisma.channel.findMany({ select: { id: true } }).then(channels => channels.map(c => c.id));
 
   const progress = skip + take >= total ? 1 : (skip / total);
 
-  if (!progress || isNaN(progress)) {
+  if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
     res.status(500).json({ error: "Failed to calculate progress." });
     return;
   }
@@ -43,6 +44,7 @@ app.get("/api/channels", async (req, res) => {
     channels: takeChannels,
     progress,
     total,
+    allIds,
   });
 });
 

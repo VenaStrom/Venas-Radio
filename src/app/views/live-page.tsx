@@ -6,9 +6,10 @@ import { useEffect, useState } from "react";
 export function LivePage(): React.ReactNode {
   const pageSize = 20;
   const [page, _setPage] = useState<number>(1);
-  const [channels, setChannels] = useState<Channel[]>([]);
 
-  const [totalChannels, setTotalChannels] = useState<number>(pageSize * 4);
+  const [allIds, setAllIds] = useState<number[] | null>(null);
+  const [channels, setChannels] = useState<Record<number, Channel>>({});
+  const [totalChannels, setTotalChannels] = useState<number>(52);
 
   // Get channels on mount
   useEffect(() => {
@@ -18,6 +19,7 @@ export function LivePage(): React.ReactNode {
         channels: Channel[];
         progress: number;
         total: number;
+        allIds: number[];
       };
 
       if (!data.channels.every(isChannel)) {
@@ -25,11 +27,12 @@ export function LivePage(): React.ReactNode {
       }
 
       setTotalChannels(data.total);
-
-      setChannels(prev => !prev ? prev : [
-        ...prev,
-        ...data.channels,
-      ]);
+      setAllIds(data.allIds);
+      setChannels(prev => {
+        const newLookup = { ...prev };
+        for (const channel of data.channels) newLookup[channel.id] = channel;
+        return newLookup;
+      });
     }
 
     fetchChannels()
@@ -41,8 +44,8 @@ export function LivePage(): React.ReactNode {
   return (
     <main className="flex flex-col gap-y-8">
       {/* Intro section */}
-      <section className="w-full flex flex-col items-center text-center mt-12 h-(--intro-section-height)">
-        <h1 className="text-2xl">Välkommen till Venas Radio</h1>
+      <section className="w-full flex flex-col items-center text-center mt-12 px-6 h-(--intro-section-height)">
+        <h1 className="text-2xl">Välkommen till<br />Venas Radio</h1>
         <p>
           Venas Radio är en webbaserad radioapp som låter dig lyssna på radiokanaler och -program från Sveriges Radio, via deras <a href={"https://api.sr.se/api/documentation/v2/index.html"} target="_blank">öppna API</a>.
         </p>
@@ -53,9 +56,16 @@ export function LivePage(): React.ReactNode {
         <span className="ps-4 text-center italic text-xs text-zinc-500">Kanaler {totalChannels}</span>
 
         <ul className="px-6 flex flex-col gap-y-4 last:pb-20">
-          {channels.map(c => (
-            <ChannelCard key={c.id} channel={c} />
-          ))}
+          {allIds
+            ? allIds.map((id) => (
+              channels[id]
+                ? <ChannelCard key={id} channel={channels[id]} />
+                : <ChannelCard.Skeleton key={id} />
+            ))
+            : new Array(pageSize).fill(0).map((_, i) =>
+              <ChannelCard.Skeleton key={"channel-skeleton-" + i} />,
+            )
+          }
         </ul>
       </section>
     </main>
