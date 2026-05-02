@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { prisma } from "@/api/lib/prisma";
-import type { ChannelCreateManyInput, ProgramCreateManyInput } from "@/api/lib/prisma/generated";
+import type { ChannelCreateManyInput, ProgramCategoryCreateManyInput, ProgramCreateManyInput } from "@/api/lib/prisma/generated";
 import { isObj } from "@/types";
 import { isSR_Channels_Response, isSR_Programs_Response } from "@/types/sr-api/type-guards";
 
@@ -9,7 +9,6 @@ const channelsCacheFile = `${cacheDir}/channels.json`;
 const programsCacheFile = `${cacheDir}/programs.json`;
 
 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
-
 
 main()
   .catch((err: unknown) => {
@@ -20,10 +19,8 @@ main()
 async function main() {
   console.info("Seeding database...");
 
-  await Promise.all([
-    seedChannels(),
-    seedPrograms(),
-  ]);
+  await seedChannels();
+  await seedPrograms();
 
   console.info("Database seeded successfully");
 }
@@ -46,7 +43,6 @@ async function seedChannels() {
       id: c.id,
       name: c.name,
       tagline: c.tagline,
-      imageUrl: c.image,
       siteUrl: c.siteurl,
       channelType: c.channeltype,
       color: c.color,
@@ -54,7 +50,7 @@ async function seedChannels() {
       imageTemplate: c.imagetemplate,
       scheduleUrl: c.scheduleurl,
       xmltvId: c.xmltvid,
-    })) satisfies ChannelCreateManyInput[],
+    } satisfies ChannelCreateManyInput)),
   });
 
   console.info(`Seeded ${seeded.count} channels`);
@@ -72,29 +68,48 @@ async function seedPrograms() {
 
   console.info(`Seeding ${programs.length} programs...`);
 
+  const categoriesById = new Map<number, ProgramCategoryCreateManyInput>();
+  for (const p of programs) {
+    if (p.programcategory) {
+      categoriesById.set(p.programcategory.id, {
+        id: p.programcategory.id,
+        name: p.programcategory.name,
+      });
+    }
+  }
+
+  const seededCategories = await prisma.programCategory.createMany({
+    skipDuplicates: true,
+    data: [...categoriesById.values()],
+  });
+
+  console.info(`Seeded ${seededCategories.count} program categories`);
+
   const seeded = await prisma.program.createMany({
     skipDuplicates: true,
     data: programs.map(p => ({
       id: p.id,
       name: p.name,
       archived: p.archived,
-      broadcastInfo: p.broadcastinfo,
+      broadcastInfo: p.broadcastinfo ?? null,
       channelId: p.channel.id,
       description: p.description,
       email: p.email,
       hasOnDemand: p.hasondemand,
       hasPod: p.haspod,
+      payoff: p.payoff ?? null,
       phone: p.phone,
+      programCategoryId: p.programcategory?.id ?? null,
       programImage: p.programimage,
       programImageTemplate: p.programimagetemplate,
       programImageTemplateWide: p.programimagetemplatewide,
       programImageWide: p.programimagewide,
-      programSlug: p.programslug,
+      programSlug: p.programslug ?? null,
       programUrl: p.programurl,
       responsibleEditor: p.responsibleeditor,
       socialImage: p.socialimage,
       socialImageTemplate: p.socialimagetemplate,
-    })) satisfies ProgramCreateManyInput[],
+    } satisfies ProgramCreateManyInput)),
   });
 
   console.info(`Seeded ${seeded.count} programs`);

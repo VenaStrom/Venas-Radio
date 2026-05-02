@@ -28,7 +28,7 @@ export type SR_Programs_Response = {
     responsibleeditor: string;
     id: number;
     name: string;
-    programcategory: {
+    programcategory?: {
       id: number;
       name: string;
     };

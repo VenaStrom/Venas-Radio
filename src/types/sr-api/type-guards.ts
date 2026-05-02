@@ -1,4 +1,4 @@
-import type { SR_Channels_Response, SR_Episodes_Response, SR_Programs_Response, SR_ProgramSingles_Responses } from "@/types/sr-api";
+import type { SR_Channels_Response, SR_Episodes_Response, SR_Programs_Response } from "@/types/sr-api";
 import { isObj } from "@/types/type-guards";
 
 export function isSR_Channels_Response(data: unknown): data is SR_Channels_Response {
@@ -45,8 +45,8 @@ export function isSR_Channels_Response(data: unknown): data is SR_Channels_Respo
       console.info("Liveaudio is missing statkey or statkey is not a string", { liveaudio, channel, data });
       return false;
     }
-    if (!("scheduleurl" in channel) || typeof channel.scheduleurl !== "string") {
-      console.info("Channel is missing scheduleurl or scheduleurl is not a string", { channel, data });
+    if (("scheduleurl" in channel) && typeof channel.scheduleurl !== "string") {
+      console.info("Channel scheduleurl is not a string", { channel, data });
       return false;
     }
     if (!("channeltype" in channel) || typeof channel.channeltype !== "string") {
@@ -77,103 +77,122 @@ export function isSR_Programs_Response(data: unknown): data is SR_Programs_Respo
   for (const program of data.programs) {
     if (!isObj(program)) return false;
     if (!("description" in program) || typeof program.description !== "string") {
-      console.info("Program is missing description or description is not a string", { program, data });
+      console.info("Program is missing description or description is not a string", { program });
       return false;
     }
-    if (!("broadcastinfo" in program) || typeof program.broadcastinfo !== "string") {
-      console.info("Program is missing broadcastinfo or broadcastinfo is not a string", { program, data });
+    if (("broadcastinfo" in program) && typeof program.broadcastinfo !== "string") {
+      console.info("Program broadcastinfo is not a string", { program });
       return false;
     }
     if (!("email" in program) || typeof program.email !== "string") {
-      console.info("Program is missing email or email is not a string", { program, data });
+      console.info("Program is missing email or email is not a string", { program });
       return false;
     }
     if (!("phone" in program) || typeof program.phone !== "string") {
-      console.info("Program is missing phone or phone is not a string", { program, data });
+      console.info("Program is missing phone or phone is not a string", { program });
       return false;
     }
     if (!("programurl" in program) || typeof program.programurl !== "string") {
-      console.info("Program is missing programurl or programurl is not a string", { program, data });
+      console.info("Program is missing programurl or programurl is not a string", { program });
       return false;
     }
-    if (!("programslug" in program) || typeof program.programslug !== "string") {
-      console.info("Program is missing programslug or programslug is not a string", { program, data });
+    if (("programslug" in program) && typeof program.programslug !== "string") {
+      console.info("Program programslug is not a string", { program });
       return false;
     }
     if (!("programimage" in program) || typeof program.programimage !== "string") {
-      console.info("Program is missing programimage or programimage is not a string", { program, data });
+      console.info("Program is missing programimage or programimage is not a string", { program });
       return false;
     }
     if (!("programimagetemplate" in program) || typeof program.programimagetemplate !== "string") {
-      console.info("Program is missing programimagetemplate or programimagetemplate is not a string", { program, data });
+      console.info("Program is missing programimagetemplate or programimagetemplate is not a string", { program });
       return false;
     }
     if (!("programimagewide" in program) || typeof program.programimagewide !== "string") {
-      console.info("Program is missing programimagewide or programimagewide is not a string", { program, data });
+      console.info("Program is missing programimagewide or programimagewide is not a string", { program });
       return false;
     }
     if (!("programimagetemplatewide" in program) || typeof program.programimagetemplatewide !== "string") {
-      console.info("Program is missing programimagetemplatewide or programimagetemplatewide is not a string", { program, data });
+      console.info("Program is missing programimagetemplatewide or programimagetemplatewide is not a string", { program });
       return false;
     }
     if (!("socialimage" in program) || typeof program.socialimage !== "string") {
-      console.info("Program is missing socialimage or socialimage is not a string", { program, data });
+      console.info("Program is missing socialimage or socialimage is not a string", { program });
       return false;
     }
     if (!("socialimagetemplate" in program) || typeof program.socialimagetemplate !== "string") {
-      console.info("Program is missing socialimagetemplate or socialimagetemplate is not a string", { program, data });
+      console.info("Program is missing socialimagetemplate or socialimagetemplate is not a string", { program });
       return false;
     }
     if (!("socialmediaplatforms" in program) || !Array.isArray(program.socialmediaplatforms)) {
-      console.info("Program is missing socialmediaplatforms or socialmediaplatforms is not an array", { program, data });
+      console.info("Program is missing socialmediaplatforms or socialmediaplatforms is not an array", { program });
       return false;
     }
     for (const platform of program.socialmediaplatforms) {
       if (!isObj(platform)) return false;
       if (!("platform" in platform) || typeof platform.platform !== "string") {
-        console.info("Socialmediaplatform is missing platform or platform is not a string", { platform, program, data });
+        console.info("Socialmediaplatform is missing platform or platform is not a string", { platform, program });
         return false;
       }
       if (!("platformurl" in platform) || typeof platform.platformurl !== "string") {
-        console.info("Socialmediaplatform is missing platformurl or platformurl is not a string", { platform, program, data });
+        console.info("Socialmediaplatform is missing platformurl or platformurl is not a string", { platform, program });
         return false;
       }
     }
     if (!("channel" in program) || !isObj(program.channel)) {
-      console.info("Program is missing channel or channel is not an object", { program, data });
+      console.info("Program is missing channel or channel is not an object", { program });
       return false;
     }
     const channel = program.channel;
     if (!("id" in channel) || typeof channel.id !== "number") {
-      console.info("Channel is missing id or id is not a number", { channel, program, data });
+      console.info("Channel is missing id or id is not a number", { channel, program });
       return false;
     }
     if (!("name" in channel) || typeof channel.name !== "string") {
-      console.info("Channel is missing name or name is not a string", { channel, program, data });
+      console.info("Channel is missing name or name is not a string", { channel, program });
       return false;
     }
     if (!("archived" in program) || typeof program.archived !== "boolean") {
-      console.info("Program is missing archived or archived is not a boolean", { program, data });
+      console.info("Program is missing archived or archived is not a boolean", { program });
       return false;
     }
     if (!("hasondemand" in program) || typeof program.hasondemand !== "boolean") {
-      console.info("Program is missing hasondemand or hasondemand is not a boolean", { program, data });
+      console.info("Program is missing hasondemand or hasondemand is not a boolean", { program });
       return false;
     }
     if (!("haspod" in program) || typeof program.haspod !== "boolean") {
-      console.info("Program is missing haspod or haspod is not a boolean", { program, data });
+      console.info("Program is missing haspod or haspod is not a boolean", { program });
       return false;
     }
     if (!("responsibleeditor" in program) || typeof program.responsibleeditor !== "string") {
-      console.info("Program is missing responsibleeditor or responsibleeditor is not a string", { program, data });
+      console.info("Program is missing responsibleeditor or responsibleeditor is not a string", { program });
       return false;
     }
     if (!("id" in program) || typeof program.id !== "number") {
-      console.info("Program is missing id or id is not a number", { program, data });
+      console.info("Program is missing id or id is not a number", { program });
       return false;
     }
     if (!("name" in program) || typeof program.name !== "string") {
-      console.info("Program is missing name or name is not a string", { program, data });
+      console.info("Program is missing name or name is not a string", { program });
+      return false;
+    }
+    if ("programcategory" in program) {
+      if (!isObj(program.programcategory)) {
+        console.info("Programcategory is not an object", { programCategory: program.programcategory, program });
+        return false;
+      }
+      const programCategory = program.programcategory;
+      if (!("id" in programCategory) || typeof programCategory.id !== "number") {
+        console.info("Programcategory is missing id or id is not a number", { programCategory, program });
+        return false;
+      }
+      if (!("name" in programCategory) || typeof programCategory.name !== "string") {
+        console.info("Programcategory is missing name or name is not a string", { programCategory, program });
+        return false;
+      }
+    }
+    if (("payoff" in program) && typeof program.payoff !== "string") {
+      console.info("Program payoff is not a string", { program });
       return false;
     }
   }
@@ -327,120 +346,6 @@ export function isSR_Episodes_Response(data: unknown): data is SR_Episodes_Respo
       console.info("Episode is missing channelid or channelid is not a number", { episode, data });
       return false;
     }
-  }
-  return true;
-}
-
-export function isSR_ProgramSingles_Responses(data: unknown): data is SR_ProgramSingles_Responses {
-  if (!isObj(data)) return false;
-  if (!("copyright" in data) || typeof data.copyright !== "string") {
-    console.info("Response is missing copyright or copyright is not a string", { data });
-    return false;
-  }
-  if (!("program" in data) || !isObj(data.program)) {
-    console.info("Response is missing program or program is not an object", { data });
-    return false;
-  }
-  const program = data.program;
-  if (!("description" in program) || typeof program.description !== "string") {
-    console.info("Program is missing description or description is not a string", { program, data });
-    return false;
-  }
-  if (!("broadcastinfo" in program) || typeof program.broadcastinfo !== "string") {
-    console.info("Program is missing broadcastinfo or broadcastinfo is not a string", { program, data });
-    return false;
-  }
-  if (!("email" in program) || typeof program.email !== "string") {
-    console.info("Program is missing email or email is not a string", { program, data });
-    return false;
-  }
-  if (!("phone" in program) || typeof program.phone !== "string") {
-    console.info("Program is missing phone or phone is not a string", { program, data });
-    return false;
-  }
-  if (!("programurl" in program) || typeof program.programurl !== "string") {
-    console.info("Program is missing programurl or programurl is not a string", { program, data });
-    return false;
-  }
-  if (!("programslug" in program) || typeof program.programslug !== "string") {
-    console.info("Program is missing programslug or programslug is not a string", { program, data });
-    return false;
-  }
-  if (!("programimage" in program) || typeof program.programimage !== "string") {
-    console.info("Program is missing programimage or programimage is not a string", { program, data });
-    return false;
-  }
-  if (!("programimagetemplate" in program) || typeof program.programimagetemplate !== "string") {
-    console.info("Program is missing programimagetemplate or programimagetemplate is not a string", { program, data });
-    return false;
-  }
-  if (!("programimagewide" in program) || typeof program.programimagewide !== "string") {
-    console.info("Program is missing programimagewide or programimagewide is not a string", { program, data });
-    return false;
-  }
-  if (!("programimagetemplatewide" in program) || typeof program.programimagetemplatewide !== "string") {
-    console.info("Program is missing programimagetemplatewide or programimagetemplatewide is not a string", { program, data });
-    return false;
-  }
-  if (!("socialimage" in program) || typeof program.socialimage !== "string") {
-    console.info("Program is missing socialimage or socialimage is not a string", { program, data });
-    return false;
-  }
-  if (!("socialimagetemplate" in program) || typeof program.socialimagetemplate !== "string") {
-    console.info("Program is missing socialimagetemplate or socialimagetemplate is not a string", { program, data });
-    return false;
-  }
-  if (!("socialmediaplatforms" in program) || !Array.isArray(program.socialmediaplatforms)) {
-    console.info("Program is missing socialmediaplatforms or socialmediaplatforms is not an array", { program, data });
-    return false;
-  }
-  for (const platform of program.socialmediaplatforms) {
-    if (!isObj(platform)) return false;
-    if (!("platform" in platform) || typeof platform.platform !== "string") {
-      console.info("Socialmediaplatform is missing platform or platform is not a string", { platform, program, data });
-      return false;
-    }
-    if (!("platformurl" in platform) || typeof platform.platformurl !== "string") {
-      console.info("Socialmediaplatform is missing platformurl or platformurl is not a string", { platform, program, data });
-      return false;
-    }
-  }
-  if (!("channel" in program) || !isObj(program.channel)) {
-    console.info("Program is missing channel or channel is not an object", { program, data });
-    return false;
-  }
-  const channel = program.channel;
-  if (!("id" in channel) || typeof channel.id !== "number") {
-    console.info("Channel is missing id or id is not a number", { channel, program, data });
-    return false;
-  }
-  if (!("name" in channel) || typeof channel.name !== "string") {
-    console.info("Channel is missing name or name is not a string", { channel, program, data });
-    return false;
-  }
-  if (!("archived" in program) || typeof program.archived !== "boolean") {
-    console.info("Program is missing archived or archived is not a boolean", { program, data });
-    return false;
-  }
-  if (!("hasondemand" in program) || typeof program.hasondemand !== "boolean") {
-    console.info("Program is missing hasondemand or hasondemand is not a boolean", { program, data });
-    return false;
-  }
-  if (!("haspod" in program) || typeof program.haspod !== "boolean") {
-    console.info("Program is missing haspod or haspod is not a boolean", { program, data });
-    return false;
-  }
-  if (!("responsibleeditor" in program) || typeof program.responsibleeditor !== "string") {
-    console.info("Program is missing responsibleeditor or responsibleeditor is not a string", { program, data });
-    return false;
-  }
-  if (!("id" in program) || typeof program.id !== "number") {
-    console.info("Program is missing id or id is not a number", { program, data });
-    return false;
-  }
-  if (!("name" in program) || typeof program.name !== "string") {
-    console.info("Program is missing name or name is not a string", { program, data });
-    return false;
   }
   return true;
 }

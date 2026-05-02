@@ -73,8 +73,11 @@ model Program {
   email                    String
   phone                    String
   programUrl               String
-  programSlug              String
-  broadcastInfo            String
+  programSlug              String?
+  broadcastInfo            String?
+  payoff                   String?
+  programCategoryId        Int?
+  programCategory          ProgramCategory?      @relation(fields: [programCategoryId], references: [id])
   hasOnDemand              Boolean
   hasPod                   Boolean
   archived                 Boolean
@@ -91,6 +94,12 @@ model Program {
   episodes                 Episode[]
   user                     User?                 @relation(fields: [userId], references: [id])
   userId                   Int?
+}
+
+model ProgramCategory {
+  id       Int       @id
+  name     String
+  programs Program[]
 }
 
 model SocialMediaPlatform {

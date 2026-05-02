@@ -167,7 +167,8 @@ function parseObjType(inputTree: Record<string, unknown> | Record<string, unknow
         for (const prop in propsTypes) {
           const val = propsTypes[prop];
           if (!val) continue;
-          collapsedArray[prop] = val;
+          const propKey = diffProps.includes(prop) ? `${prop}?` : prop;
+          collapsedArray[propKey] = val;
         }
 
         tree[key] = [collapsedArray];
@@ -226,18 +227,20 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     else if (isObj(tree)) {
       let result = "{\n";
       Object.entries(tree).forEach(([key, val]) => {
+        const hasOptionalMarker = key.endsWith("?");
+        const rawKey = hasOptionalMarker ? key.slice(0, -1) : key;
         let gen = generateTSType(val, depth + 1);
 
         // Mark optional properties when `undefined` appears in the union
-        let optional = false;
+        let optional = hasOptionalMarker;
         if (gen.includes("undefined")) {
           optional = true;
           gen = gen.split(" | ").filter(t => t.trim() !== "undefined").join(" | ") || "unknown";
         }
 
         // Quote keys that are not valid TS identifiers
-        const isValidIdent = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key);
-        const printedKey = isValidIdent ? key : `"${key.replace(/"/g, '\\"')}"`;
+        const isValidIdent = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(rawKey);
+        const printedKey = isValidIdent ? rawKey : `"${rawKey.replace(/"/g, '\\"')}"`;
 
         result += `${"  ".repeat(depth)}${printedKey}${optional ? "?" : ""}: ${gen};\n`;
       });
