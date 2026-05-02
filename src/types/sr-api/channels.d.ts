@@ -14,7 +14,7 @@ export type SR_Channels_Response = {
     };
     scheduleurl: string;
     channeltype: string;
-    xmltvid: string;
+    xmltvid?: string;
     id: number;
     name: string;
   }[];

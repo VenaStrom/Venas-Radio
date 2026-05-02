@@ -2,8 +2,23 @@
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
   "cSpell.words": [
+    "broadcastinfo",
+    "channeltype",
     "dbgenerated",
-    "xmltv"
+    "hasondemand",
+    "haspod",
+    "imagetemplate",
+    "liveaudio",
+    "programimagetemplate",
+    "programimagetemplatewide",
+    "programimagewide",
+    "programurl",
+    "responsibleeditor",
+    "scheduleurl",
+    "siteurl",
+    "socialimagetemplate",
+    "xmltv",
+    "xmltvid"
   ],
   "cSpell.language": "en,sv-SE",
   "js/ts.tsdk.path": "node_modules/typescript/lib"

@@ -33,7 +33,7 @@ model Channel {
   siteUrl       String
   scheduleUrl   String
   channelType   String
-  xmltvId       String
+  xmltvId       String?
   liveAudio     LiveAudio?
   programs      Program[]
   user          User?      @relation(fields: [userId], references: [id])

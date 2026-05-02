@@ -53,8 +53,8 @@ export function isSR_Channels_Response(data: unknown): data is SR_Channels_Respo
       console.info("Channel is missing channeltype or channeltype is not a string", { channel, data });
       return false;
     }
-    if (!("xmltvid" in channel) || typeof channel.xmltvid !== "string") {
-      console.info("Channel is missing xmltvid or xmltvid is not a string", { channel, data });
+    if (("xmltvid" in channel) && typeof channel.xmltvid !== "string") {
+      console.info("Channel xmltvid is not a string", { channel, data });
       return false;
     }
     if (!("id" in channel) || typeof channel.id !== "number") {
