@@ -11,6 +11,13 @@ const programsCacheFile = `${cacheDir}/programs.json`;
 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
 main()
+  .finally(() => {
+    prisma.$disconnect()
+      .catch((err: unknown) => {
+        console.error("Failed to disconnect Prisma client", err);
+      });
+    process.exit(0);
+  })
   .catch((err: unknown) => {
     console.error(err);
     process.exit(1);
@@ -71,10 +78,13 @@ async function seedPrograms() {
   const categoriesById = new Map<number, ProgramCategoryCreateManyInput>();
   for (const p of programs) {
     if (p.programcategory) {
-      categoriesById.set(p.programcategory.id, {
-        id: p.programcategory.id,
-        name: p.programcategory.name,
-      });
+      categoriesById.set(
+        p.programcategory.id,
+        {
+          id: p.programcategory.id,
+          name: p.programcategory.name,
+        } satisfies ProgramCategoryCreateManyInput,
+      );
     }
   }
 
