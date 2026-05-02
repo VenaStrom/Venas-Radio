@@ -57,7 +57,6 @@ export function LivePage(): React.ReactNode {
             // Remove id to mark as loaded (and prevent multiple triggers)
             firstUnloaded.removeAttribute("id");
 
-            console.info("Load page");
             setPage(prev => prev + 1);
           }
         }
