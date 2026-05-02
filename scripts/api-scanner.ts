@@ -4,11 +4,9 @@ import fs from "node:fs";
 const cacheDir = "scripts/.cache";
 const channelsCacheFile = `${cacheDir}/channels.json`;
 const programsCacheFile = `${cacheDir}/programs.json`;
-const programsSingleCacheFile = `${cacheDir}/programs-single.json`;
 const resultDir = "scripts/.cache/results";
 const channelsResultFile = `${resultDir}/channels.json`;
 const programsResultFile = `${resultDir}/programs.json`;
-const programsSingleResultFile = `${resultDir}/programs-single.json`;
 const episodesResultFile = `${resultDir}/episodes.json`;
 const defaultEpisodeSampleSize = 25;
 const defaultEpisodeSeed = 20260416;
@@ -17,7 +15,6 @@ const defaultEpisodeDaysBack = 30;
 const typeGenOutputDir = "src/types/sr-api";
 const typeGenChannelsFile = `${typeGenOutputDir}/channels.d.ts`;
 const typeGenProgramsFile = `${typeGenOutputDir}/programs.d.ts`;
-const typeGenProgramsSingleFile = `${typeGenOutputDir}/programs-single.d.ts`;
 const typeGenEpisodesFile = `${typeGenOutputDir}/episodes.d.ts`;
 
 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
@@ -38,12 +35,6 @@ const main = async () => {
   console.info("Programs done");
 
   const programIDs = (rawPrograms.programs as { id: number }[]).map(p => p.id);
-
-  const rawSinglePrograms = await fetchSinglePrograms(programIDs);
-  const programSingleProps = parseObjType(rawSinglePrograms);
-  fs.writeFileSync(programsSingleResultFile, JSON.stringify(programSingleProps, null, 2));
-  generateTSFiles(programSingleProps, typeGenProgramsSingleFile, "SR_ProgramSingles_Responses");
-  console.info("Program singles done");
 
   const rawEpisodes = await fetchEpisodesForSampledPrograms(programIDs);
   const episodeProps = parseObjType(rawEpisodes);
@@ -68,6 +59,49 @@ main()
 type Typeof = "string" | "number" | "boolean" | "undefined";
 type TypeTree = Set<Typeof> | { [key: string]: TypeTree } | TypeTree[];
 
+function isUndefinedOnlySet(tree: TypeTree): tree is Set<Typeof> {
+  return tree instanceof Set && tree.size === 1 && tree.has("undefined");
+}
+
+function mergeTypeTrees(a: TypeTree, b: TypeTree): TypeTree {
+  if (isUndefinedOnlySet(a)) return b;
+  if (isUndefinedOnlySet(b)) return a;
+
+  if (a instanceof Set && b instanceof Set) {
+    return new Set<Typeof>([...a, ...b]);
+  }
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length === 0) return b;
+    if (b.length === 0) return a;
+
+    const a0 = a[0];
+    const b0 = b[0];
+    if (!a0) return b;
+    if (!b0) return a;
+
+    return [mergeTypeTrees(a0, b0)];
+  }
+
+  if (isObj(a) && isObj(b)) {
+    const merged: Record<string, TypeTree> = {};
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+
+    for (const key of keys) {
+      const aVal = a[key];
+      const bVal = b[key];
+      if (aVal && bVal) merged[key] = mergeTypeTrees(aVal, bVal);
+      else if (aVal) merged[key] = aVal;
+      else if (bVal) merged[key] = bVal;
+    }
+
+    return merged;
+  }
+
+  console.warn("Incompatible subtree types during merge, keeping first", { a, b });
+  return a;
+}
+
 function parseObjType(inputTree: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
   const tree: TypeTree = {};
 
@@ -90,30 +124,31 @@ function parseObjType(inputTree: Record<string, unknown> | Record<string, unknow
 
     // Arrays
     else if (Array.isArray(value)) {
+      if (value.length === 0) {
+        tree[key] = [];
+      }
+
       // Primitive array
-      if (value.every(item => !isObj(item))) {
+      else if (value.every(item => !isObj(item))) {
         tree[key] = new Set(value.map(item => typeof item as Typeof));
       }
       else if (value.every(item => isObj(item))) {
         const parsedArray = value.map(parseObjType);
 
-        // Count props and types
+        // Count props and recursively merge all subtree types
         const propsCount: Record<string, number> = {};
-        const propsTypes: Record<string, Set<Typeof>> = {};
+        const propsTypes: Record<string, TypeTree> = {};
         for (const item of parsedArray) {
           if (!isObj(item)) continue;
           for (const prop in item) {
             const val = item[prop];
             if (!val) continue;
-            if (!(val instanceof Set)) continue;
 
             propsCount[prop] ??= 0;
             propsCount[prop]++;
 
-            propsTypes[prop] ??= new Set<Typeof>();
-            for (const t of val) {
-              propsTypes[prop].add(t);
-            }
+            if (!propsTypes[prop]) propsTypes[prop] = val;
+            else propsTypes[prop] = mergeTypeTrees(propsTypes[prop], val);
           }
         }
 
@@ -124,7 +159,7 @@ function parseObjType(inputTree: Record<string, unknown> | Record<string, unknow
           if (diffProps.includes(prop)) {
             const val = propsTypes[prop];
             if (!val) continue;
-            propsTypes[prop] = new Set([...val, "undefined"]);
+            if (val instanceof Set) propsTypes[prop] = new Set([...val, "undefined"]);
           }
         }
 
@@ -179,6 +214,7 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     // Array
     else if (Array.isArray(tree)) {
       if (tree.length === 0) return "unknown[]";
+      if (tree.length > 1) throw new Error("Unexpected multiple items in type tree array - cannot determine type");
 
       const onlyItem = tree[0];
       if (!onlyItem) throw new Error("Unexpected empty array in type tree");
@@ -190,7 +226,20 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     else if (isObj(tree)) {
       let result = "{\n";
       Object.entries(tree).forEach(([key, val]) => {
-        result += `${"  ".repeat(depth)}${key}: ${generateTSType(val, depth + 1)};\n`;
+        let gen = generateTSType(val, depth + 1);
+
+        // Mark optional properties when `undefined` appears in the union
+        let optional = false;
+        if (gen.includes("undefined")) {
+          optional = true;
+          gen = gen.split(" | ").filter(t => t.trim() !== "undefined").join(" | ") || "unknown";
+        }
+
+        // Quote keys that are not valid TS identifiers
+        const isValidIdent = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key);
+        const printedKey = isValidIdent ? key : `"${key.replace(/"/g, '\\"')}"`;
+
+        result += `${"  ".repeat(depth)}${printedKey}${optional ? "?" : ""}: ${gen};\n`;
       });
       return result + `${"  ".repeat(depth - 1)}}`;
     }
@@ -275,49 +324,6 @@ async function fetchPrograms(): Promise<Record<string, unknown>> {
   console.info(`Programs (${(rawPrograms as { programs: unknown[] })["programs"].length}) saved to ${programsCacheFile}`);
 
   return rawPrograms;
-}
-
-async function fetchSinglePrograms(programIDs: number[]): Promise<Record<string, unknown>[]> {
-  const cachedPrograms = fs.existsSync(programsSingleCacheFile)
-    ? JSON.parse(fs.readFileSync(programsSingleCacheFile, "utf-8")) as Record<string, unknown>[]
-    : null;
-
-  if (cachedPrograms) {
-    console.info(`Using cached single programs (${programsSingleCacheFile.length}) from`, programsSingleCacheFile);
-    return cachedPrograms;
-  }
-
-  console.info(`Fetching single program payloads for ${programIDs.length} programs...`);
-
-  const singlePrograms = await Promise.all(
-    programIDs.map(async (id) => {
-      let data: unknown;
-
-      try {
-        const response = await fetch(`https://api.sr.se/api/v2/programs/get?id=${id}&format=json`);
-        data = await response.json() as unknown;
-      }
-      catch (err: unknown) {
-        console.error("Failed to fetch single program", { id, err });
-        return null;
-      }
-
-      if (!data || !isObj(data)) {
-        console.error("Invalid single program response", { id, data });
-        return null;
-      }
-
-      return data;
-    }),
-  );
-
-  const validSinglePrograms = singlePrograms.filter((program): program is Record<string, unknown> => !!program);
-
-  fs.writeFileSync(programsSingleCacheFile, JSON.stringify(validSinglePrograms, null, 2));
-
-  console.info(`Single programs (${validSinglePrograms.length}) saved to ${programsSingleCacheFile}`);
-
-  return validSinglePrograms;
 }
 
 async function fetchEpisodesForSampledPrograms(programIDs: number[]): Promise<Record<string, unknown>[]> {

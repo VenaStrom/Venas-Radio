@@ -31,7 +31,7 @@ model Channel {
   color         String
   tagline       String
   siteUrl       String
-  scheduleUrl   String
+  scheduleUrl   String?
   channelType   String
   xmltvId       String?
   liveAudio     LiveAudio?
