@@ -1,0 +1,80 @@
+generator client {
+  provider     = "prisma-client"
+  moduleFormat = "esm"
+  output       = "./generated"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Channel {
+  id                Int       @id
+  name              String
+  image             String
+  imagetemplate     String
+  color             String
+  tagline           String
+  siteurl           String
+  liveaudio_id      Int
+  liveaudio_url     String
+  liveaudio_statkey String
+  scheduleurl       String
+  channeltype       String
+  xmltvid           String
+  episodes          Episode[]
+  programs          Program[]
+}
+
+model Episode {
+  id                Int     @id
+  title             String
+  description       String
+  url               String
+  audiopreference   String
+  audiopriority     String
+  audiopresentation String
+  publishdateutc    String
+  imageurl          String
+  imageurltemplate  String
+  photographer      String
+  programID         Int
+  program           Program @relation(fields: [programID], references: [id])
+  channelID         Int
+  channel           Channel @relation(fields: [channelID], references: [id])
+
+  broadcast_json     Json @db.Json
+  broadcasttime_json Json @db.Json
+}
+
+model Program {
+  id                       Int                   @id
+  name                     String
+  description              String
+  email                    String
+  phone                    String
+  programurl               String
+  programslug              String
+  broadcastinfo            String
+  hasondemand              Boolean
+  haspod                   Boolean
+  archived                 Boolean
+  programimage             String
+  programimagetemplate     String
+  programimagetemplatewide String
+  programimagewide         String
+  socialimage              String
+  socialimagetemplate      String
+  responsibleeditor        String
+  channelID                Int
+  channel                  Channel               @relation(fields: [channelID], references: [id])
+  socialmediaplatforms     SocialMediaPlatform[]
+  episodes                 Episode[]
+}
+
+model SocialMediaPlatform {
+  platform    String  @id
+  platformurl String
+  programID   Int
+  program     Program @relation(fields: [programID], references: [id])
+}

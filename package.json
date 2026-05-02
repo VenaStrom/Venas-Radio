@@ -12,6 +12,8 @@
     "api:types": "tsx scripts/api-scanner.ts"
   },
   "dependencies": {
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "express": "^5.2.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
@@ -27,6 +29,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "jiti": "^2.6.1",
+    "prisma": "^7.8.0",
     "tailwindcss": "^4.2.4",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
