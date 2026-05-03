@@ -1,15 +1,17 @@
 import type { Channel } from "@/api/lib/prisma/generated";
 import { ChannelCard } from "@/app/components/cards/channel";
-import { isChannel } from "@/types";
+import { isChannel, isObj } from "@/types";
 import { useEffect, useState } from "react";
+
+const cacheStaleTime = 604800000; // 7 days in milliseconds
 
 export function LivePage(): React.ReactNode {
   const pageSize = 10;
   const [page, setPage] = useState<number>(1);
 
   const [allIds, setAllIds] = useState<number[] | null>(null);
-  const [channels, setChannels] = useState<Record<number, Channel>>({});
-  const [totalChannels, setTotalChannels] = useState<number>(52);
+  const [channels, setChannels] = useState<Record<number, Channel>>(() => LoadChannelsFromLocalStorage() ?? {});
+  const [totalChannels, setTotalChannels] = useState<number | null>(null);
 
   // Get channels on mount
   useEffect(() => {
@@ -31,6 +33,7 @@ export function LivePage(): React.ReactNode {
       setChannels(prev => {
         const newLookup = { ...prev };
         for (const channel of data.channels) newLookup[channel.id] = channel;
+        SaveChannelsToLocalStorage(newLookup);
         return newLookup;
       });
     }
@@ -79,7 +82,7 @@ export function LivePage(): React.ReactNode {
 
       {/* Live */}
       <section className="h-(--live-section-height) overflow-y-auto" id="channel-ul">
-        <span className="ps-4 text-center italic text-xs text-zinc-500">{totalChannels} kanaler</span>
+        <span className="ps-4 text-center italic text-xs text-zinc-500">{totalChannels ?? "--"} kanaler</span>
 
         <ul className="px-6 flex flex-col gap-y-4 last:pb-20">
           {allIds
@@ -96,4 +99,65 @@ export function LivePage(): React.ReactNode {
       </section>
     </main>
   );
+}
+
+function SaveChannelsToLocalStorage(channels: Record<number, Channel>) {
+  try {
+    const existing = localStorage.getItem("channels-lookup");
+    if (existing) {
+      const parsed = JSON.parse(existing) as unknown;
+      if (isObj(parsed) && ("timestamp" in parsed) && typeof parsed.timestamp === "number") {
+        const age = Date.now() - parsed.timestamp;
+        if (age > cacheStaleTime) {
+          console.info(`Existing channel data in localStorage is too old (${Math.round(age / 3600000)}h), overwriting.`);
+        }
+        else {
+          console.info(`Existing channel data in localStorage is still fresh (${Math.round(age / 3600000)}h), not overwriting.`);
+          return;
+        }
+      }
+    }
+
+    localStorage.setItem("channels-lookup", JSON.stringify({ channels, timestamp: Date.now() }));
+    console.log("Saved channels to localStorage:", Object.keys(channels).length);
+  }
+  catch (err: unknown) {
+    console.error("Failed to save channels to localStorage:", err);
+  }
+}
+
+function LoadChannelsFromLocalStorage(): Record<number, Channel> | null {
+  try {
+    const data = localStorage.getItem("channels-lookup");
+    if (!data) return null;
+
+    const parsed = JSON.parse(data) as unknown;
+    if (!isObj(parsed)) return null;
+
+    // Stale data check
+    if (("timestamp" in parsed) && typeof parsed.timestamp === "number") {
+      const age = Date.now() - parsed.timestamp;
+      if (age > cacheStaleTime) {
+        console.info(`Channel data in localStorage is too old (${Math.round(age / 3600000)}h), ignoring.`);
+        return null;
+      }
+    }
+
+    // Type checking
+    if (!("channels" in parsed) || !isObj(parsed.channels)) {
+      console.warn("Invalid channel data in localStorage: missing or invalid 'channels' property, ignoring.");
+      return null;
+    }
+    if (!Object.values(parsed.channels).every(isChannel)) {
+      console.warn("Invalid channel data in localStorage, ignoring.");
+      return null;
+    }
+
+    console.info(`Loaded ${Object.keys(parsed.channels).length} channels from localStorage.`);
+    return parsed as Record<number, Channel>;
+  }
+  catch (err: unknown) {
+    console.error("Failed to load channels from localStorage:", err);
+    return null;
+  }
 }
