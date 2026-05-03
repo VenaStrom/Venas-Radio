@@ -1,6 +1,7 @@
 import { App } from "@/app/app";
 import { createRoot } from "react-dom/client";
 import React from "react";
+import { PlayContextProvider } from "@/app/context/play-context/play-context.provider";
 
 const root = document.getElementById("root");
 
@@ -10,6 +11,8 @@ if (!root) {
 
 createRoot(root).render(
   <React.StrictMode>
-    <App />
+    <PlayContextProvider>
+      <App />
+    </PlayContextProvider>
   </React.StrictMode>,
 );

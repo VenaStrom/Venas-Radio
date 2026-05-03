@@ -1,11 +1,13 @@
 export type JSONValue = { [key: string]: JSONValue } | JSONValue[] | string | number | boolean | null;
 
-export type ButtonIdInput = {
+export type PlayId = {
   channelId: number,
   episodeId: never,
-  className?: string,
 } | {
   channelId: never,
   episodeId: number,
-  className?: string,
 };
+
+export type ButtonIdInput = {
+  className?: string,
+} & PlayId;
