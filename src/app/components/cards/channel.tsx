@@ -24,8 +24,8 @@ export function ChannelCard({ channel }: { channel: Channel }): React.ReactNode 
           </p>
 
           <div className="flex flex-row gap-x-4 items-center">
-            <FollowButton playId={channel.id} />
-            <PlayButton playId={channel.id} />
+            <FollowButton channelId={channel.id} />
+            <PlayButton channelId={channel.id} />
           </div>
         </div>
 

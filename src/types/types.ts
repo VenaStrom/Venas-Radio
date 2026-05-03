@@ -2,12 +2,12 @@ export type JSONValue = { [key: string]: JSONValue } | JSONValue[] | string | nu
 
 export type PlayId = {
   channelId: number,
-  episodeId: never,
+  episodeId?: never,
 } | {
-  channelId: never,
+  channelId?: never,
   episodeId: number,
 };
 
-export type ButtonIdInput = {
-  className?: string,
-} & PlayId;
+export type ButtonIdInput = PlayId & {
+  className?: string;
+};
