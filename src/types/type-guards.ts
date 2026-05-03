@@ -28,7 +28,7 @@ export function isArr(value: unknown): value is unknown[] {
 export function isChannel(value: unknown): value is Channel {
   if (!isObj(value)) return false;
   if (!("name" in value) || typeof value.name !== "string") {
-    console.info(`Invalid channel: missing or invalid "name" property`, { value });
+    console.info(`Invalid channel: missing or invalid "name" property`, { name: value.name }, { value });
     return false;
   }
   if (!("id" in value) || typeof value.id !== "number") {

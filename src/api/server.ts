@@ -30,8 +30,8 @@ app.get("/api/channels", async (req, res) => {
   }
 
   const total = await prisma.channel.count();
-  const takeChannels = await prisma.channel.findMany({ skip, take });
   const allIds = await prisma.channel.findMany({ select: { id: true } }).then(channels => channels.map(c => c.id));
+  const takeChannels = await prisma.channel.findMany({ skip, take });
 
   const progress = skip + take >= total ? 1 : (skip / total);
 

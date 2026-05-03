@@ -1,8 +1,10 @@
 import { PauseIcon, PlayIcon } from "@/app/components/icons";
 import { useState } from "react";
 import type { ButtonIdInput } from "@/types";
+import { usePlayContext } from "@/app/context/play-context";
 
 export function PlayButton({ channelId, episodeId, className = "" }: ButtonIdInput): React.ReactNode {
+  const { play } = usePlayContext();
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   const playId = !!channelId ? "channel-" : !!episodeId ? "episode-" : "" + (channelId ?? episodeId);
@@ -11,6 +13,9 @@ export function PlayButton({ channelId, episodeId, className = "" }: ButtonIdInp
   function onClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     setIsPlaying(!isPlaying);
+    if (channelId === undefined) play({ episodeId });
+    else if (episodeId === undefined) play({ channelId });
+    else console.error("PlayButton requires either channelId or episodeId, not both");
   }
 
   return (
