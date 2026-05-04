@@ -1,5 +1,4 @@
 import { isArr, isObj, isSet } from "@/types";
-import { throws } from "node:assert/strict";
 import fs from "node:fs";
 
 const cacheDir = "scripts/.cache";
@@ -87,15 +86,15 @@ type TypeTree = Leaf | TypeTree[] | { [key: string]: TypeTree };
 function parseTypeOfTree(value: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
 
   const expanded = expandTree(value as TypeTree);
-  console.log({ expanded });
-
-
   return expanded;
 
   function expandTree(tree: TypeTree): TypeTree {
     const typeofTree = typeof tree;
     if (typeofTree === "string" || typeofTree === "number" || typeofTree === "boolean") {
       return new Set([typeofTree]);
+    }
+    else if (typeofTree === "undefined") {
+      return new Set(["undefined"]);
     }
     else if (isSet(tree)) {
       return tree;

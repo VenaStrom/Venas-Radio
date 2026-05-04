@@ -3,11 +3,12 @@ export type TestArray = {
   stringProp: string;
   numberProp: number;
   booleanProp: boolean;
-  arrayOfStrings: string[];
+  arrayOfStrings?: undefined | unknown;
   arrayOfNumbers: number[];
   arrayOfBooleans: boolean[];
-  arrayOfObjects: {
+  arrayOfObjects?: {
     nestedString: string;
     nestedNumber: number;
+    optional?: boolean | undefined;
   }[];
 }[];

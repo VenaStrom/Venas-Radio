@@ -1,7 +1,7 @@
 
 export type SR_Channels_Response = {
   copyright: string;
-  channels: {
+  channels?: {
     image: string;
     imagetemplate: string;
     color: string;
@@ -12,9 +12,9 @@ export type SR_Channels_Response = {
       url: string;
       statkey: string;
     };
-    scheduleurl: string;
+    scheduleurl?: string | undefined;
     channeltype: string;
-    xmltvid: string;
+    xmltvid?: string | undefined;
     id: number;
     name: string;
   }[];
