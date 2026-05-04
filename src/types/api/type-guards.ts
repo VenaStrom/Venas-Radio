@@ -39,30 +39,29 @@ export function isSR_Program(value: unknown): value is SR_Program {
 
   // .phone
   if (
-    "phone" in value
-    && value.phone !== undefined
-    && typeof value.phone !== "string"
+    !("phone" in value)
+    || typeof value.phone !== "string"
   ) {
-    console.warn("SR_Program.phone is not a string or undefined:", value);
+    console.warn("SR_Program.phone is not a string:", value);
     return false;
   }
 
   // .programurl
   if (
-    "programurl" in value
-    && value.programurl !== undefined
-    && typeof value.programurl !== "string"
+    !("programurl" in value)
+    || typeof value.programurl !== "string"
   ) {
-    console.warn("SR_Program.programurl is not a string or undefined:", value);
+    console.warn("SR_Program.programurl is not a string:", value);
     return false;
   }
 
   // .programslug
   if (
-    !("programslug" in value)
-    || typeof value.programslug !== "string"
+    "programslug" in value
+    && value.programslug !== undefined
+    && typeof value.programslug !== "string"
   ) {
-    console.warn("SR_Program.programslug is not a string:", value);
+    console.warn("SR_Program.programslug is not a string or undefined:", value);
     return false;
   }
 
@@ -123,11 +122,14 @@ export function isSR_Program(value: unknown): value is SR_Program {
   // .socialmediaplatforms
   if (
     !("socialmediaplatforms" in value)
-    || !isObj(value.socialmediaplatforms)
-    || !("platform" in value.socialmediaplatforms)
-    || typeof value.socialmediaplatforms.platform !== "string"
-    || !("platformurl" in value.socialmediaplatforms)
-    || typeof value.socialmediaplatforms.platformurl !== "string"
+    || !Array.isArray(value.socialmediaplatforms)
+    || !value.socialmediaplatforms.every((platform) => (
+      isObj(platform)
+      && "platform" in platform
+      && typeof platform.platform === "string"
+      && "platformurl" in platform
+      && typeof platform.platformurl === "string"
+    ))
   ) {
     console.warn("SR_Program.socialmediaplatforms is not valid:", value);
     return false;
@@ -197,6 +199,32 @@ export function isSR_Program(value: unknown): value is SR_Program {
     || typeof value.name !== "string"
   ) {
     console.warn("SR_Program.name is not a string:", value);
+    return false;
+  }
+
+  // .programcategory
+  if (
+    "programcategory" in value
+    && value.programcategory !== undefined
+    && (
+      !isObj(value.programcategory)
+      || !("id" in value.programcategory)
+      || typeof value.programcategory.id !== "number"
+      || !("name" in value.programcategory)
+      || typeof value.programcategory.name !== "string"
+    )
+  ) {
+    console.warn("SR_Program.programcategory is not valid:", value);
+    return false;
+  }
+
+  // .payoff
+  if (
+    "payoff" in value
+    && value.payoff !== undefined
+    && typeof value.payoff !== "string"
+  ) {
+    console.warn("SR_Program.payoff is not a string or undefined:", value);
     return false;
   }
 
@@ -291,10 +319,11 @@ export function isSR_Channel(value: unknown): value is SR_Channel {
 
   // .xmltvid
   if (
-    !("xmltvid" in value)
-    || typeof value.xmltvid !== "string"
+    "xmltvid" in value
+    && value.xmltvid !== undefined
+    && typeof value.xmltvid !== "string"
   ) {
-    console.warn("SR_Channel.xmltvid is not a string:", value);
+    console.warn("SR_Channel.xmltvid is not a string or undefined:", value);
     return false;
   }
 
@@ -322,28 +351,30 @@ export function isSR_Channel(value: unknown): value is SR_Channel {
 function isSR_EpisodeAudioFile(value: unknown): boolean {
   return (
     isObj(value)
+    && "title" in value
+    && typeof value.title === "string"
+    && "description" in value
+    && typeof value.description === "string"
+    && "filesizeinbytes" in value
+    && typeof value.filesizeinbytes === "number"
+    && "program" in value
+    && isObj(value.program)
+    && "id" in value.program
+    && typeof value.program.id === "number"
+    && "name" in value.program
+    && typeof value.program.name === "string"
+    && "availablefromutc" in value
+    && typeof value.availablefromutc === "string"
     && "duration" in value
     && typeof value.duration === "number"
+    && "publishdateutc" in value
+    && typeof value.publishdateutc === "string"
     && "id" in value
     && typeof value.id === "number"
     && "url" in value
     && typeof value.url === "string"
-    && (!("title" in value) || typeof value.title === "string")
-    && (!("description" in value) || typeof value.description === "string")
-    && (!("filesizeinbytes" in value) || typeof value.filesizeinbytes === "number")
-    && (
-      !("program" in value)
-      || (
-        isObj(value.program)
-        && "id" in value.program
-        && typeof value.program.id === "number"
-        && "name" in value.program
-        && typeof value.program.name === "string"
-      )
-    )
-    && (!("availablefromutc" in value) || typeof value.availablefromutc === "string")
-    && (!("publishdateutc" in value) || typeof value.publishdateutc === "string")
-    && (!("statkey" in value) || typeof value.statkey === "string")
+    && "statkey" in value
+    && typeof value.statkey === "string"
   );
 }
 
@@ -405,16 +436,6 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
     return false;
   }
 
-  // .order
-  if (
-    "order" in value
-    && value.order !== undefined
-    && typeof value.order !== "number"
-  ) {
-    console.warn("SR_Episode.order is not a number or undefined:", value);
-    return false;
-  }
-
   // .program
   if (
     !("program" in value)
@@ -464,16 +485,6 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
     return false;
   }
 
-  // .publishDate
-  if (
-    "publishDate" in value
-    && value.publishDate !== undefined
-    && !(value.publishDate instanceof Date)
-  ) {
-    console.warn("SR_Episode.publishDate is not a Date or undefined:", value);
-    return false;
-  }
-
   // .imageurl
   if (
     !("imageurl" in value)
@@ -494,10 +505,11 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
 
   // .photographer
   if (
-    !("photographer" in value)
-    || typeof value.photographer !== "string"
+    "photographer" in value
+    && value.photographer !== undefined
+    && typeof value.photographer !== "string"
   ) {
-    console.warn("SR_Episode.photographer is not a string:", value);
+    console.warn("SR_Episode.photographer is not a string or undefined:", value);
     return false;
   }
 
@@ -529,8 +541,11 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
     && value.broadcast !== undefined
     && (
       !isObj(value.broadcast)
-      || !("availablestoputc" in value.broadcast)
-      || typeof value.broadcast.availablestoputc !== "string"
+      || (
+        "availablestoputc" in value.broadcast
+        && value.broadcast.availablestoputc !== undefined
+        && typeof value.broadcast.availablestoputc !== "string"
+      )
       || !("playlist" in value.broadcast)
       || !isSR_BroadcastFile(value.broadcast.playlist)
       || !("broadcastfiles" in value.broadcast)
@@ -544,17 +559,24 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
 
   // .broadcasttime
   if (
-    "broadcasttime" in value
-    && value.broadcasttime !== undefined
-    && (
-      !isObj(value.broadcasttime)
-      || !("starttimeutc" in value.broadcasttime)
-      || typeof value.broadcasttime.starttimeutc !== "string"
-      || !("endtimeutc" in value.broadcasttime)
-      || typeof value.broadcasttime.endtimeutc !== "string"
-    )
+    !("broadcasttime" in value)
+    || !isObj(value.broadcasttime)
+    || !("starttimeutc" in value.broadcasttime)
+    || typeof value.broadcasttime.starttimeutc !== "string"
+    || !("endtimeutc" in value.broadcasttime)
+    || typeof value.broadcasttime.endtimeutc !== "string"
   ) {
     console.warn("SR_Episode.broadcasttime is not valid:", value);
+    return false;
+  }
+
+  // .channelid
+  if (
+    "channelid" in value
+    && value.channelid !== undefined
+    && typeof value.channelid !== "number"
+  ) {
+    console.warn("SR_Episode.channelid is not a number or undefined:", value);
     return false;
   }
 

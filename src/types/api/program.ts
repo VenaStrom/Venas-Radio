@@ -1,28 +1,37 @@
-export type SR_Program = {
-  description: string;
-  broadcastinfo: string | undefined;
-  email: string;
-  phone: string | undefined;
-  programurl: string | undefined;
-  programslug: string;
-  programimage: string;
-  programimagetemplate: string;
-  programimagewide: string;
-  programimagetemplatewide: string;
-  socialimage: string;
-  socialimagetemplate: string;
-  socialmediaplatforms: {
-    platform: string;
-    platformurl: string;
-  };
-  channel: {
+export type SR_Program = SR_Programs_Response["programs"][number];
+type SR_Programs_Response = {
+  copyright: string;
+  programs: {
+    description: string;
+    broadcastinfo?: string;
+    email: string;
+    phone: string;
+    programurl: string;
+    programslug?: string;
+    programimage: string;
+    programimagetemplate: string;
+    programimagewide: string;
+    programimagetemplatewide: string;
+    socialimage: string;
+    socialimagetemplate: string;
+    socialmediaplatforms: {
+      platform: string;
+      platformurl: string;
+    }[];
+    channel: {
+      id: number;
+      name: string;
+    };
+    archived: boolean;
+    hasondemand: boolean;
+    haspod: boolean;
+    responsibleeditor: string;
     id: number;
     name: string;
-  };
-  archived: boolean;
-  hasondemand: boolean;
-  haspod: boolean;
-  responsibleeditor: string;
-  id: number;
-  name: string;
+    programcategory?: {
+      id: number;
+      name: string;
+    };
+    payoff?: string;
+  }[];
 };
