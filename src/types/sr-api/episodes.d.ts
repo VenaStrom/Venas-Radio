@@ -18,7 +18,6 @@ export type SR_Episodes_Response = {
     imageurltemplate: string;
     photographer: string;
     broadcast: {
-      availablestoputc: string;
       playlist: {
         duration: number;
         publishdateutc: string;
@@ -37,6 +36,36 @@ export type SR_Episodes_Response = {
     broadcasttime: {
       starttimeutc: string;
       endtimeutc: string;
+    };
+    listenpodfile: {
+      title: string;
+      description: string;
+      filesizeinbytes: number;
+      program: {
+        id: number;
+        name: string;
+      };
+      availablefromutc: string;
+      duration: number;
+      publishdateutc: string;
+      id: number;
+      url: string;
+      statkey: string;
+    };
+    downloadpodfile: {
+      title: string;
+      description: string;
+      filesizeinbytes: number;
+      program: {
+        id: number;
+        name: string;
+      };
+      availablefromutc: string;
+      duration: number;
+      publishdateutc: string;
+      id: number;
+      url: string;
+      statkey: string;
     };
     channelid: number;
   }[];

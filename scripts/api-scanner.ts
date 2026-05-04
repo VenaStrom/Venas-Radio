@@ -23,13 +23,13 @@ if (!fs.existsSync(typeGenOutputDir)) fs.mkdirSync(typeGenOutputDir);
 
 const main = async () => {
   const rawChannels = await fetchChannels();
-  const channelProps = parseObjType(rawChannels);
+  const channelProps = parseTypeOfTree(rawChannels);
   fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
   generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels_Response");
   console.info("Channels done");
 
   const rawPrograms = await fetchPrograms();
-  const programProps = parseObjType(rawPrograms);
+  const programProps = parseTypeOfTree(rawPrograms);
   fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
   generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs_Response");
   console.info("Programs done");
@@ -37,7 +37,7 @@ const main = async () => {
   const programIDs = (rawPrograms.programs as { id: number }[]).map(p => p.id);
 
   const rawEpisodes = await fetchEpisodesForSampledPrograms(programIDs);
-  const episodeProps = parseObjType(rawEpisodes);
+  const episodeProps = parseTypeOfTree(rawEpisodes);
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
   if (Array.isArray(episodeProps) && typeof episodeProps[0] === "object")
     generateTSFiles(episodeProps[0], typeGenEpisodesFile, "SR_Episodes_Response");
@@ -56,149 +56,54 @@ main()
     process.exit(1);
   });
 
-type Typeof = "string" | "number" | "boolean" | "undefined";
-type TypeTree = Set<Typeof> | { [key: string]: TypeTree } | TypeTree[];
+type PrimType = "string" | "number" | "boolean" | "undefined";
+type TypeTree = Set<PrimType> | { [key: string]: TypeTree } | TypeTree[];
 
-function isUndefinedOnlySet(tree: TypeTree): tree is Set<Typeof> {
-  return tree instanceof Set && tree.size === 1 && tree.has("undefined");
+function parseTypeOfTree(struct: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
+  if (Array.isArray(struct)) {
+    return arrays(struct);
+  }
+  else if (isObj(struct)) {
+    return object(struct);
+  }
+  else {
+    console.warn("Unexpected structure type at root", struct);
+    throw new Error("Unexpected structure type at root");
+  }
 }
 
-function mergeTypeTrees(a: TypeTree, b: TypeTree): TypeTree {
-  if (isUndefinedOnlySet(a)) return b;
-  if (isUndefinedOnlySet(b)) return a;
-
-  if (a instanceof Set && b instanceof Set) {
-    return new Set<Typeof>([...a, ...b]);
-  }
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length === 0) return b;
-    if (b.length === 0) return a;
-
-    const a0 = a[0];
-    const b0 = b[0];
-    if (!a0) return b;
-    if (!b0) return a;
-
-    return [mergeTypeTrees(a0, b0)];
-  }
-
-  if (isObj(a) && isObj(b)) {
-    const merged: Record<string, TypeTree> = {};
-    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-
-    for (const key of keys) {
-      const aVal = a[key];
-      const bVal = b[key];
-      if (aVal && bVal) merged[key] = mergeTypeTrees(aVal, bVal);
-      else if (aVal) merged[key] = aVal;
-      else if (bVal) merged[key] = bVal;
-    }
-
-    return merged;
-  }
-
-  console.warn("Incompatible subtree types during merge, keeping first", { a, b });
-  return a;
-}
-
-function parseObjType(inputTree: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
+function object(value: Record<string, unknown>): TypeTree {
   const tree: TypeTree = {};
-
-  // Early array handling
-  if (Array.isArray(inputTree)) {
-    return inputTree.map(item => isObj(item)
-      ? parseObjType(item) // Branch
-      : new Set([typeof item as Typeof]), // Leaf
-    );
+  for (const key in value) {
+    const val = value[key];
+    if (isObj(val)) tree[key] = object(val);
+    else if (Array.isArray(val)) tree[key] = arrays(val);
+    else tree[key] = primitives(val as string | number | boolean | undefined);
   }
-
-  // Recurse to type every key
-  for (const key in inputTree) {
-    const value = inputTree[key];
-
-    // Objects
-    if (isObj(value)) {
-      tree[key] = parseObjType(value);
-    }
-
-    // Arrays
-    else if (Array.isArray(value)) {
-      if (value.length === 0) {
-        tree[key] = [];
-      }
-
-      // Primitive array
-      else if (value.every(item => !isObj(item))) {
-        tree[key] = new Set(value.map(item => typeof item as Typeof));
-      }
-      else if (value.every(item => isObj(item))) {
-        const parsedArray = value.map(parseObjType);
-
-        // Count props and recursively merge all subtree types
-        const propsCount: Record<string, number> = {};
-        const propsTypes: Record<string, TypeTree> = {};
-        for (const item of parsedArray) {
-          if (!isObj(item)) continue;
-          for (const prop in item) {
-            const val = item[prop];
-            if (!val) continue;
-
-            propsCount[prop] ??= 0;
-            propsCount[prop]++;
-
-            if (!propsTypes[prop]) propsTypes[prop] = val;
-            else propsTypes[prop] = mergeTypeTrees(propsTypes[prop], val);
-          }
-        }
-
-        const diffProps = Object.keys(propsCount).filter(prop => propsCount[prop] !== value.length);
-
-        // Put "undefined" on missing props
-        for (const prop in propsTypes) {
-          if (diffProps.includes(prop)) {
-            const val = propsTypes[prop];
-            if (!val) continue;
-            if (val instanceof Set) propsTypes[prop] = new Set([...val, "undefined"]);
-          }
-        }
-
-        const collapsedArray: { [key: string]: TypeTree } = {};
-        for (const prop in propsTypes) {
-          const val = propsTypes[prop];
-          if (!val) continue;
-          const propKey = diffProps.includes(prop) ? `${prop}?` : prop;
-          collapsedArray[propKey] = val;
-        }
-
-        tree[key] = [collapsedArray];
-      }
-      else {
-        console.warn("Mixed array types detected at key", key, "with value", value);
-        tree[key] = value.map(item => isObj(item)
-          ? parseObjType(item) // Branch
-          : new Set([typeof item as Typeof]), // Leaf
-        );
-      }
-    }
-
-    // Primitives
-    else {
-      tree[key] ??= new Set<Typeof>();
-      (tree[key] as Set<Typeof>).add(typeof value as Typeof);
-    }
-  }
-
-  // Type guarding
-  if (
-    Array.isArray(tree)
-    || tree instanceof Set
-    || typeof tree === "string"
-  ) {
-    throw new Error("Unexpected tree structure after parsing");
-  }
-
   return tree;
+}
+
+function arrays(values: unknown[]): Set<PrimType>[] | TypeTree[] {
+  if (values.length === 0) return [];
+
+  if (values.every(v => isObj(v))) {
+    return values.map(v => object(v));
+  }
+  else if (values.every(v => !isObj(v))) {
+    return values.map(v => primitives(v as PrimType));
+  }
+  else {
+    console.warn("Mixed array types detected with value", { values });
+    throw new Error("Mixed array types detected - cannot parse");
+  }
+}
+
+function primitives(value: string | number | boolean | undefined): Set<PrimType> {
+  if (typeof value === "string") return new Set(["string"]);
+  if (typeof value === "number") return new Set(["number"]);
+  if (typeof value === "boolean") return new Set(["boolean"]);
+  if (value === undefined) return new Set(["undefined"]);
+  throw new Error("Unexpected primitive type");
 }
 
 function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: string) {
@@ -215,7 +120,6 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     // Array
     else if (Array.isArray(tree)) {
       if (tree.length === 0) return "unknown[]";
-      if (tree.length > 1) throw new Error("Unexpected multiple items in type tree array - cannot determine type");
 
       const onlyItem = tree[0];
       if (!onlyItem) throw new Error("Unexpected empty array in type tree");

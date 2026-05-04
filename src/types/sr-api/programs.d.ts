@@ -3,11 +3,11 @@ export type SR_Programs_Response = {
   copyright: string;
   programs: {
     description: string;
-    broadcastinfo?: string;
+    broadcastinfo: string;
     email: string;
     phone: string;
     programurl: string;
-    programslug?: string;
+    programslug: string;
     programimage: string;
     programimagetemplate: string;
     programimagewide: string;
@@ -28,10 +28,5 @@ export type SR_Programs_Response = {
     responsibleeditor: string;
     id: number;
     name: string;
-    programcategory?: {
-      id: number;
-      name: string;
-    };
-    payoff?: string;
   }[];
 };
