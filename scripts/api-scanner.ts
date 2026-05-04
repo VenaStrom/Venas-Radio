@@ -36,9 +36,10 @@ const main = async () => {
       { nestedString: "nested2", nestedNumber: 789, optional: true },
     ],
   };
+  const { arrayOfStrings: _ignoredArrayOfStrings, ...testDataObjWithoutArrayOfStrings } = testDataObj;
   const testDataArray = [
     JSON.parse(JSON.stringify(testDataObj)),
-    JSON.parse(JSON.stringify((() => { delete testDataObj.arrayOfStrings; return testDataObj; })())),
+    JSON.parse(JSON.stringify(testDataObjWithoutArrayOfStrings)),
   ];
 
   const testTypeTree = parseTypeOfTree(testDataObj);
@@ -47,13 +48,13 @@ const main = async () => {
   generateTSFiles(testTypeTree2, `${typeGenOutputDir}/test-array.d.ts`, "TestArray");
 
   const rawChannels = await fetchChannels();
-  const channelProps = parseTypeOfTree(rawChannels as TypeTree);
+  const channelProps = parseTypeOfTree(rawChannels);
   fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
   generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels_Response");
   console.info("Channels done");
 
   const rawPrograms = await fetchPrograms();
-  const programProps = parseTypeOfTree(rawPrograms as TypeTree);
+  const programProps = parseTypeOfTree(rawPrograms);
   fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
   generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs_Response");
   console.info("Programs done");
@@ -61,7 +62,7 @@ const main = async () => {
   const programIDs = (rawPrograms.programs as { id: number }[]).map(p => p.id);
 
   const rawEpisodes = await fetchEpisodesForSampledPrograms(programIDs);
-  const episodeProps = parseTypeOfTree(rawEpisodes as TypeTree);
+  const episodeProps = parseTypeOfTree(rawEpisodes);
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
   if (Array.isArray(episodeProps) && typeof episodeProps[0] === "object")
     generateTSFiles(episodeProps[0], typeGenEpisodesFile, "SR_Episodes_Response");
@@ -113,43 +114,115 @@ function parseTypeOfTree(value: Record<string, unknown> | Record<string, unknown
   function parseArray(arr: TypeTree[]): TypeTree {
     if (arr.length === 0) return new Set(["unknown"]);
 
+    const serializeTree = (tree: TypeTree): string => JSON.stringify(tree, (_k: string, val: unknown): unknown => {
+      if (isSet(val)) return { __set: Array.from(val).sort() };
+      return val;
+    });
+
+    const isPlainTreeObject = (tree: TypeTree): tree is Record<string, TypeTree> =>
+      isObj(tree) && !isArr(tree) && !isSet(tree);
+
+    const normalizeKey = (key: string): string => key.endsWith("?") ? key.slice(0, -1) : key;
+
+    const unionTypeTrees = (trees: TypeTree[]): TypeTree => {
+      const unique = new Map<string, TypeTree>();
+      trees.forEach((tree) => unique.set(serializeTree(tree), tree));
+      const values = [...unique.values()];
+      const concreteValues = values.filter((tree) => {
+        if (!isSet(tree)) return true;
+        const setValues = [...tree];
+        return setValues.some(v => v !== "unknown" && v !== "undefined");
+      });
+      const mergedValues = concreteValues.length > 0 ? concreteValues : values;
+
+      if (mergedValues.length === 0) return new Set(["unknown"]);
+      if (mergedValues.length === 1) {
+        const first = mergedValues[0];
+        if (!first) throw new Error("Unexpected empty union type tree");
+        return first;
+      }
+
+      if (mergedValues.every(isSet)) {
+        const merged = new Set<string>();
+        mergedValues.forEach((setVal) => (setVal as Set<string>).forEach(v => merged.add(v)));
+        return merged;
+      }
+
+      if (mergedValues.every(isArr)) {
+        const merged: TypeTree[] = [];
+        const seen = new Set<string>();
+        mergedValues.forEach((arrVal) => (arrVal as TypeTree[]).forEach((item) => {
+          const key = serializeTree(item);
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(item);
+          }
+        }));
+        if (merged.length > 0 && merged.every(isPlainTreeObject)) {
+          return [mergeObjectTrees(merged)];
+        }
+        return merged.length > 0 ? merged : new Set(["unknown"]);
+      }
+
+      if (mergedValues.every(isPlainTreeObject)) {
+        return mergeObjectTrees(mergedValues);
+      }
+
+      return new Set(["unknown"]);
+    };
+
+    const mergeObjectTrees = (objects: Record<string, TypeTree>[]): Record<string, TypeTree> => {
+      const merged: Record<string, TypeTree> = {};
+      const allKeys = new Set<string>();
+
+      objects.forEach((obj) => Object.keys(obj).forEach((k) => allKeys.add(normalizeKey(k))));
+
+      allKeys.forEach((rawKey) => {
+        const valuesForKey: TypeTree[] = [];
+        let presentCount = 0;
+        let explicitlyOptional = false;
+
+        objects.forEach((obj) => {
+          const exactKey = rawKey;
+          const optKey = `${rawKey}?`;
+          if (Object.prototype.hasOwnProperty.call(obj, exactKey)) {
+            const val = obj[exactKey];
+            if (!val) throw new Error("Unexpected missing value in object merge");
+            valuesForKey.push(val);
+            presentCount += 1;
+          }
+          else if (Object.prototype.hasOwnProperty.call(obj, optKey)) {
+            const val = obj[optKey];
+            if (!val) throw new Error("Unexpected missing optional value in object merge");
+            valuesForKey.push(val);
+            presentCount += 1;
+            explicitlyOptional = true;
+          }
+        });
+
+        const isOptional = explicitlyOptional || presentCount < objects.length;
+        const mergedValue = unionTypeTrees(valuesForKey);
+        merged[isOptional ? `${rawKey}?` : rawKey] = mergedValue;
+      });
+
+      return merged;
+    };
+
     const itemTrees = arr.map(item => expandTree(item));
     const uniqueItemTrees = new Set<string>();
     const resultTrees: TypeTree[] = [];
 
     itemTrees.forEach(tree => {
-      const treeStr = JSON.stringify(tree);
+      const treeStr = serializeTree(tree);
       if (!uniqueItemTrees.has(treeStr)) {
         uniqueItemTrees.add(treeStr);
         resultTrees.push(tree);
       }
     });
 
-    const arrOfObjs = arr.filter(isObj).map(v => parseObject(v as Record<string, unknown>));
-    const allKeys = new Set<string>();
-    const keyCounts: Record<string, number> = {};
-    arrOfObjs.forEach(obj => Object.keys(obj).forEach(key => {
-      allKeys.add(key);
-      keyCounts[key] ??= 0;
-      keyCounts[key] += 1;
-    }));
-
-    const totalObjects = arrOfObjs.length;
-    const optionalKeys = [...allKeys].filter(key => typeof keyCounts[key] === "number" ? keyCounts[key] < totalObjects : false);
-
-    // Delete optional keys and replace with `key?`
-    resultTrees.forEach(tree => {
-      if (isObj(tree)) {
-        optionalKeys.forEach(optKey => {
-          if (optKey in tree) {
-            const val = tree[optKey];
-            if (!val) throw new Error("Unexpected falsy value for optional key in type tree");
-            delete tree[optKey];
-            tree[`${optKey}?`] = val;
-          }
-        });
-      }
-    });
+    if (resultTrees.length > 0 && resultTrees.every(isPlainTreeObject)) {
+      return [mergeObjectTrees(resultTrees)];
+    }
 
     if (resultTrees.length === 1) {
       const first = resultTrees[0];
@@ -199,10 +272,16 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     else if (isArr(tree)) {
       if (tree.length === 0) return "unknown[]";
 
-      const onlyItem = tree[0];
-      if (!onlyItem) throw new Error("Unexpected empty array in type tree");
+      const itemTypes = new Map<string, string>();
+      tree.forEach((item) => {
+        const generated = generateTSType(item, depth);
+        itemTypes.set(generated, generated);
+      });
 
-      const itemType = generateTSType(onlyItem, depth);
+      const itemType = itemTypes.size === 1
+        ? [...itemTypes.values()][0]
+        : `(${[...itemTypes.values()].join(" | ")})`;
+      if (!itemType) throw new Error("Unexpected empty array item type in type tree");
       return `${itemType}[]`;
     }
     // Else recurse

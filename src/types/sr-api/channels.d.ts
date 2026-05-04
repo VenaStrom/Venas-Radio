@@ -12,10 +12,10 @@ export type SR_Channels_Response = {
       url: string;
       statkey: string;
     };
+    scheduleurl?: string;
     channeltype: string;
+    xmltvid?: string;
     id: number;
     name: string;
-    scheduleurl?: string;
-    xmltvid?: string;
   }[];
 };
