@@ -1,4 +1,4 @@
-import "@/app/global.tw.css";
+import "./global.tw.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nunito_Sans, Geist, Geist_Mono } from "next/font/google";
 import { HeartIcon, AudioLinesIcon, RadioIcon, NewspaperIcon } from "lucide-react";
