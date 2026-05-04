@@ -15,6 +15,7 @@ yarn build
 
 # Make /server-code executable
 chmod +x server-code/*
+chown -R vr:vr /home/vr/Venas-Radio
 
 # Restart the service
 systemctl restart vr-start
