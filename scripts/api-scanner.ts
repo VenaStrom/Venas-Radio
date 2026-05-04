@@ -1,4 +1,5 @@
 import { isArr, isObj, isSet } from "@/types";
+import { throws } from "node:assert/strict";
 import fs from "node:fs";
 
 const cacheDir = "scripts/.cache";
@@ -80,93 +81,80 @@ main()
     process.exit(1);
   });
 
-type PrimType = "string" | "number" | "boolean" | "undefined";
-type TypeTree = Set<PrimType> | { [key: string]: TypeTree } | TypeTree[];
+type Leaf = Set<string>; // All possible primitive types at a leaf node
+type TypeTree = Leaf | TypeTree[] | { [key: string]: TypeTree };
 
-function parseTypeOfTree(struct: TypeTree): TypeTree {
-  if (isArr(struct)) return arrays(struct);
+function parseTypeOfTree(value: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
 
-  else if (isObj(struct)) return object(struct);
+  const expanded = expandTree(value as TypeTree);
+  console.log({ expanded });
 
-  else if (isSet(struct)) return struct;
 
-  else {
-    console.warn("Unexpected structure type at root", struct);
-    throw new Error("Unexpected structure type at root");
+  return expanded;
+
+  function expandTree(tree: TypeTree): TypeTree {
+    const typeofTree = typeof tree;
+    if (typeofTree === "string" || typeofTree === "number" || typeofTree === "boolean") {
+      return new Set([typeofTree]);
+    }
+    else if (isSet(tree)) {
+      return tree;
+    }
+    else if (isArr(tree)) {
+      return parseArray(tree);
+    }
+    else if (isObj(tree)) {
+      return parseObject(tree);
+    }
+    console.warn("Unexpected value type during type tree parsing", { tree, typeofTree });
+    return new Set(["unknown"]);
   }
 
-  function object(value: Record<string, unknown>): TypeTree {
-    const tree: TypeTree = {};
-    for (const key in value) {
-      const val = value[key];
-      if (isObj(val)) tree[key] = object(val);
-      else if (isArr(val)) tree[key] = arrays(val);
-      else if (isPrim(val)) tree[key] = new Set<PrimType>([primitives(val)]);
-      else {
-        console.warn("Unexpected value type during object parsing", { key, val });
-        throw new Error(`Unexpected value type during object parsing for key "${key}"`);
+  function parseArray(arr: unknown[]): TypeTree {
+    if (arr.length === 0) return new Set(["unknown"]);
+
+    const itemTrees = arr.map(item => expandTree(item as TypeTree));
+    const uniqueItemTrees = new Set<string>();
+    const resultTrees: TypeTree[] = [];
+
+    itemTrees.forEach(tree => {
+      const treeStr = JSON.stringify(tree);
+      if (!uniqueItemTrees.has(treeStr)) {
+        uniqueItemTrees.add(treeStr);
+        resultTrees.push(tree);
       }
-    }
-    return tree;
-  }
+    });
 
-  function arrays(value: unknown[]): Set<PrimType>[] | TypeTree[] {
-    if (value.length === 0) return [];
-
-    if (value.every(isObj)) {
-      const arrOfObjs = value.map(object);
-      const allKeys = new Set<string>();
-      const keyCounts: Record<string, number> = {};
-      const expanded: TypeTree = {};
-      arrOfObjs.forEach(obj => Object.keys(obj).forEach(key => {
-        allKeys.add(key);
-        keyCounts[key] ??= 0;
-        keyCounts[key] += 1;
-
-        expanded[key] = parseTypeOfTree(obj);
-      }));
-
-      const collapsed: Record<string, unknown> = {};
-      for (const key of allKeys) {
-        if (isArr(expanded[key])) {
-          const arrs = arrOfObjs.map(obj => (obj as Record<string, unknown>)[key]).filter(isArr);
-          if (arrs.length === 0) continue;
-          collapsed[key] = arrays(arrs.flat());
-        }
-      }
-
-      const totalObjects = arrOfObjs.length;
-      const optionalKeys = [...allKeys].filter(key => typeof keyCounts[key] === "number" ? keyCounts[key] < totalObjects : false);
-
-      // Rename optional keys with "?" suffix
-      for (const optionalKey of optionalKeys) {
-        const val = collapsed[optionalKey];
-        if (!val) continue;
-        delete collapsed[optionalKey];
-        collapsed[optionalKey + "?"] = val;
-      }
-
-      return [collapsed as TypeTree];
-    }
-    else if (value.every(v => !isObj(v))) {
-      return [new Set<PrimType>(value.map(v => primitives(v as PrimType)))];
+    if (resultTrees.length === 1) {
+      const first = resultTrees[0];
+      if (!first) throw new Error("Unexpected empty array after parsing type tree");
+      return [first];
     }
     else {
-      console.warn("Mixed array types detected with value", { values: value });
-      throw new Error("Mixed array types detected - cannot parse");
+      return resultTrees;
     }
   }
-
-  function primitives(value: string | number | boolean | undefined): PrimType {
-    if (typeof value === "string") return "string";
-    if (typeof value === "number") return "number";
-    if (typeof value === "boolean") return "boolean";
-    if (value === undefined) return "undefined";
-    throw new Error("Unexpected primitive type");
-  }
-
-  function isPrim(value: unknown): value is PrimType {
-    return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === undefined;
+  function parseObject(obj: Record<string, unknown>): TypeTree {
+    const result: Record<string, TypeTree> = {};
+    Object.entries(obj).forEach(([key, val]) => {
+      const hasOptionalMarker = key.endsWith("?");
+      const rawKey = hasOptionalMarker ? key.slice(0, -1) : key;
+      const expandedVal = expandTree(val as TypeTree);
+      if (hasOptionalMarker) {
+        // Mark optional properties by including `undefined` in the set of possible types
+        if (isSet(expandedVal)) {
+          expandedVal.add("undefined");
+          result[rawKey] = expandedVal;
+        }
+        else {
+          result[rawKey] = new Set(["undefined", "unknown"]);
+        }
+      }
+      else {
+        result[rawKey] = expandedVal;
+      }
+    });
+    return result;
   }
 }
 
@@ -178,11 +166,11 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
     if (typeof tree !== "object") throw new Error("Unexpected string in type tree");
 
     // Set of types
-    if (tree instanceof Set) {
+    if (isSet(tree)) {
       return Array.from(tree).join(" | ");
     }
     // Array
-    else if (Array.isArray(tree)) {
+    else if (isArr(tree)) {
       if (tree.length === 0) return "unknown[]";
 
       const onlyItem = tree[0];
