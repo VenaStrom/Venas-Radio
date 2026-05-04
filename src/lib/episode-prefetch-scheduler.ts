@@ -34,5 +34,7 @@ export function ensureEpisodePrefetchScheduler() {
   run()
     .catch((e: unknown) => console.error("Episode prefetch scheduler failed to start", e));
 
-  schedulerState.interval = setInterval(() => run, PREFETCH_INTERVAL_MS);
+  schedulerState.interval = setInterval(() => {
+    void run();
+  }, PREFETCH_INTERVAL_MS);
 }

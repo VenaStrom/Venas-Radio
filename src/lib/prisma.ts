@@ -10,8 +10,9 @@ if (!DATABASE_URL) {
 }
 
 const url = new URL(DATABASE_URL);
+const host = url.hostname === "localhost" ? "127.0.0.1" : decodeURI(url.hostname);
 const adapter = new PrismaMariaDb({
-  host: decodeURI(url.hostname),
+  host,
   port: Number(decodeURI(url.port)),
   user: decodeURI(url.username),
   password: decodeURI(url.password),
