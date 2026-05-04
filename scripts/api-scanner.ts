@@ -86,6 +86,7 @@ type TypeTree = Leaf | TypeTree[] | { [key: string]: TypeTree };
 function parseTypeOfTree(value: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
 
   const expanded = expandTree(value as TypeTree);
+
   return expanded;
 
   function expandTree(tree: TypeTree): TypeTree {
@@ -109,10 +110,10 @@ function parseTypeOfTree(value: Record<string, unknown> | Record<string, unknown
     return new Set(["unknown"]);
   }
 
-  function parseArray(arr: unknown[]): TypeTree {
+  function parseArray(arr: TypeTree[]): TypeTree {
     if (arr.length === 0) return new Set(["unknown"]);
 
-    const itemTrees = arr.map(item => expandTree(item as TypeTree));
+    const itemTrees = arr.map(item => expandTree(item));
     const uniqueItemTrees = new Set<string>();
     const resultTrees: TypeTree[] = [];
 
@@ -121,6 +122,32 @@ function parseTypeOfTree(value: Record<string, unknown> | Record<string, unknown
       if (!uniqueItemTrees.has(treeStr)) {
         uniqueItemTrees.add(treeStr);
         resultTrees.push(tree);
+      }
+    });
+
+    const arrOfObjs = arr.filter(isObj).map(v => parseObject(v as Record<string, unknown>));
+    const allKeys = new Set<string>();
+    const keyCounts: Record<string, number> = {};
+    arrOfObjs.forEach(obj => Object.keys(obj).forEach(key => {
+      allKeys.add(key);
+      keyCounts[key] ??= 0;
+      keyCounts[key] += 1;
+    }));
+
+    const totalObjects = arrOfObjs.length;
+    const optionalKeys = [...allKeys].filter(key => typeof keyCounts[key] === "number" ? keyCounts[key] < totalObjects : false);
+
+    // Delete optional keys and replace with `key?`
+    resultTrees.forEach(tree => {
+      if (isObj(tree)) {
+        optionalKeys.forEach(optKey => {
+          if (optKey in tree) {
+            const val = tree[optKey];
+            if (!val) throw new Error("Unexpected falsy value for optional key in type tree");
+            delete tree[optKey];
+            tree[`${optKey}?`] = val;
+          }
+        });
       }
     });
 

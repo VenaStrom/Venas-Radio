@@ -6,9 +6,8 @@ export type TestObject = {
   undefinedProp?: undefined;
   arrayOfNumbers: number[];
   arrayOfBooleans: boolean[];
-  arrayOfObjects?: {
+  arrayOfObjects: {
     nestedString: string;
     nestedNumber: number;
-    optional?: boolean | undefined;
   }[];
 };
