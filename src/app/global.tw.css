@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+@source "../**/*.{ts,tsx,js,jsx,mdx}";
 
 ::-webkit-scrollbar {
   scrollbar-width: thin;
