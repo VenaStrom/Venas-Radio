@@ -1,4 +1,4 @@
-import { isObj } from "@/types";
+import { isArr, isObj, isSet } from "@/types";
 import fs from "node:fs";
 
 const cacheDir = "scripts/.cache";
@@ -22,14 +22,38 @@ if (!fs.existsSync(resultDir)) fs.mkdirSync(resultDir);
 if (!fs.existsSync(typeGenOutputDir)) fs.mkdirSync(typeGenOutputDir);
 
 const main = async () => {
+  const testDataObj = {
+    stringProp: "string",
+    numberProp: 123,
+    booleanProp: true,
+    undefinedProp: undefined,
+    arrayOfStrings: ["a", "b", "c"],
+    arrayOfNumbers: [1, 2, 3],
+    arrayOfBooleans: [true, false],
+    arrayOfObjects: [
+      { nestedString: "nested", nestedNumber: 456 },
+      { nestedString: "nested2", nestedNumber: 789 },
+      { nestedString: "nested2", nestedNumber: 789, optional: true },
+    ],
+  };
+  const testDataArray = [
+    JSON.parse(JSON.stringify(testDataObj)),
+    JSON.parse(JSON.stringify((() => { delete testDataObj.arrayOfStrings; return testDataObj; })())),
+  ];
+
+  const testTypeTree = parseTypeOfTree(testDataObj);
+  const testTypeTree2 = parseTypeOfTree(testDataArray);
+  generateTSFiles(testTypeTree, `${typeGenOutputDir}/test-object.d.ts`, "TestObject");
+  generateTSFiles(testTypeTree2, `${typeGenOutputDir}/test-array.d.ts`, "TestArray");
+
   const rawChannels = await fetchChannels();
-  const channelProps = parseTypeOfTree(rawChannels);
+  const channelProps = parseTypeOfTree(rawChannels as TypeTree);
   fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
   generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels_Response");
   console.info("Channels done");
 
   const rawPrograms = await fetchPrograms();
-  const programProps = parseTypeOfTree(rawPrograms);
+  const programProps = parseTypeOfTree(rawPrograms as TypeTree);
   fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
   generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs_Response");
   console.info("Programs done");
@@ -37,7 +61,7 @@ const main = async () => {
   const programIDs = (rawPrograms.programs as { id: number }[]).map(p => p.id);
 
   const rawEpisodes = await fetchEpisodesForSampledPrograms(programIDs);
-  const episodeProps = parseTypeOfTree(rawEpisodes);
+  const episodeProps = parseTypeOfTree(rawEpisodes as TypeTree);
   fs.writeFileSync(episodesResultFile, JSON.stringify(episodeProps, null, 2));
   if (Array.isArray(episodeProps) && typeof episodeProps[0] === "object")
     generateTSFiles(episodeProps[0], typeGenEpisodesFile, "SR_Episodes_Response");
@@ -59,51 +83,91 @@ main()
 type PrimType = "string" | "number" | "boolean" | "undefined";
 type TypeTree = Set<PrimType> | { [key: string]: TypeTree } | TypeTree[];
 
-function parseTypeOfTree(struct: Record<string, unknown> | Record<string, unknown>[]): TypeTree {
-  if (Array.isArray(struct)) {
-    return arrays(struct);
-  }
-  else if (isObj(struct)) {
-    return object(struct);
-  }
+function parseTypeOfTree(struct: TypeTree): TypeTree {
+  if (isArr(struct)) return arrays(struct);
+
+  else if (isObj(struct)) return object(struct);
+
+  else if (isSet(struct)) return struct;
+
   else {
     console.warn("Unexpected structure type at root", struct);
     throw new Error("Unexpected structure type at root");
   }
-}
 
-function object(value: Record<string, unknown>): TypeTree {
-  const tree: TypeTree = {};
-  for (const key in value) {
-    const val = value[key];
-    if (isObj(val)) tree[key] = object(val);
-    else if (Array.isArray(val)) tree[key] = arrays(val);
-    else tree[key] = primitives(val as string | number | boolean | undefined);
+  function object(value: Record<string, unknown>): TypeTree {
+    const tree: TypeTree = {};
+    for (const key in value) {
+      const val = value[key];
+      if (isObj(val)) tree[key] = object(val);
+      else if (isArr(val)) tree[key] = arrays(val);
+      else if (isPrim(val)) tree[key] = new Set<PrimType>([primitives(val)]);
+      else {
+        console.warn("Unexpected value type during object parsing", { key, val });
+        throw new Error(`Unexpected value type during object parsing for key "${key}"`);
+      }
+    }
+    return tree;
   }
-  return tree;
-}
 
-function arrays(values: unknown[]): Set<PrimType>[] | TypeTree[] {
-  if (values.length === 0) return [];
+  function arrays(value: unknown[]): Set<PrimType>[] | TypeTree[] {
+    if (value.length === 0) return [];
 
-  if (values.every(v => isObj(v))) {
-    return values.map(v => object(v));
-  }
-  else if (values.every(v => !isObj(v))) {
-    return values.map(v => primitives(v as PrimType));
-  }
-  else {
-    console.warn("Mixed array types detected with value", { values });
-    throw new Error("Mixed array types detected - cannot parse");
-  }
-}
+    if (value.every(isObj)) {
+      const arrOfObjs = value.map(object);
+      const allKeys = new Set<string>();
+      const keyCounts: Record<string, number> = {};
+      const expanded: TypeTree = {};
+      arrOfObjs.forEach(obj => Object.keys(obj).forEach(key => {
+        allKeys.add(key);
+        keyCounts[key] ??= 0;
+        keyCounts[key] += 1;
 
-function primitives(value: string | number | boolean | undefined): Set<PrimType> {
-  if (typeof value === "string") return new Set(["string"]);
-  if (typeof value === "number") return new Set(["number"]);
-  if (typeof value === "boolean") return new Set(["boolean"]);
-  if (value === undefined) return new Set(["undefined"]);
-  throw new Error("Unexpected primitive type");
+        expanded[key] = parseTypeOfTree(obj);
+      }));
+
+      const collapsed: Record<string, unknown> = {};
+      for (const key of allKeys) {
+        if (isArr(expanded[key])) {
+          const arrs = arrOfObjs.map(obj => (obj as Record<string, unknown>)[key]).filter(isArr);
+          if (arrs.length === 0) continue;
+          collapsed[key] = arrays(arrs.flat());
+        }
+      }
+
+      const totalObjects = arrOfObjs.length;
+      const optionalKeys = [...allKeys].filter(key => typeof keyCounts[key] === "number" ? keyCounts[key] < totalObjects : false);
+
+      // Rename optional keys with "?" suffix
+      for (const optionalKey of optionalKeys) {
+        const val = collapsed[optionalKey];
+        if (!val) continue;
+        delete collapsed[optionalKey];
+        collapsed[optionalKey + "?"] = val;
+      }
+
+      return [collapsed as TypeTree];
+    }
+    else if (value.every(v => !isObj(v))) {
+      return [new Set<PrimType>(value.map(v => primitives(v as PrimType)))];
+    }
+    else {
+      console.warn("Mixed array types detected with value", { values: value });
+      throw new Error("Mixed array types detected - cannot parse");
+    }
+  }
+
+  function primitives(value: string | number | boolean | undefined): PrimType {
+    if (typeof value === "string") return "string";
+    if (typeof value === "number") return "number";
+    if (typeof value === "boolean") return "boolean";
+    if (value === undefined) return "undefined";
+    throw new Error("Unexpected primitive type");
+  }
+
+  function isPrim(value: unknown): value is PrimType {
+    return typeof value === "string" || typeof value === "number" || typeof value === "boolean" || value === undefined;
+  }
 }
 
 function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: string) {
@@ -139,7 +203,7 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
         let optional = hasOptionalMarker;
         if (gen.includes("undefined")) {
           optional = true;
-          gen = gen.split(" | ").filter(t => t.trim() !== "undefined").join(" | ") || "unknown";
+          gen = gen.split(" | ").join(" | ") || "unknown";
         }
 
         // Quote keys that are not valid TS identifiers
