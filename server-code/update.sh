@@ -1,6 +1,7 @@
 #!/bin/bash
 
 cd /home/vr/Venas-Radio
+source /home/vr/.nvm/nvm.sh
 
 git fetch --all
 git checkout origin/main --force
