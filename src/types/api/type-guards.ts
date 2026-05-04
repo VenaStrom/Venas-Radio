@@ -322,30 +322,28 @@ export function isSR_Channel(value: unknown): value is SR_Channel {
 function isSR_EpisodeAudioFile(value: unknown): boolean {
   return (
     isObj(value)
-    && "title" in value
-    && typeof value.title === "string"
-    && "description" in value
-    && typeof value.description === "string"
-    && "filesizeinbytes" in value
-    && typeof value.filesizeinbytes === "number"
-    && "program" in value
-    && isObj(value.program)
-    && "id" in value.program
-    && typeof value.program.id === "number"
-    && "name" in value.program
-    && typeof value.program.name === "string"
-    && "availablefromutc" in value
-    && typeof value.availablefromutc === "string"
     && "duration" in value
     && typeof value.duration === "number"
-    && "publishdateutc" in value
-    && typeof value.publishdateutc === "string"
     && "id" in value
     && typeof value.id === "number"
     && "url" in value
     && typeof value.url === "string"
-    && "statkey" in value
-    && typeof value.statkey === "string"
+    && (!("title" in value) || typeof value.title === "string")
+    && (!("description" in value) || typeof value.description === "string")
+    && (!("filesizeinbytes" in value) || typeof value.filesizeinbytes === "number")
+    && (
+      !("program" in value)
+      || (
+        isObj(value.program)
+        && "id" in value.program
+        && typeof value.program.id === "number"
+        && "name" in value.program
+        && typeof value.program.name === "string"
+      )
+    )
+    && (!("availablefromutc" in value) || typeof value.availablefromutc === "string")
+    && (!("publishdateutc" in value) || typeof value.publishdateutc === "string")
+    && (!("statkey" in value) || typeof value.statkey === "string")
   );
 }
 
@@ -505,8 +503,10 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
 
   // .listenpodfile
   if (
-    !("listenpodfile" in value)
-    || !isSR_EpisodeAudioFile(value.listenpodfile)
+    "listenpodfile" in value
+    && value.listenpodfile !== undefined
+    && value.listenpodfile !== null
+    && !isSR_EpisodeAudioFile(value.listenpodfile)
   ) {
     console.warn("SR_Episode.listenpodfile is not valid:", value);
     return false;
@@ -514,8 +514,10 @@ export function isSR_Episode(value: unknown): value is SR_Episode {
 
   // .downloadpodfile
   if (
-    !("downloadpodfile" in value)
-    || !isSR_EpisodeAudioFile(value.downloadpodfile)
+    "downloadpodfile" in value
+    && value.downloadpodfile !== undefined
+    && value.downloadpodfile !== null
+    && !isSR_EpisodeAudioFile(value.downloadpodfile)
   ) {
     console.warn("SR_Episode.downloadpodfile is not valid:", value);
     return false;

@@ -16,35 +16,35 @@ export type SR_Episode = {
   imageurl: string;
   imageurltemplate: string;
   photographer: string;
-  listenpodfile: {
-    title: string;
-    description: string;
-    filesizeinbytes: number;
-    program: {
+  listenpodfile?: {
+    id: number;
+    url: string;
+    duration: number;
+    title?: string;
+    description?: string;
+    filesizeinbytes?: number;
+    program?: {
       id: number;
       name: string;
     };
-    availablefromutc: string;
-    duration: number;
-    publishdateutc: string;
-    id: number;
-    url: string;
-    statkey: string;
+    availablefromutc?: string;
+    publishdateutc?: string;
+    statkey?: string;
   };
-  downloadpodfile: {
-    title: string;
-    description: string;
-    filesizeinbytes: number;
-    program: {
+  downloadpodfile?: {
+    id: number;
+    url: string;
+    duration: number;
+    title?: string;
+    description?: string;
+    filesizeinbytes?: number;
+    program?: {
       id: number;
       name: string;
     };
-    availablefromutc: string;
-    duration: number;
-    publishdateutc: string;
-    id: number;
-    url: string;
-    statkey: string;
+    availablefromutc?: string;
+    publishdateutc?: string;
+    statkey?: string;
   };
   broadcast?: {
     availablestoputc: string;
