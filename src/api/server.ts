@@ -48,6 +48,44 @@ app.get("/api/channels", async (req, res) => {
   });
 });
 
+app.get("/api/programs", async (req, res) => {
+  const { page, pagesize: pageSize } = req.query;
+
+  if (
+    typeof page !== "string"
+    || isNaN(Number(page)) || Number(page) < 1
+    || typeof pageSize !== "string"
+    || isNaN(Number(pageSize)) || Number(pageSize) < 1
+  ) {
+    res.status(400).json({ error: "Missing or invalid 'page' or 'pagesize' query parameters." });
+    return;
+  }
+
+  const skip = (Number(page) - 1) * Number(pageSize);
+  const take = Number(pageSize);
+
+  if (isNaN(skip) || isNaN(take) || skip < 0 || take < 1) {
+    res.status(400).json({ error: "Invalid 'page' or 'pagesize' query parameters." });
+    return;
+  }
+
+  const total = await prisma.program.count();
+  const takePrograms = await prisma.program.findMany({ skip, take });
+
+  const progress = skip + take >= total ? 1 : (skip / total);
+  
+  if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
+    res.status(500).json({ error: "Failed to calculate progress." });
+    return;
+  }
+
+  res.json({
+    programs: takePrograms,
+    progress,
+    total,
+  });
+});
+
 app.listen(3000, () => {
   console.log("Server is running on http://localhost:3000");
 });

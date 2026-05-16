@@ -1,12 +1,19 @@
 import { FilledHeartIcon, HeartIcon } from "@/app/components/icons";
 import { useState } from "react";
 import type { ButtonIdInput } from "@/types";
+import { getPlayIdString, isPlayId } from "@/types";
 
-export function FollowButton({ channelId, episodeId, className = "" }: ButtonIdInput): React.ReactNode {
+export function FollowButton({ channelId, episodeId, programId, className = "" }: ButtonIdInput): React.ReactNode {
   const [isFollowed, setIsFollowed] = useState<boolean>(false);
 
-  const playId = !!channelId ? "channel-" : !!episodeId ? "episode-" : "" + (channelId ?? episodeId);
-  if (!playId) { console.error("FollowButton requires either channelId or episodeId"); return null; }
+  const IDs = { channelId, episodeId, programId };
+
+  if (!isPlayId(IDs)) {
+    console.error("FollowButton requires either channelId, episodeId or programId");
+    return null;
+  }
+
+  const playId = getPlayIdString(IDs);
 
   function onClick(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
