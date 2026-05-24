@@ -14,10 +14,41 @@ function getBranchName() {
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8",
     }).trim();
-    if (branch) return branch;
+    if (branch && branch !== "HEAD") return branch;
   }
   catch {
     // Fall back to env vars when git is unavailable.
+  }
+
+  try {
+    const upstream = execSync("git rev-parse --abbrev-ref --symbolic-full-name @{u}", {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    }).trim();
+
+    if (upstream) {
+      return upstream.replace(/^origin\//, "");
+    }
+  }
+  catch {
+    // Ignore missing upstream; fall through.
+  }
+
+  try {
+    const nameRev = execSync("git name-rev --name-only HEAD", {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    }).trim();
+
+    if (nameRev) {
+      const normalized = nameRev.replace(/^remotes\/origin\//, "").replace(/^origin\//, "");
+      if (normalized && !normalized.includes("tags/")) return normalized;
+    }
+  }
+  catch {
+    // Ignore name-rev failures; fall through.
   }
 
   const candidates = [
