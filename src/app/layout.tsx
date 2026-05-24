@@ -83,7 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
           <div className={`flex flex-row items-center justify-center gap-1 select-none ${experimentalClass}`}>
-            <AudioLinesIcon />
+            <AudioLinesIcon className={experimentalClass} />
             <p className="font-bold text-lg">VR</p>
           </div>
 
