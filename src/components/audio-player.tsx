@@ -28,6 +28,14 @@ export default function AudioControls({ className }: { className?: string }) {
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
 
+  const displayTitle = useMemo(() => {
+    return currentMedia?.title ?? currentEpisode?.title ?? "Spelar inget";
+  }, [currentEpisode?.title, currentMedia?.title]);
+
+  const displaySubtitle = useMemo(() => {
+    return currentMedia?.subtitle ?? currentEpisode?.program?.name ?? "";
+  }, [currentEpisode?.program?.name, currentMedia?.subtitle]);
+
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
     if (resolvedMedia?.type === "episode" && currentEpisode) {
@@ -494,10 +502,10 @@ export default function AudioControls({ className }: { className?: string }) {
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
           <p className="font-light text-sm" suppressHydrationWarning>
-            {currentMedia?.subtitle ?? ""}
+            {displaySubtitle}
           </p>
           <p className="font-bold max-h-10 overflow-hidden wrap-break-word leading-tight" suppressHydrationWarning>
-            {currentMedia?.title ?? "Spelar inget"}
+            {displayTitle}
           </p>
           {error && (
             <p className="text-xs text-red-400 mt-1">{error}</p>
