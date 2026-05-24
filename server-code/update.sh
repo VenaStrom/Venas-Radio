@@ -4,7 +4,7 @@ cd /home/vr/Venas-Radio
 source /home/vr/.nvm/nvm.sh
 
 git fetch --all
-git checkout origin/main --force
+git checkout origin/fix --force
 systemctl daemon-reload
 
 # Build
