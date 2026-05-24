@@ -12,7 +12,7 @@ import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
-export { metadata } from "@/app/metadata";
+export { metadata, viewport } from "@/app/metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
