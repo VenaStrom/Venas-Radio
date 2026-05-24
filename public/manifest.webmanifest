@@ -1,0 +1,32 @@
+{
+  "name": "VR Radiospelare",
+  "short_name": "VR Radio",
+  "description": "Lyssna pa direktsand radio och poddavsnitt fran Sveriges Radio.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "sv",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/audio-lines.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

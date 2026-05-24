@@ -4,6 +4,8 @@ import packageJson from "../../package.json" with { type: "json" };
 export const metadata: Metadata = {
   title: "VR Radiospelare",
   description: packageJson.description,
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0a0a0a",
   icons: {
     icon: "/icons/audio-lines.svg",
   },
