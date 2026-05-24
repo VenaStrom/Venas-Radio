@@ -35,6 +35,22 @@ function getBranchName() {
   return null;
 }
 
+function getCommitSha() {
+  try {
+    const sha = execSync("git rev-parse HEAD", {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    }).trim();
+    if (sha) return sha;
+  }
+  catch {
+    // Fall back to env vars when git is unavailable.
+  }
+
+  return process.env.GIT_COMMIT ?? process.env.GITHUB_SHA ?? null;
+}
+
 function applyExperimentalIconStroke() {
   const iconPath = path.join(process.cwd(), "public", "icons", "audio-lines.svg");
   try {
@@ -80,8 +96,16 @@ const nextConfig: NextConfig = {
 
 export default (phase: string) => {
   const branchName = getBranchName();
+  const commitSha = getCommitSha();
   if (phase === PHASE_PRODUCTION_BUILD && branchName && branchName !== MAIN_BRANCH) {
     applyExperimentalIconStroke();
   }
-  return nextConfig;
+  return {
+    ...nextConfig,
+    env: {
+      ...nextConfig.env,
+      NEXT_PUBLIC_GIT_BRANCH: branchName ?? "",
+      NEXT_PUBLIC_GIT_COMMIT: commitSha ?? "",
+    },
+  };
 };
