@@ -73,12 +73,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
     ensureEpisodePrefetchScheduler();
   }
+  const isExperimentalBranch = process.env.NEXT_PUBLIC_GIT_BRANCH
+    && process.env.NEXT_PUBLIC_GIT_BRANCH !== "main";
+  const experimentalClass = isExperimentalBranch ? "text-[#ff7a18]" : "";
+
   return (<ClerkProvider>
     <html lang="sv" className={`${nunitoSansFont.className} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="bg-zinc-900 text-zinc-100">
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
-          <div className="flex flex-row items-center justify-center gap-1 select-none">
+          <div className={`flex flex-row items-center justify-center gap-1 select-none ${experimentalClass}`}>
             <AudioLinesIcon />
             <p className="font-bold text-lg">VR</p>
           </div>
