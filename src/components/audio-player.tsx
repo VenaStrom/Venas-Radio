@@ -28,11 +28,6 @@ export default function AudioControls({ className }: { className?: string }) {
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
 
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
     if (resolvedMedia?.type === "episode" && currentEpisode) {
