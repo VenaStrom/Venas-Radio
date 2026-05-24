@@ -50,6 +50,8 @@ export default function AudioControls({ className }: { className?: string }) {
   const percent: number | null = useMemo(() => progress ? progress.elapsedPercentage : null, [progress]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const resumeAppliedRef = useRef(false);
+  const completionThresholdSeconds = 2;
 
   // pool of preloader audio elements for next N tracks
   const PRELOAD_COUNT = 5;
@@ -134,6 +136,8 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
     if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
 
+    resumeAppliedRef.current = false;
+
     const episodeId = currentEpisode.id;
     if (
       lastResumedEpisodeRef.current.episodeId === episodeId
@@ -141,18 +145,24 @@ export default function AudioControls({ className }: { className?: string }) {
     ) return; // Already applied for this remote version
 
     const saved = progressDB[episodeId];
-    const durationRounded = currentEpisode.duration.toFixed(0);
-    const progressRounded = saved ? Math.min(currentEpisode.duration, saved.toNumber()).toFixed(0) : null;
-    if (saved && progressRounded === durationRounded) {
+    const savedSeconds = saved ? Math.min(currentEpisode.duration, saved.toNumber()) : null;
+    const isComplete = savedSeconds !== null
+      && savedSeconds >= Math.max(0, currentEpisode.duration - completionThresholdSeconds);
+
+    if (saved && isComplete) {
       // Explicitly playing a finished episode, start from beginning
       audioEl.currentTime = 0;
       setCurrentProgress(Seconds.from(0));
+      resumeAppliedRef.current = true;
     }
     else if (saved) {
-      const savedSeconds = saved.toNumber();
-      if (Math.abs(audioEl.currentTime - savedSeconds) > 1) {
+      if (savedSeconds !== null && Math.abs(audioEl.currentTime - savedSeconds) > 1) {
         audioEl.currentTime = savedSeconds;
       }
+      resumeAppliedRef.current = true;
+    }
+    else {
+      resumeAppliedRef.current = true;
     }
 
     lastResumedEpisodeRef.current = { episodeId, version: remoteProgressVersion };
@@ -215,6 +225,8 @@ export default function AudioControls({ className }: { className?: string }) {
         || draggedProgress !== null
       ) return;
 
+      if (!resumeAppliedRef.current) return;
+
       setCurrentProgress(Seconds.from(audioEl.currentTime));
     };
 
@@ -222,7 +234,7 @@ export default function AudioControls({ className }: { className?: string }) {
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentEpisode, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
+  }, [currentEpisode, progressDB, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
 
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];

@@ -17,6 +17,22 @@ type RemoteUserState = {
   followedChannels?: string[];
 };
 
+type ProgressMeta = Record<string, number>;
+
+const COMPLETION_EPSILON_SECONDS = 2;
+
+function clampProgressValue(value: Seconds | number, duration?: number) {
+  const numeric = typeof value === "number" ? value : value.toNumber();
+  if (!Number.isFinite(numeric)) return 0;
+  if (!duration || !Number.isFinite(duration)) return Math.max(0, numeric);
+  return Math.min(Math.max(0, numeric), duration);
+}
+
+function isProgressComplete(value: Seconds | number, duration: number) {
+  const numeric = typeof value === "number" ? value : value.toNumber();
+  return Number.isFinite(numeric) && numeric >= Math.max(0, duration - COMPLETION_EPSILON_SECONDS);
+}
+
 function readStoredIdList(key: string): string[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(key);
@@ -34,6 +50,26 @@ function readStoredIdList(key: string): string[] {
 function readStoredProgress(): ProgressDB {
   if (typeof window === "undefined") return {};
   return progressDBDeserializer(localStorage.getItem("progressDB"));
+}
+
+function readStoredProgressMeta(): ProgressMeta {
+  if (typeof window === "undefined") return {};
+  const raw = localStorage.getItem("progressMeta");
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const normalized: ProgressMeta = {};
+    for (const [episodeId, value] of Object.entries(parsed)) {
+      const numeric = typeof value === "number" ? value : Number(value);
+      if (!episodeId || !Number.isFinite(numeric)) continue;
+      normalized[episodeId] = numeric;
+    }
+    return normalized;
+  }
+  catch {
+    return {};
+  }
 }
 
 function normalizeProgressPayload(payload?: Record<string, number>): ProgressDB {
@@ -54,7 +90,7 @@ function serializeProgressDB(payload: ProgressDB): Record<string, number> {
 }
 
 function mergeProgress(local: ProgressDB, remote: ProgressDB): ProgressDB {
-  return { ...local, ...remote };
+  return { ...remote, ...local };
 }
 
 function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: PendingMedia } {
@@ -142,10 +178,18 @@ export function PlayProvider({
   const [programDB, setProgramDB] = useState<ProgramDB>({});
 
   const [progressDB, setProgressDB] = useState<ProgressDB>(() => readStoredProgress());
+  const [progressMeta, setProgressMeta] = useState<ProgressMeta>(() => readStoredProgressMeta());
   const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
+    const duration = episodeDB[episodeID]?.duration;
+    const clamped = clampProgressValue(elapsed, duration);
+
     setProgressDB((prev) => ({
       ...prev,
-      [episodeID]: typeof elapsed === "number" ? new Seconds(elapsed) : elapsed,
+      [episodeID]: Seconds.from(clamped),
+    }));
+    setProgressMeta((prev) => ({
+      ...prev,
+      [episodeID]: Date.now(),
     }));
   };
 
@@ -246,10 +290,10 @@ export function PlayProvider({
     for (let i = currentIndex + 1; i <= maxIndex; i++) {
       const nextEpisodeCandidate = sortedEpisodes[i];
       if (!nextEpisodeCandidate) continue;
-      if (
-        progressDB[nextEpisodeCandidate.id]?.toNumber()
-        >= nextEpisodeCandidate.duration
-      ) continue; // Already fully listened to
+      const nextProgress = progressDB[nextEpisodeCandidate.id];
+      if (nextProgress && isProgressComplete(nextProgress, nextEpisodeCandidate.duration)) {
+        continue; // Already fully listened to
+      }
 
       // Found the next unlistened episode
       playEpisode(nextEpisodeCandidate.id);
@@ -266,10 +310,10 @@ export function PlayProvider({
     for (let i = currentIndex - 1; i >= 0; i--) {
       const prevEpisodeCandidate = sortedEpisodes[i];
       if (!prevEpisodeCandidate) continue;
-      if (
-        progressDB[prevEpisodeCandidate.id]?.toNumber()
-        >= prevEpisodeCandidate.duration
-      ) continue; // Already fully listened to
+      const prevProgress = progressDB[prevEpisodeCandidate.id];
+      if (prevProgress && isProgressComplete(prevProgress, prevEpisodeCandidate.duration)) {
+        continue; // Already fully listened to
+      }
 
       // Found the previous unlistened episode
       playEpisode(prevEpisodeCandidate.id);
@@ -375,6 +419,11 @@ export function PlayProvider({
     );
     localStorage.setItem("progressDB", JSON.stringify(serialized));
   }, [progressDB]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("progressMeta", JSON.stringify(progressMeta));
+  }, [progressMeta]);
 
   const hasLoadedRemoteRef = useRef(false);
   const pendingSyncRef = useRef<number | null>(null);
