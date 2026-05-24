@@ -28,13 +28,39 @@ export default function AudioControls({ className }: { className?: string }) {
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
 
+  const [storedMedia, setStoredMedia] = useState<PlayableMedia | null>(null);
+  useEffect(() => {
+    if (currentMedia) {
+      setStoredMedia(null);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("currentMedia");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as PlayableMedia;
+      if (parsed?.id && parsed?.title) {
+        setStoredMedia(parsed);
+      }
+    }
+    catch {
+      // Ignore invalid stored media.
+    }
+  }, [currentMedia]);
+
   const displayTitle = useMemo(() => {
-    return currentMedia?.title ?? currentEpisode?.title ?? "Spelar inget";
-  }, [currentEpisode?.title, currentMedia?.title]);
+    return currentMedia?.title
+      ?? currentEpisode?.title
+      ?? storedMedia?.title
+      ?? (currentStreamUrl ? "Laddar..." : "Spelar inget");
+  }, [currentEpisode?.title, currentMedia?.title, currentStreamUrl, storedMedia?.title]);
 
   const displaySubtitle = useMemo(() => {
-    return currentMedia?.subtitle ?? currentEpisode?.program?.name ?? "";
-  }, [currentEpisode?.program?.name, currentMedia?.subtitle]);
+    return currentMedia?.subtitle
+      ?? currentEpisode?.program?.name
+      ?? storedMedia?.subtitle
+      ?? "";
+  }, [currentEpisode?.program?.name, currentMedia?.subtitle, storedMedia?.subtitle]);
 
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {

@@ -380,6 +380,8 @@ export function PlayProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!currentMedia) {
+      if (!hasInitializedPlaybackRef.current) return;
+      if (pendingMediaRef.current) return;
       localStorage.removeItem("currentMedia");
       return;
     }
