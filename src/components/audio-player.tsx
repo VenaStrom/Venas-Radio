@@ -456,16 +456,16 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
 
     const onEnded = () => {
-      if (currentMedia?.type === "episode") {
-        playNextEpisode();
-      }
+      if (currentMedia?.type !== "episode" || !currentEpisode) return;
+      setCurrentProgress(Seconds.from(currentEpisode.duration));
+      playNextEpisode();
     };
 
     audioEl.addEventListener("ended", onEnded);
     return () => {
       audioEl.removeEventListener("ended", onEnded);
     };
-  }, [currentMedia, playNextEpisode]);
+  }, [currentEpisode, currentMedia?.type, playNextEpisode, setCurrentProgress]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { Readable } from "node:stream";
 import type { NextRequest} from "next/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -71,6 +72,36 @@ async function ensureEpisodeAudioSource(episodeId: string) {
   });
 }
 
+async function proxyRangeFromSource(sourceUrl: string, rangeHeader: string) {
+  const response = await fetch(sourceUrl, {
+    headers: {
+      range: rangeHeader,
+    },
+  });
+
+  if (!response.ok || !response.body) {
+    return null;
+  }
+
+  const contentType = response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE;
+  const contentLength = response.headers.get("content-length");
+  const contentRange = response.headers.get("content-range");
+
+  const headers: Record<string, string> = {
+    "Content-Type": contentType,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "private, max-age=0, must-revalidate",
+  };
+
+  if (contentLength) headers["Content-Length"] = contentLength;
+  if (contentRange) headers["Content-Range"] = contentRange;
+
+  return new NextResponse(response.body, {
+    status: response.status,
+    headers,
+  });
+}
+
 function buildRangeResponse(filePath: string, size: number, rangeHeader: string) {
   const match = /bytes=(\d+)-(\d+)?/.exec(rangeHeader);
   if (!match) {
@@ -85,8 +116,9 @@ function buildRangeResponse(filePath: string, size: number, rangeHeader: string)
   }
 
   const stream = fs.createReadStream(filePath, { start, end });
+  const body = Readable.toWeb(stream) as ReadableStream<Uint8Array>;
 
-  return new NextResponse(stream as unknown as BodyInit, {
+  return new NextResponse(body, {
     status: 206,
     headers: {
       "Content-Range": `bytes ${start}-${end}/${size}`,
@@ -113,6 +145,26 @@ export async function GET(request: NextRequest) {
 
   const ttlMs = getCacheTtlMs();
   const filePath = getEpisodeCachePath(episodeId);
+  const range = request.headers.get("range");
+
+  if (range) {
+    try {
+      const stat = await fs.promises.stat(filePath);
+      void ensureEpisodeCached(episodeId, episode.external_audio_url, ttlMs)
+        .catch((error: unknown) => console.warn("Failed to refresh cached audio", episodeId, error));
+
+      const ranged = buildRangeResponse(filePath, stat.size, range);
+      if (ranged) return ranged;
+    }
+    catch {
+      const proxied = await proxyRangeFromSource(episode.external_audio_url, range);
+      if (proxied) {
+        void ensureEpisodeCached(episodeId, episode.external_audio_url, ttlMs)
+          .catch((error: unknown) => console.warn("Failed to cache episode audio", episodeId, error));
+        return proxied;
+      }
+    }
+  }
 
   try {
     await ensureEpisodeCached(episodeId, episode.external_audio_url, ttlMs);
@@ -128,15 +180,10 @@ export async function GET(request: NextRequest) {
   }
 
   const stat = await fs.promises.stat(filePath);
-  const range = request.headers.get("range");
-
-  if (range) {
-    const ranged = buildRangeResponse(filePath, stat.size, range);
-    if (ranged) return ranged;
-  }
 
   const stream = fs.createReadStream(filePath);
-  return new NextResponse(stream as unknown as BodyInit, {
+  const body = Readable.toWeb(stream) as ReadableStream<Uint8Array>;
+  return new NextResponse(body, {
     status: 200,
     headers: {
       "Content-Length": `${stat.size}`,
