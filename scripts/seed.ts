@@ -3,11 +3,14 @@ import { fetchPrograms } from "@/functions/external-fetchers/program-fetcher";
 import prisma from "@/lib/prisma";
 
 main()
-  .catch((e) => {
+  .catch((e: unknown) => {
     console.error("Error during seeding:", e);
   })
   .finally(() => {
-    prisma.$disconnect();
+    prisma.$disconnect()
+      .catch((e: unknown) => {
+        console.error("Error disconnecting Prisma client:", e);
+      });
   });
 
 async function main() {
@@ -17,7 +20,7 @@ async function main() {
     let count = 0;
     for (const channel of fetchedChannels) {
       await prisma.channel.upsert({
-        where: { id: channel.id, },
+        where: { id: channel.id },
         create: channel,
         update: channel,
       })
@@ -25,7 +28,7 @@ async function main() {
           count++;
           channelIdsInDb.add(channel.id);
         })
-        .catch((e) => {
+        .catch((e: unknown) => {
           console.error(`Error upserting channel with ID ${channel.id}:`, e);
         });
     }
@@ -52,7 +55,7 @@ async function main() {
           : program;
 
       await prisma.program.upsert({
-        where: { id: program.id, },
+        where: { id: program.id },
         create: programData,
         update: programData,
       })
@@ -60,14 +63,12 @@ async function main() {
           count++;
           if (channelId && programData.channel_id === null) missingChannelCount++;
         })
-        .catch((e) => {
+        .catch((e: unknown) => {
           console.error(`Error upserting program with ID ${program.id}:`, e);
         });
     }
     if (missingChannelCount > 0) {
-      console.warn(
-        `Nullified channel_id for ${missingChannelCount} programs because the referenced channel was not found in the database.`
-      );
+      console.warn(`Nullified channel_id for ${missingChannelCount} programs because the referenced channel was not found in the database.`);
     }
     console.info(`Fetched and stored ${count} programs in the database.`);
   }

@@ -3,7 +3,8 @@
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EpisodeWithProgram, PlayableMedia, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import type { EpisodeWithProgram, PlayableMedia, Timestamp } from "@/types/types";
+import { PlaybackProgress, Seconds } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useDebounce } from "use-debounce";
 import { getEpisodeAudioUrl } from "@/lib/episode-audio";
@@ -20,22 +21,46 @@ export default function AudioControls({ className }: { className?: string }) {
     episodeDB,
     currentProgress,
     setCurrentProgress,
-    updateEpisodeProgress,
     playNextEpisode,
     playPreviousEpisode,
     remoteProgressVersion,
-    seekTrigger,
-    streamEpisodeMap,
-    registerStreamSeek,
-    advanceToEpisodeInStream,
   } = usePlayContext();
 
   const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
 
-  const [hasMounted, setHasMounted] = useState(false);
+  const [storedMedia, setStoredMedia] = useState<PlayableMedia | null>(null);
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
+    if (currentMedia) {
+      setStoredMedia(null);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("currentMedia");
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as PlayableMedia;
+      if (parsed?.id && parsed?.title) {
+        setStoredMedia(parsed);
+      }
+    }
+    catch {
+      // Ignore invalid stored media.
+    }
+  }, [currentMedia]);
+
+  const displayTitle = useMemo(() => {
+    return currentMedia?.title
+      ?? currentEpisode?.title
+      ?? storedMedia?.title
+      ?? (currentStreamUrl ? "Laddar..." : "Spelar inget");
+  }, [currentEpisode?.title, currentMedia?.title, currentStreamUrl, storedMedia?.title]);
+
+  const displaySubtitle = useMemo(() => {
+    return currentMedia?.subtitle
+      ?? currentEpisode?.program?.name
+      ?? storedMedia?.subtitle
+      ?? "";
+  }, [currentEpisode?.program?.name, currentMedia?.subtitle, storedMedia?.subtitle]);
 
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
@@ -51,27 +76,16 @@ export default function AudioControls({ className }: { className?: string }) {
   const percent: number | null = useMemo(() => progress ? progress.elapsedPercentage : null, [progress]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const resumeAppliedRef = useRef(false);
+  const completionThresholdSeconds = 2;
 
   // pool of preloader audio elements for next N tracks
   const PRELOAD_COUNT = 5;
   const preloadPoolRef = useRef<HTMLAudioElement[]>([]);
 
-  // Always-current refs so effects with custom deps never read stale closures
-  const currentEpisodeRef = useRef(currentEpisode);
-  currentEpisodeRef.current = currentEpisode;
-  const streamEpisodeMapRef = useRef(streamEpisodeMap);
-  streamEpisodeMapRef.current = streamEpisodeMap;
-  const progressDBRef = useRef(progressDB);
-  progressDBRef.current = progressDB;
-
-  // Target stream time to apply once canplay fires after a new src/load()
-  const pendingSeekRef = useRef<number | null>(null);
-
   // Create audio elements on mount
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = document.createElement("audio");
-    }
+    audioRef.current ??= document.createElement("audio");
 
     // Initialize preload pool
     if (preloadPoolRef.current.length === 0) {
@@ -82,18 +96,6 @@ export default function AudioControls({ className }: { className?: string }) {
       }
     }
   }, []);
-
-  // Register seek function so context can seek the audio element (used by prev/next in stream mode)
-  useEffect(() => {
-    registerStreamSeek((time: number) => {
-      if (audioRef.current) {
-        audioRef.current.currentTime = time;
-      }
-    });
-    return () => {
-      registerStreamSeek(null);
-    };
-  }, [registerStreamSeek]);
 
   // Compute sorted episodes from episodeDB to know which to preload
   const sortedEpisodes = useMemo(() => {
@@ -125,7 +127,7 @@ export default function AudioControls({ className }: { className?: string }) {
     // Clear remaining pool slots (if any)
     for (; poolIdx < audioPreloadEls.length; poolIdx++) {
       const el = audioPreloadEls[poolIdx];
-      if (el && el.src) {
+      if (el?.src) {
         el.removeAttribute("src");
         try { el.load(); } catch { /* Silent */ }
       }
@@ -150,52 +152,50 @@ export default function AudioControls({ className }: { className?: string }) {
     };
   }, []);
 
-  // Resume playback position.
-  // Fires only on intentional seeks (seekTrigger) and remote syncs
-  // (remoteProgressVersion). Does NOT fire on natural stream advancement so
-  // it can never seek backward into an already-playing position.
-  const lastResumedRef = useRef<{ episodeId: string | null; version: number | null }>({
+  // Resume playback position
+  const lastResumedEpisodeRef = useRef<{ episodeId: string | null; version: number | null }>({
     episodeId: null,
     version: null,
   });
   useEffect(() => {
-    const episode = currentEpisodeRef.current;
-    if (!episode) return;
+    const audioEl = audioRef.current;
+    if (!audioEl) return;
+    if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
 
-    const episodeId = episode.id;
+    const episodeId = currentEpisode.id;
     if (
-      lastResumedRef.current.episodeId === episodeId
-      && lastResumedRef.current.version === remoteProgressVersion
-    ) return;
+      lastResumedEpisodeRef.current.episodeId === episodeId
+      && lastResumedEpisodeRef.current.version === remoteProgressVersion
+    ) return; // Already applied for this remote version
 
-    const saved = progressDBRef.current[episodeId];
-    const streamOffset = streamEpisodeMapRef.current?.find((e) => e.id === episodeId)?.startTime ?? 0;
+    resumeAppliedRef.current = false;
 
-    let targetTime: number;
-    if (saved && Math.round(saved.toNumber()) >= Math.round(episode.duration)) {
-      // Finished episode explicitly replayed — restart from beginning
-      targetTime = streamOffset;
+    const saved = progressDB[episodeId];
+    const savedSeconds = saved ? Math.min(currentEpisode.duration, saved.toNumber()) : null;
+    const isComplete = savedSeconds !== null
+      && savedSeconds >= Math.max(0, currentEpisode.duration - completionThresholdSeconds);
+
+    if (saved && isComplete) {
+      // Explicitly playing a finished episode, start from beginning
+      audioEl.currentTime = 0;
+      setCurrentProgress(Seconds.from(0));
+      resumeAppliedRef.current = true;
     }
     else if (saved) {
-      targetTime = streamOffset + saved.toNumber();
+      if (savedSeconds !== null && Math.abs(audioEl.currentTime - savedSeconds) > 1) {
+        audioEl.currentTime = savedSeconds;
+      }
+      resumeAppliedRef.current = true;
     }
     else {
-      targetTime = streamOffset;
+      resumeAppliedRef.current = true;
     }
 
-    // Store for handleCanPlay (applied after load() resets currentTime).
-    // Also seek immediately if the audio is already seekable.
-    pendingSeekRef.current = targetTime;
-    const audioEl = audioRef.current;
-    if (audioEl && audioEl.readyState >= HTMLMediaElement.HAVE_METADATA) {
-      if (Math.abs(audioEl.currentTime - targetTime) > 1) {
-        audioEl.currentTime = targetTime;
-      }
-      pendingSeekRef.current = null;
-    }
+    lastResumedEpisodeRef.current = { episodeId, version: remoteProgressVersion };
 
-    lastResumedRef.current = { episodeId, version: remoteProgressVersion };
-  }, [seekTrigger, remoteProgressVersion]);
+    // Avoid re-running on every progressDB update; rely on remoteProgressVersion.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedMedia?.type, currentEpisode, remoteProgressVersion]);
 
 
   // Drag to seek handling
@@ -222,11 +222,12 @@ export default function AudioControls({ className }: { className?: string }) {
       return;
     }
 
-    const episodeElapsed = (draggedProgress / 100) * currentEpisode.duration;
-    const streamOffset = streamEpisodeMap?.find((e) => e.id === currentEpisode.id)?.startTime ?? 0;
+    const newElapsed = Seconds.from(
+      Math.round((draggedProgress / 100) * currentEpisode.duration),
+    );
 
-    audioEl.currentTime = streamOffset + episodeElapsed;
-    setCurrentProgress(Seconds.from(Math.round(episodeElapsed)));
+    audioEl.currentTime = newElapsed.toNumber();
+    setCurrentProgress(newElapsed);
 
     setDraggedProgress(null);
     play();
@@ -236,9 +237,7 @@ export default function AudioControls({ className }: { className?: string }) {
     setDraggedProgress(parseFloat(event.currentTarget.value));
   };
   // For immediate non-debounced visual feedback
-  const displayedPercent = draggedProgress !== null
-    ? draggedProgress
-    : (percent ?? 0);
+  const displayedPercent = draggedProgress ?? (percent ?? 0);
 
   // Time update handling
   useEffect(() => {
@@ -252,42 +251,16 @@ export default function AudioControls({ className }: { className?: string }) {
         || draggedProgress !== null
       ) return;
 
-      const t = audioEl.currentTime;
+      if (!resumeAppliedRef.current) return;
 
-      if (streamEpisodeMap) {
-        // Find which episode we're currently in based on stream time
-        const activeInfo = streamEpisodeMap.find(
-          (e) => t >= e.startTime && t < e.startTime + e.duration,
-        );
-        if (!activeInfo) return;
-
-        // Notify context if we've crossed an episode boundary
-        if (activeInfo.id !== currentEpisode.id) {
-          advanceToEpisodeInStream(t);
-        }
-
-        // Always save progress episode-relatively
-        updateEpisodeProgress(activeInfo.id, Seconds.from(t - activeInfo.startTime));
-      }
-      else {
-        // Single-episode mode: progress is just currentTime
-        setCurrentProgress(Seconds.from(t));
-      }
+      setCurrentProgress(Seconds.from(audioEl.currentTime));
     };
 
     audioEl.addEventListener("timeupdate", onTimeUpdate);
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [
-    currentEpisode,
-    resolvedMedia?.type,
-    draggedProgress,
-    setCurrentProgress,
-    updateEpisodeProgress,
-    streamEpisodeMap,
-    advanceToEpisodeInStream,
-  ]);
+  }, [currentEpisode, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
 
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];
@@ -309,7 +282,7 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
 
     if (isPlaying) {
-      audioEl.play().catch((e) => {
+      audioEl.play().catch((e: unknown) => {
         if (e instanceof DOMException && e.name === "AbortError") return; // Ignore abort errors
         console.error("Error playing audio:", e);
         setError("Kunde inte spela upp ljudströmmen.");
@@ -378,15 +351,6 @@ export default function AudioControls({ className }: { className?: string }) {
       if (retryTimeoutRef.current !== null) {
         window.clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
-      }
-      // Apply any seek that was queued before the audio was ready.
-      // This must happen before play() so the browser starts from the right position.
-      if (pendingSeekRef.current !== null) {
-        const target = pendingSeekRef.current;
-        pendingSeekRef.current = null;
-        if (Math.abs(audioEl.currentTime - target) > 1) {
-          audioEl.currentTime = target;
-        }
       }
       if (isPlayingRef.current) {
         audioEl.play().catch(() => {
@@ -500,14 +464,14 @@ export default function AudioControls({ className }: { className?: string }) {
       navigator.mediaSession.setActionHandler("seekbackward", (details) => {
         const audioEl = audioRef.current;
         if (audioEl) {
-          const skipTime = details.seekOffset || 10;
+          const skipTime = details.seekOffset ?? 10;
           audioEl.currentTime = Math.max(audioEl.currentTime - skipTime, 0);
         }
       });
       navigator.mediaSession.setActionHandler("seekforward", (details) => {
         const audioEl = audioRef.current;
         if (audioEl) {
-          const skipTime = details.seekOffset || 10;
+          const skipTime = details.seekOffset ?? 10;
           audioEl.currentTime = Math.min(audioEl.currentTime + skipTime, audioEl.duration);
         }
       });
@@ -527,20 +491,22 @@ export default function AudioControls({ className }: { className?: string }) {
 
   }, [currentMedia, pause, play, playNextEpisode, playPreviousEpisode]);
 
-  // When the entire stream ends (all episodes finished), just stop playback
+  // Play next episode when currentEpisode ends
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
 
     const onEnded = () => {
-      pause();
+      if (currentMedia?.type !== "episode" || !currentEpisode) return;
+      setCurrentProgress(Seconds.from(currentEpisode.duration));
+      playNextEpisode();
     };
 
     audioEl.addEventListener("ended", onEnded);
     return () => {
       audioEl.removeEventListener("ended", onEnded);
     };
-  }, [pause]);
+  }, [currentEpisode, currentMedia?.type, playNextEpisode, setCurrentProgress]);
 
   return (
     <div className={`w-full flex flex-col gap-y-2 ${className || ""}`}>
@@ -573,27 +539,22 @@ export default function AudioControls({ className }: { className?: string }) {
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
-          <p className="font-light text-sm">{hasMounted ? currentMedia?.subtitle : ""}</p>
-          <p className="font-bold max-h-10 overflow-hidden wrap-break-word leading-tight">
-            {hasMounted ? (currentMedia?.title || "Spelar inget") : "Spelar inget"}
+          <p className="font-light text-sm" suppressHydrationWarning={true}>
+            {displaySubtitle}
           </p>
-          {error && (
-            <p className="text-xs text-red-400 mt-1">{error}</p>
-          )}
-          {isLoading && debouncedIsLoading && !error && (
-            <p className="text-xs text-zinc-400 mt-1">Laddar...</p>
-          )}
+          <p className="font-bold max-h-10 overflow-hidden wrap-break-word leading-tight" suppressHydrationWarning={true}>
+            {displayTitle}
+          </p>
+          {error ? <p className="text-xs text-red-400 mt-1">{error}</p> : null}
+          {isLoading && debouncedIsLoading && !error ? <p className="text-xs text-zinc-400 mt-1">Laddar...</p> : null}
         </div>
 
-        <p className="text-sm text-zinc-400 whitespace-nowrap">
-          {hasMounted
-            ? (currentMedia?.type === "channel"
-              ? "Live •"
-              : !elapsed || !duration
-                ? "--:-- / --:--"
-                : `${elapsed.toString()} / ${duration.toString()}`
-            )
-            : "--:-- / --:--"}
+        <p className="text-sm text-zinc-400 whitespace-nowrap" suppressHydrationWarning={true}>
+          {currentMedia?.type === "channel"
+            ? "Live •"
+            : !elapsed || !duration
+              ? "--:-- / --:--"
+              : `${elapsed.toString()} / ${duration.toString()}`}
         </p>
 
         <PlayButton iconSize={30} />

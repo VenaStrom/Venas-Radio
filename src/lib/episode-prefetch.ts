@@ -102,8 +102,8 @@ export async function refreshEpisodesForPrograms(programIds: string[], options: 
             program_id: episode.program_id,
           },
           create: episode,
-        })
-      )
+        }),
+      ),
     );
   }
 

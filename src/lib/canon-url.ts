@@ -1,6 +1,6 @@
 import { metadata } from "@/app/metadata";
 
-let url = null;
+let url: string | URL;
 if (process.env.NODE_ENV === "development") {
   url = "http://localhost:3000/";
 }

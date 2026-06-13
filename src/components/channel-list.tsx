@@ -35,7 +35,7 @@ export default function ChannelList({ channels }: ChannelListProps) {
   useEffect(() => {
     if (previousChannelsRef.current !== channels) {
       previousChannelsRef.current = channels;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setOrderingFavorites(new Set(followedChannels));
     }
   }, [channels, followedChannels]);

@@ -20,5 +20,5 @@ export default function ProgressBar({ progress, className, innerClassName }: { p
     <div className={`h-1 w-full bg-zinc-800 flex flex-col justify-start items-start ${className || ""}`}>
       <div className={`h-full bg-zinc-100 rounded-e-sm ${innerClassName}`} style={{ width: adjustedProgress + "%" }}></div>
     </div>
-  )
+  );
 }

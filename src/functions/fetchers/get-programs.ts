@@ -3,7 +3,7 @@
 import "server-only";
 import prisma from "@/lib/prisma";
 import { cacheTag } from "next/cache";
-import { Program } from "@prisma/client";
+import type { Program } from "@prisma/client";
 import Fuse from "fuse.js";
 
 const programSearchKeys: { name: keyof Program; weight: number }[] = [
@@ -22,12 +22,12 @@ export async function getPrograms({ search, userId, preferredIds }: GetProgramsO
   cacheTag("programs");
 
   const programs = await prisma.program.findMany({
-    where: { archived: false, },
-    orderBy: { name: "asc", },
+    where: { archived: false },
+    orderBy: { name: "asc" },
   });
 
   const normalizedUserId = userId?.trim();
-  const preferred = (preferredIds || []).map((id) => id.trim()).filter(Boolean);
+  const preferred = (preferredIds ?? []).map((id) => id.trim()).filter(Boolean);
   let favoriteProgramIds: Set<string> | null = preferred.length > 0 ? new Set(preferred) : null;
   if (normalizedUserId) {
     const user = await prisma.user.findUnique({
@@ -76,7 +76,7 @@ export async function getProgramById(programId: string): Promise<Program | null>
   cacheTag("programs");
 
   const program = await prisma.program.findUnique({
-    where: { id: programId, },
+    where: { id: programId },
   });
 
   return program;
@@ -87,8 +87,8 @@ export async function getProgramsByIds(programIds: string[]): Promise<Program[]>
   cacheTag("programs");
 
   const programs = await prisma.program.findMany({
-    where: { id: { in: programIds, }, archived: false, },
-    orderBy: { name: "asc", },
+    where: { id: { in: programIds }, archived: false },
+    orderBy: { name: "asc" },
   });
 
   return programs;

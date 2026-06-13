@@ -36,12 +36,4 @@ export type PlayableMedia = {
   image?: string | null;
 };
 
-/** One episode's time window within a continuous stream. */
-export type StreamEpisodeInfo = {
-  /** Episode ID */
-  id: string;
-  /** Seconds from stream start where this episode begins */
-  startTime: number;
-  /** Duration of this episode in seconds */
-  duration: number;
-};
+export type JSONValue = Partial<{ [key: string]: JSONValue }> | JSONValue[] | string | number | boolean | null;

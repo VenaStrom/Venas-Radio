@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Suspense } from "react";
 
 function LoggedInSkeleton() {
@@ -19,9 +19,10 @@ export function LoginButton() {
   return (
     <div className={`flex flex-row items-center justify-center`}>
       <Suspense fallback={<LoggedInSkeleton />}>
-        <SignedOut>
+        <Show when={"signed-out"}>
           <SignInButton>
             <button
+              type="button"
               className={`
                 h-8 w-fit
                 rounded-lg
@@ -42,22 +43,22 @@ export function LoginButton() {
               Logga in
             </button>
           </SignInButton>
-        </SignedOut>
+        </Show>
 
-        <SignedIn>
+        <Show when={"signed-in"}>
           <UserButton
             fallback={<LoggedInSkeleton />}
             showName={true}
             appearance={{
-              layout: { shimmer: false, },
+              options: { shimmer: false },
               elements: {
-                userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0, },
-                avatarBox: { marginRight: 0, },
-              }
+                userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0 },
+                avatarBox: { marginRight: 0 },
+              },
             }}
           />
-        </SignedIn>
+        </Show>
       </Suspense>
     </div>
-  )
+  );
 }

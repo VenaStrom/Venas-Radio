@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import PlayButton  from "@/components/play-button";
+import PlayButton from "@/components/play-button";
 import ProgressBar from "@/components/progress-bar";
 import SRAttribute from "@/components/sr-attribute";
-import { EpisodeWithProgram, PlaybackProgress, Seconds, Timestamp } from "@/types/types";
+import type { EpisodeWithProgram, Timestamp } from "@/types/types";
+import { PlaybackProgress, Seconds } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useMemo, useSyncExternalStore } from "react";
 import { getLocaleTime, getRelativeTimeString } from "@/lib/time-format";
@@ -13,9 +14,9 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
   const { progressDB } = usePlayContext();
 
   const hasMounted = useSyncExternalStore(
-    () => () => {},
+    () => () => { /* empty */ },
     () => true,
-    () => false
+    () => false,
   );
 
   const progress = useMemo(() => {
@@ -35,29 +36,29 @@ export default function EpisodeDOM({ episode }: { episode: EpisodeWithProgram; }
   const formattedTime = useMemo(() => getLocaleTime(publishDate), [publishDate]);
 
   const formattedDuration = useMemo(() => duration.toFormattedString(
-    duration.minutes.toNumber() == 0
+    duration.minutes.toNumber() === 0
       ? { minuteUnit: "hide" }
-      : { secondUnit: "hide" }
+      : { secondUnit: "hide" },
   ), [duration]);
 
   const remainingTime = useMemo<React.ReactNode>(() => {
     const isUnlistened = percent === 0;
     const isListened = remaining.totalSeconds.toNumber() <= 0;
     const formattedRemaining = remaining.toFormattedString(
-      remaining.minutes.toNumber() == 0
+      remaining.minutes.toNumber() === 0
         ? { minuteUnit: "hide" }
-        : { secondUnit: "hide" }
+        : { secondUnit: "hide" },
     );
 
-    if (isUnlistened) return <>{formattedDuration}</>;
-    if (isListened) return <>{formattedDuration}&nbsp;&nbsp;&middot;&nbsp;&nbsp;Lyssnad</>
-    return <>{formattedRemaining} kvar</>
+    if (isUnlistened) return formattedDuration;
+    if (isListened) return <>{formattedDuration}&nbsp;&nbsp;&middot;&nbsp;&nbsp;Lyssnad</>;
+    return <>{formattedRemaining} kvar</>;
   }, [formattedDuration, percent, remaining]);
 
   const displayPercent = hasMounted ? percent : 0;
   const displayDate = hasMounted ? formattedDate : "";
   const displayTime = hasMounted ? formattedTime : "";
-  const displayRemainingTime = hasMounted ? remainingTime : <>{formattedDuration}</>;
+  const displayRemainingTime = hasMounted ? remainingTime : formattedDuration;
 
   return (
     <li className="w-full grid grid-cols-[128px_1fr] grid-rows-[min_min_min_1fr] gap-2" id={episode.id.toString()}>

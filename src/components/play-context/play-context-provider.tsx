@@ -1,12 +1,13 @@
 "use client";
 
-import type { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB, StreamEpisodeInfo } from "@/types/types";
+import type { Channel, ChannelDB, Episode, EpisodeDB, EpisodeWithProgram, PlayableMedia, Program, ProgramDB, ProgressDB } from "@/types/types";
 import { Seconds } from "@/types/types";
-import { useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
+import type { ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { PlayContext } from "@/components/play-context/play-context.internal";
 import { progressDBDeserializer } from "@/components/deserializer/progress-deserializer";
-import { getContinuousStreamUrl, getEpisodeAudioUrl } from "@/lib/episode-audio";
+import { getEpisodeAudioUrl } from "@/lib/episode-audio";
 
 type PendingMedia = { type: "episode" | "channel"; id: string; } | null;
 
@@ -15,6 +16,22 @@ type RemoteUserState = {
   followedPrograms?: string[];
   followedChannels?: string[];
 };
+
+type ProgressMeta = Record<string, number>;
+
+const COMPLETION_EPSILON_SECONDS = 2;
+
+function clampProgressValue(value: Seconds | number, duration?: number) {
+  const numeric = typeof value === "number" ? value : value.toNumber();
+  if (!Number.isFinite(numeric)) return 0;
+  if (!duration || !Number.isFinite(duration)) return Math.max(0, numeric);
+  return Math.min(Math.max(0, numeric), duration);
+}
+
+function isProgressComplete(value: Seconds | number, duration: number) {
+  const numeric = typeof value === "number" ? value : value.toNumber();
+  return Number.isFinite(numeric) && numeric >= Math.max(0, duration - COMPLETION_EPSILON_SECONDS);
+}
 
 function readStoredIdList(key: string): string[] {
   if (typeof window === "undefined") return [];
@@ -35,6 +52,26 @@ function readStoredProgress(): ProgressDB {
   return progressDBDeserializer(localStorage.getItem("progressDB"));
 }
 
+function readStoredProgressMeta(): ProgressMeta {
+  if (typeof window === "undefined") return {};
+  const raw = localStorage.getItem("progressMeta");
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const normalized: ProgressMeta = {};
+    for (const [episodeId, value] of Object.entries(parsed)) {
+      const numeric = typeof value === "number" ? value : Number(value);
+      if (!episodeId || !Number.isFinite(numeric)) continue;
+      normalized[episodeId] = numeric;
+    }
+    return normalized;
+  }
+  catch {
+    return {};
+  }
+}
+
 function normalizeProgressPayload(payload?: Record<string, number>): ProgressDB {
   if (!payload) return {};
   const normalized: ProgressDB = {};
@@ -48,12 +85,22 @@ function normalizeProgressPayload(payload?: Record<string, number>): ProgressDB 
 
 function serializeProgressDB(payload: ProgressDB): Record<string, number> {
   return Object.fromEntries(
-    Object.entries(payload).map(([episodeId, seconds]) => [episodeId, seconds.toNumber()])
+    Object.entries(payload).map(([episodeId, seconds]) => [episodeId, seconds.toNumber()]),
   );
 }
 
-function mergeProgress(local: ProgressDB, remote: ProgressDB): ProgressDB {
-  return { ...local, ...remote };
+function mergeProgress(
+  local: ProgressDB,
+  remote: ProgressDB,
+  preferLocal: (episodeId: string) => boolean,
+): ProgressDB {
+  const merged: ProgressDB = { ...remote };
+  for (const [episodeId, value] of Object.entries(local)) {
+    if (preferLocal(episodeId) || !(episodeId in remote)) {
+      merged[episodeId] = value;
+    }
+  }
+  return merged;
 }
 
 function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: PendingMedia } {
@@ -83,36 +130,6 @@ function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: Pend
   }
 
   return { restoredMedia: null, pending: null };
-}
-
-/** Build an ordered episode queue starting from startId.
- *  The start episode is always included; subsequent ones skip fully-listened episodes.
- *  Capped at MAX_STREAM_EPISODES to keep server-side startup fast. */
-const MAX_STREAM_EPISODES = 20;
-
-function buildStreamQueue(
-  sortedEpisodes: EpisodeWithProgram[],
-  startId: string,
-  progressDB: ProgressDB,
-): EpisodeWithProgram[] {
-  const startIndex = sortedEpisodes.findIndex((ep) => ep.id === startId);
-  if (startIndex === -1) return [];
-  const startEp = sortedEpisodes[startIndex];
-  if (!startEp) return [];
-  const rest = sortedEpisodes.slice(startIndex + 1).filter((ep) => {
-    return (progressDB[ep.id]?.toNumber() ?? 0) < ep.duration;
-  });
-  return [startEp, ...rest].slice(0, MAX_STREAM_EPISODES);
-}
-
-/** Build time-offset map for a queue of episodes. */
-function buildStreamEpisodeMap(episodes: EpisodeWithProgram[]): StreamEpisodeInfo[] {
-  let t = 0;
-  return episodes.map((ep) => {
-    const info: StreamEpisodeInfo = { id: ep.id, startTime: t, duration: ep.duration };
-    t += ep.duration;
-    return info;
-  });
 }
 
 const likedIdsCookieLimit = 50;
@@ -171,48 +188,39 @@ export function PlayProvider({
   const [programDB, setProgramDB] = useState<ProgramDB>({});
 
   const [progressDB, setProgressDB] = useState<ProgressDB>(() => readStoredProgress());
+  const [progressMeta, setProgressMeta] = useState<ProgressMeta>(() => readStoredProgressMeta());
+  // Timestamp of provider mount; entries in progressMeta newer than this were
+  // touched during the current session and should win over remote on merge.
+  const sessionStartRef = useRef(Date.now());
+  // Mirror of progressMeta readable synchronously from the async remote-load merge.
+  const progressMetaRef = useRef(progressMeta);
   const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
+    const duration = episodeDB[episodeID]?.duration;
+    const clamped = clampProgressValue(elapsed, duration);
+
     setProgressDB((prev) => ({
       ...prev,
-      [episodeID]: typeof elapsed === "number" ? new Seconds(elapsed) : elapsed,
+      [episodeID]: Seconds.from(clamped),
     }));
+    progressMetaRef.current = { ...progressMetaRef.current, [episodeID]: Date.now() };
+    setProgressMeta(progressMetaRef.current);
   };
-
-  // Stream state
-  const [streamEpisodeMap, setStreamEpisodeMap] = useState<StreamEpisodeInfo[] | null>(null);
-  const [seekTrigger, setSeekTrigger] = useState(0);
-  // Ref holding a seek function registered by the audio-player
-  const seekInStreamRef = useRef<((time: number) => void) | null>(null);
-  const registerStreamSeek = useCallback((fn: ((time: number) => void) | null) => {
-    seekInStreamRef.current = fn;
-  }, []);
-
-  const sortedEpisodes = useMemo(() => {
-    return Object.values(episodeDB)
-      .filter((episode): episode is EpisodeWithProgram => Boolean(episode?.publish_date))
-      .sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
-  }, [episodeDB]);
 
   const resolvePendingEpisode = useCallback((episode: EpisodeWithProgram) => {
     const pending = pendingMediaRef.current;
-    if (!pending || pending.type !== "episode" || pending.id !== episode.id) return;
+    if (pending?.type !== "episode" || pending.id !== episode.id) return;
     setCurrentChannel(null);
     setCurrentEpisode(episode);
-    // Use single-episode URL initially; upgrade effect will switch to stream once
-    // sortedEpisodes contains this episode.
     setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
-    setStreamEpisodeMap(null);
-    setSeekTrigger((t) => t + 1);
     pendingMediaRef.current = null;
   }, []);
 
   const resolvePendingChannel = useCallback((channel: Channel) => {
     const pending = pendingMediaRef.current;
-    if (!pending || pending.type !== "channel" || pending.id !== channel.id) return;
+    if (pending?.type !== "channel" || pending.id !== channel.id) return;
     setCurrentEpisode(null);
     setCurrentChannel(channel);
     setCurrentStreamUrl(channel.external_audio_url);
-    setStreamEpisodeMap(null);
     pendingMediaRef.current = null;
   }, []);
 
@@ -229,6 +237,12 @@ export function PlayProvider({
   const registerProgram = useCallback((program: Program) => {
     setProgramDB((prev) => (prev[program.id] ? prev : { ...prev, [program.id]: program }));
   }, []);
+
+  const sortedEpisodes = useMemo(() => {
+    return Object.values(episodeDB)
+      .filter((episode): episode is EpisodeWithProgram => Boolean(episode?.publish_date))
+      .sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
+  }, [episodeDB]);
 
   const currentProgress = useMemo(() => {
     if (currentEpisode) {
@@ -254,27 +268,15 @@ export function PlayProvider({
 
     setCurrentChannel(null);
     setCurrentEpisode(episode);
+    setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
     pendingMediaRef.current = null;
-
-    const queue = buildStreamQueue(sortedEpisodes, episodeId, progressDB);
-    if (queue.length > 0) {
-      const map = buildStreamEpisodeMap(queue);
-      setStreamEpisodeMap(map);
-      setCurrentStreamUrl(getContinuousStreamUrl(queue.map((ep) => ep.id)));
-    }
-    else {
-      // Episode is fully listened — restart from beginning as single
-      setStreamEpisodeMap(null);
-      setCurrentStreamUrl(getEpisodeAudioUrl(episode.id));
-    }
-    setSeekTrigger((t) => t + 1);
 
     setIsPlaying(true);
     setTimeout(() => {
       // I don't like this but it's to jostle the audio player into playing
       setIsPlaying(true);
     }, 50);
-  }, [episodeDB, sortedEpisodes, progressDB]);
+  }, [episodeDB]);
 
   const playChannel = useCallback((channelId: Channel["id"]) => {
     const channel = channelDB[channelId];
@@ -286,97 +288,51 @@ export function PlayProvider({
     setCurrentEpisode(null);
     setCurrentChannel(channel);
     setCurrentStreamUrl(channel.external_audio_url);
-    setStreamEpisodeMap(null);
     setIsPlaying(true);
     pendingMediaRef.current = null;
   }, [channelDB]);
 
-  const playNextEpisode = useCallback(() => {
+  const playNextEpisode = () => {
     if (!currentEpisode) return;
 
-    if (streamEpisodeMap) {
-      // Seek within the existing stream
-      const currentIdx = streamEpisodeMap.findIndex((e) => e.id === currentEpisode.id);
-      if (currentIdx === -1 || currentIdx >= streamEpisodeMap.length - 1) return;
-      const next = streamEpisodeMap[currentIdx + 1];
-      const nextEpisode = episodeDB[next.id];
-      if (!nextEpisode) return;
-      setCurrentEpisode(nextEpisode);
-      seekInStreamRef.current?.(next.startTime);
-      return;
-    }
-
-    // Fallback: no stream, rebuild from next episode
     const currentIndex = sortedEpisodes.findIndex(ep => ep.id === currentEpisode.id);
     if (currentIndex === -1) return;
-    for (let i = currentIndex + 1; i < sortedEpisodes.length; i++) {
-      const candidate = sortedEpisodes[i];
-      if (!candidate) continue;
-      if ((progressDB[candidate.id]?.toNumber() ?? 0) >= candidate.duration) continue;
-      playEpisode(candidate.id);
+
+    const maxIndex = sortedEpisodes.length - 1;
+
+    for (let i = currentIndex + 1; i <= maxIndex; i++) {
+      const nextEpisodeCandidate = sortedEpisodes[i];
+      if (!nextEpisodeCandidate) continue;
+      const nextProgress = progressDB[nextEpisodeCandidate.id];
+      if (nextProgress && isProgressComplete(nextProgress, nextEpisodeCandidate.duration)) {
+        continue; // Already fully listened to
+      }
+
+      // Found the next unlistened episode
+      playEpisode(nextEpisodeCandidate.id);
       break;
     }
-  }, [currentEpisode, streamEpisodeMap, episodeDB, sortedEpisodes, progressDB, playEpisode]);
+  };
 
-  const playPreviousEpisode = useCallback(() => {
+  const playPreviousEpisode = () => {
     if (!currentEpisode) return;
 
-    if (streamEpisodeMap) {
-      const currentIdx = streamEpisodeMap.findIndex((e) => e.id === currentEpisode.id);
-      if (currentIdx <= 0) return;
-      const prev = streamEpisodeMap[currentIdx - 1];
-      const prevEpisode = episodeDB[prev.id];
-      if (!prevEpisode) return;
-      setCurrentEpisode(prevEpisode);
-      seekInStreamRef.current?.(prev.startTime);
-      return;
-    }
-
-    // Fallback: no stream
     const currentIndex = sortedEpisodes.findIndex(ep => ep.id === currentEpisode.id);
     if (currentIndex === -1) return;
+
     for (let i = currentIndex - 1; i >= 0; i--) {
-      const candidate = sortedEpisodes[i];
-      if (!candidate) continue;
-      if ((progressDB[candidate.id]?.toNumber() ?? 0) >= candidate.duration) continue;
-      playEpisode(candidate.id);
+      const prevEpisodeCandidate = sortedEpisodes[i];
+      if (!prevEpisodeCandidate) continue;
+      const prevProgress = progressDB[prevEpisodeCandidate.id];
+      if (prevProgress && isProgressComplete(prevProgress, prevEpisodeCandidate.duration)) {
+        continue; // Already fully listened to
+      }
+
+      // Found the previous unlistened episode
+      playEpisode(prevEpisodeCandidate.id);
       break;
     }
-  }, [currentEpisode, streamEpisodeMap, episodeDB, sortedEpisodes, progressDB, playEpisode]);
-
-  /**
-   * Called by audio-player's timeupdate handler to advance currentEpisode when
-   * the stream crosses an episode boundary.
-   */
-  const advanceToEpisodeInStream = useCallback((streamTime: number) => {
-    if (!streamEpisodeMap) return;
-    const info = streamEpisodeMap.find(
-      (e) => streamTime >= e.startTime && streamTime < e.startTime + e.duration,
-    );
-    if (!info) return;
-    const episode = episodeDB[info.id];
-    if (!episode) return;
-    setCurrentEpisode((prev) => (prev?.id === episode.id ? prev : episode));
-  }, [streamEpisodeMap, episodeDB]);
-
-  // Upgrade single-episode URL to continuous stream once sortedEpisodes is populated.
-  // This handles the restore-from-localStorage case without requiring a user action.
-  useEffect(() => {
-    if (!currentEpisode) return;
-    if (streamEpisodeMap !== null) return; // Already on a stream
-    const inSorted = sortedEpisodes.some((ep) => ep.id === currentEpisode.id);
-    if (!inSorted) return;
-
-    const queue = buildStreamQueue(sortedEpisodes, currentEpisode.id, progressDB);
-    if (queue.length === 0) return;
-
-    const map = buildStreamEpisodeMap(queue);
-    setStreamEpisodeMap(map);
-    setCurrentStreamUrl(getContinuousStreamUrl(queue.map((ep) => ep.id)));
-    setSeekTrigger((t) => t + 1); // preserve playback position through the upgrade
-  // Only react to sortedEpisodes changes (or first time currentEpisode is set)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedEpisodes, currentEpisode]);
+  };
 
   // Restore current episode/channel on mount
   const hasInitializedPlaybackRef = useRef(false);
@@ -437,6 +393,8 @@ export function PlayProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!currentMedia) {
+      if (!hasInitializedPlaybackRef.current) return;
+      if (pendingMediaRef.current) return;
       localStorage.removeItem("currentMedia");
       return;
     }
@@ -472,10 +430,15 @@ export function PlayProvider({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const serialized = Object.fromEntries(
-      Object.entries(progressDB).map(([id, seconds]) => [id, seconds.toNumber()])
+      Object.entries(progressDB).map(([id, seconds]) => [id, seconds.toNumber()]),
     );
     localStorage.setItem("progressDB", JSON.stringify(serialized));
   }, [progressDB]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("progressMeta", JSON.stringify(progressMeta));
+  }, [progressMeta]);
 
   const hasLoadedRemoteRef = useRef(false);
   const pendingSyncRef = useRef<number | null>(null);
@@ -497,14 +460,18 @@ export function PlayProvider({
         if (!isActive) return;
 
         const remoteProgress = normalizeProgressPayload(data.progress);
-        setProgressDB((prev) => mergeProgress(prev, remoteProgress));
+        setProgressDB((prev) => mergeProgress(
+          prev,
+          remoteProgress,
+          (episodeId) => (progressMetaRef.current[episodeId] ?? 0) >= sessionStartRef.current,
+        ));
         setRemoteProgressVersion((prev) => prev + 1);
 
-        if (data.followedPrograms?.length) {
-          setFollowedPrograms((prev) => Array.from(new Set([...prev, ...data.followedPrograms!])));
+        if (!!data.followedPrograms) {
+          setFollowedPrograms(prev => [...new Set<string>([...prev, ...data.followedPrograms ?? []])]);
         }
-        if (data.followedChannels?.length) {
-          setFollowedChannels((prev) => Array.from(new Set([...prev, ...data.followedChannels!])));
+        if (!!data.followedChannels) {
+          setFollowedChannels(prev => [...new Set<string>([...prev, ...data.followedChannels ?? []])]);
         }
       }
       finally {
@@ -588,10 +555,6 @@ export function PlayProvider({
         playNextEpisode,
         playPreviousEpisode,
         remoteProgressVersion,
-        seekTrigger,
-        streamEpisodeMap,
-        registerStreamSeek,
-        advanceToEpisodeInStream,
       }}
     >
       {children}

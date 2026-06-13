@@ -2,7 +2,7 @@
 
 import ProgramDOM from "@/components/program-dom";
 import { getProgramsByIds } from "@/functions/fetchers/get-programs";
-import { Program } from "@prisma/client";
+import type { Program } from "@prisma/client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 
@@ -32,7 +32,7 @@ export function ProgramList({
   programIds: string[];
 }) {
   const { followedPrograms } = usePlayContext();
-  const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms || []).map((p) => [p.id, p])));
+  const [programMap, setProgramMap] = useState<Record<string, Program>>(Object.fromEntries((initialPrograms ?? []).map((p) => [p.id, p])));
   const [orderingFavorites, setOrderingFavorites] = useState<Set<string>>(
     () => new Set(followedPrograms),
   );
@@ -51,7 +51,7 @@ export function ProgramList({
 
   const mergedProgramMap = useMemo(() => {
     const updatedMap = { ...programMap };
-    (initialPrograms || []).forEach((program) => {
+    (initialPrograms ?? []).forEach((program) => {
       updatedMap[program.id] = program;
     });
     return updatedMap;
@@ -60,13 +60,13 @@ export function ProgramList({
   useEffect(() => {
     if (previousProgramIdsRef.current !== programIds) {
       previousProgramIdsRef.current = programIds;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setOrderingFavorites(new Set(followedPrograms));
     }
   }, [programIds, followedPrograms]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setActivatedBatches(new Set());
   }, [orderedProgramIds]);
 
@@ -117,7 +117,14 @@ export function ProgramList({
       .map((index) => idBatches[index])
       .filter((batch): batch is string[] => Boolean(batch))
       .filter((batch) => batch.some((id) => !mergedProgramMap[id]));
-    batchesToFetch.forEach((batch) => fetchPrograms(batch));
+
+    Promise.all(batchesToFetch.map((batch) => fetchPrograms(batch)))
+      .then(() => {
+        console.info(`Fetched programs for batches: ${Array.from(activatedBatches).join(", ")}`);
+      })
+      .catch((e: unknown) => {
+        console.error("Error fetching programs:", e);
+      });
   }, [activatedBatches, idBatches, mergedProgramMap, programMap]);
 
   return (
@@ -134,7 +141,6 @@ export function ProgramList({
       {orderedProgramIds.map((id) => {
         const program = mergedProgramMap[id];
         return program ? <ProgramDOM key={id} program={program} /> : <ProgramDOM.Skeleton key={id} />;
-        return <ProgramDOM.Skeleton key={id} />;
       })}
     </ul>
   );

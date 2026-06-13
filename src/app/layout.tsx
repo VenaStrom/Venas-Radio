@@ -1,4 +1,4 @@
-import "@/app/global.tw.css";
+import "./global.tw.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nunito_Sans, Geist, Geist_Mono } from "next/font/google";
 import { HeartIcon, AudioLinesIcon, RadioIcon, NewspaperIcon } from "lucide-react";
@@ -11,16 +11,12 @@ import { ensureEpisodePrefetchScheduler } from "@/lib/episode-prefetch-scheduler
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
-import { metadata } from "@/app/metadata";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export { metadata } from "@/app/metadata";
+export { metadata, viewport } from "@/app/metadata";
 
 const nunitoSansFont = Nunito_Sans({ subsets: ["latin"] });
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], });
-
-const iconColor = metadata.openGraph?.url?.toString().includes("dev.") ? "orange" : undefined;
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 const likedCookieLimit = 50;
 
@@ -77,21 +73,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
     ensureEpisodePrefetchScheduler();
   }
+  const isExperimentalBranch = process.env.NEXT_PUBLIC_GIT_BRANCH
+    && process.env.NEXT_PUBLIC_GIT_BRANCH !== "main";
+  const experimentalClass = isExperimentalBranch ? "text-[#ff7a18]" : "";
+
   return (<ClerkProvider>
     <html lang="sv" className={`${nunitoSansFont.className} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="bg-zinc-900 text-zinc-100">
 
         <header className="bg-zinc-950 p-2 flex flex-row items-center justify-between">
-          <div className="flex flex-row items-center justify-center gap-1 select-none">
-            <AudioLinesIcon
-              {...{ style: { color: iconColor } }}
-            />
-            <p
-              className="font-bold text-lg"
-              {...{ style: { color: iconColor } }}
-            >
-              VR
-            </p>
+          <div className={`flex flex-row items-center justify-center gap-1 select-none ${experimentalClass}`}>
+            <AudioLinesIcon className={experimentalClass} />
+            <p className="font-bold text-lg">VR</p>
           </div>
 
           <Sidebar />

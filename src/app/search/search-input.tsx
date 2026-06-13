@@ -87,6 +87,7 @@ export default function SearchInput({ initialQuery = "", placeholder = "Sök..."
 
       {/* Hide when input is empty */}
       <button
+        type="button"
         onClick={() => setValue("")}
         className={`size-min ${value ? "" : "hidden"}`}
       >

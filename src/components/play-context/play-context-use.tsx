@@ -1,5 +1,6 @@
 import { useContext } from "react";
-import { PlayContext, PlayContextType } from "@/components/play-context/play-context.internal";
+import type { PlayContextType } from "@/components/play-context/play-context.internal";
+import { PlayContext } from "@/components/play-context/play-context.internal";
 
 export function usePlayContext(): PlayContextType {
   const context = useContext(PlayContext);

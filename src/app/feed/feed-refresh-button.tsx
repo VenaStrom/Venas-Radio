@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { isObj, type JSONValue } from "@/types";
 
 export default function FeedRefreshButton({ programIds }: { programIds: string[] }) {
   const router = useRouter();
@@ -21,24 +22,33 @@ export default function FeedRefreshButton({ programIds }: { programIds: string[]
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        const message = typeof payload?.error === "string"
-          ? payload.error
-          : "Kunde inte hamta avsnitt.";
-        throw new Error(message);
+        const payload = await response.json() as JSONValue;
+
+        if (
+          !!payload
+          && isObj(payload)
+          && "error" in payload
+          && typeof payload.error === "string"
+        ) {
+          throw new Error(payload.error);
+        }
+        throw new Error("Kunde inte hamta avsnitt.");
       }
 
       router.refresh();
-    } catch (caught) {
+    }
+    catch (caught) {
+      console.warn("Error fetching episodes:", caught);
       setError(caught instanceof Error ? caught.message : "Kunde inte hamta avsnitt.");
-    } finally {
+    }
+    finally {
       setIsLoading(false);
     }
   };
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <Button onClick={handleClick} disabled={isLoading || programIds.length === 0}>
+      <Button onClick={() => handleClick} disabled={isLoading || programIds.length === 0}>
         {isLoading ? "Hamtar avsnitt..." : "Hamta senaste avsnitten"}
       </Button>
       {error ? <p className="text-xs text-red-400">{error}</p> : null}
