@@ -22,6 +22,7 @@ export function LoginButton() {
         <Show when={"signed-out"}>
           <SignInButton>
             <button
+              type="button"
               className={`
                 h-8 w-fit
                 rounded-lg
@@ -49,7 +50,7 @@ export function LoginButton() {
             fallback={<LoggedInSkeleton />}
             showName={true}
             appearance={{
-              layout: { shimmer: false },
+              options: { shimmer: false },
               elements: {
                 userButtonOuterIdentifier: { color: "white", order: 1, paddingLeft: 0 },
                 avatarBox: { marginRight: 0 },
