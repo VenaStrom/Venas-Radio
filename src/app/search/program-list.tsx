@@ -60,13 +60,13 @@ export function ProgramList({
   useEffect(() => {
     if (previousProgramIdsRef.current !== programIds) {
       previousProgramIdsRef.current = programIds;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setOrderingFavorites(new Set(followedPrograms));
     }
   }, [programIds, followedPrograms]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setActivatedBatches(new Set());
   }, [orderedProgramIds]);
 

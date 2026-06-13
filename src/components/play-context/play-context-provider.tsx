@@ -89,8 +89,18 @@ function serializeProgressDB(payload: ProgressDB): Record<string, number> {
   );
 }
 
-function mergeProgress(local: ProgressDB, remote: ProgressDB): ProgressDB {
-  return { ...remote, ...local };
+function mergeProgress(
+  local: ProgressDB,
+  remote: ProgressDB,
+  preferLocal: (episodeId: string) => boolean,
+): ProgressDB {
+  const merged: ProgressDB = { ...remote };
+  for (const [episodeId, value] of Object.entries(local)) {
+    if (preferLocal(episodeId) || !(episodeId in remote)) {
+      merged[episodeId] = value;
+    }
+  }
+  return merged;
 }
 
 function readStoredMedia(): { restoredMedia: PlayableMedia | null; pending: PendingMedia } {
@@ -179,6 +189,11 @@ export function PlayProvider({
 
   const [progressDB, setProgressDB] = useState<ProgressDB>(() => readStoredProgress());
   const [progressMeta, setProgressMeta] = useState<ProgressMeta>(() => readStoredProgressMeta());
+  // Timestamp of provider mount; entries in progressMeta newer than this were
+  // touched during the current session and should win over remote on merge.
+  const sessionStartRef = useRef(Date.now());
+  // Mirror of progressMeta readable synchronously from the async remote-load merge.
+  const progressMetaRef = useRef(progressMeta);
   const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
     const duration = episodeDB[episodeID]?.duration;
     const clamped = clampProgressValue(elapsed, duration);
@@ -187,10 +202,8 @@ export function PlayProvider({
       ...prev,
       [episodeID]: Seconds.from(clamped),
     }));
-    setProgressMeta((prev) => ({
-      ...prev,
-      [episodeID]: Date.now(),
-    }));
+    progressMetaRef.current = { ...progressMetaRef.current, [episodeID]: Date.now() };
+    setProgressMeta(progressMetaRef.current);
   };
 
   const resolvePendingEpisode = useCallback((episode: EpisodeWithProgram) => {
@@ -447,7 +460,11 @@ export function PlayProvider({
         if (!isActive) return;
 
         const remoteProgress = normalizeProgressPayload(data.progress);
-        setProgressDB((prev) => mergeProgress(prev, remoteProgress));
+        setProgressDB((prev) => mergeProgress(
+          prev,
+          remoteProgress,
+          (episodeId) => (progressMetaRef.current[episodeId] ?? 0) >= sessionStartRef.current,
+        ));
         setRemoteProgressVersion((prev) => prev + 1);
 
         if (!!data.followedPrograms) {

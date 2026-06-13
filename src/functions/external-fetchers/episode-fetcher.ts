@@ -36,7 +36,7 @@ function mapSREpisode(episode: SR_Episode): Episode {
     description: episode.description,
     external_audio_url: audio.url,
     program_id: episode.program.id.toString(),
-    publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
+    publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""), 10)),
     duration: audio.duration,
     image_square_url: episode.imageurl,
     image_wide_url: episode.imageurltemplate,

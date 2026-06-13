@@ -6,6 +6,7 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 const MAIN_BRANCH = "main";
 const EXPERIMENTAL_STROKE = "#ff7a18";
+const DEFAULT_STROKE = "currentColor";
 
 function getBranchName() {
   try {
@@ -82,17 +83,17 @@ function getCommitSha() {
   return process.env.GIT_COMMIT ?? process.env.GITHUB_SHA ?? null;
 }
 
-function applyExperimentalIconStroke() {
+function setIconStroke(color: string) {
   const iconPath = path.join(process.cwd(), "public", "icons", "audio-lines.svg");
   try {
     const original = fs.readFileSync(iconPath, "utf8");
     let updated = original;
 
     if (/stroke="[^"]*"/.test(updated)) {
-      updated = updated.replace(/stroke="[^"]*"/, `stroke="${EXPERIMENTAL_STROKE}"`);
+      updated = updated.replace(/stroke="[^"]*"/g, `stroke="${color}"`);
     }
     else if (updated.startsWith("<svg")) {
-      updated = updated.replace("<svg", `<svg stroke=\"${EXPERIMENTAL_STROKE}\"`);
+      updated = updated.replace("<svg", `<svg stroke="${color}"`);
     }
 
     if (updated !== original) {
@@ -100,7 +101,7 @@ function applyExperimentalIconStroke() {
     }
   }
   catch (error) {
-    console.warn("Failed to update experimental icon stroke", error);
+    console.warn("Failed to update icon stroke", error);
   }
 }
 
@@ -111,7 +112,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "api.sr.se", },
+      { protocol: "https", hostname: "api.sr.se" },
       { protocol: "https", hostname: "static-cdn.sr.se" },
       { protocol: "https", hostname: "www.sverigesradio.se" },
     ],
@@ -128,8 +129,10 @@ const nextConfig: NextConfig = {
 export default (phase: string) => {
   const branchName = getBranchName();
   const commitSha = getCommitSha();
-  if (phase === PHASE_PRODUCTION_BUILD && branchName && branchName !== MAIN_BRANCH) {
-    applyExperimentalIconStroke();
+  if (phase === PHASE_PRODUCTION_BUILD && branchName) {
+    // Self-reverting: a main build restores the default stroke so a prior
+    // branch build's experimental color does not persist into main.
+    setIconStroke(branchName !== MAIN_BRANCH ? EXPERIMENTAL_STROKE : DEFAULT_STROKE);
   }
   return {
     ...nextConfig,

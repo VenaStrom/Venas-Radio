@@ -50,7 +50,10 @@ export default function LikeButton({
   };
 
   return (
-    <button className="size-min">
+    <button
+      type="button"
+      className="size-min"
+    >
       <HeartIcon
         className={isLiked ? "fill-[red] text-[red]" : "none"}
         size={28}

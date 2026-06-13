@@ -164,9 +164,8 @@ export default function MigrationHandler() {
           Venas Radio har flyttat till en ny domän. Vill du flytta dina sparade
           inställningar (favoriter och lyssningsprogress) till den nya sidan?
         </p>
-        {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-        {debugInfo && (
-          <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+        {error ? <p className="mt-3 text-sm text-red-400">{error}</p> : null}
+        {debugInfo ? <div className="mt-3 rounded-md border border-zinc-800 bg-zinc-950 p-3">
             <details className="text-xs text-zinc-300">
               <summary className="cursor-pointer text-zinc-200">Teknisk info</summary>
               <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-zinc-300">
@@ -182,8 +181,7 @@ export default function MigrationHandler() {
                 Kopiera info
               </Button>
             </div>
-          </div>
-        )}
+          </div> : null}
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onDismiss} disabled={isMigrating}>
             Inte nu

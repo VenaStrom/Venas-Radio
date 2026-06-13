@@ -162,13 +162,13 @@ export default function AudioControls({ className }: { className?: string }) {
     if (!audioEl) return;
     if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
 
-    resumeAppliedRef.current = false;
-
     const episodeId = currentEpisode.id;
     if (
       lastResumedEpisodeRef.current.episodeId === episodeId
       && lastResumedEpisodeRef.current.version === remoteProgressVersion
     ) return; // Already applied for this remote version
+
+    resumeAppliedRef.current = false;
 
     const saved = progressDB[episodeId];
     const savedSeconds = saved ? Math.min(currentEpisode.duration, saved.toNumber()) : null;
@@ -260,7 +260,7 @@ export default function AudioControls({ className }: { className?: string }) {
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentEpisode, progressDB, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
+  }, [currentEpisode, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
 
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];
@@ -539,21 +539,17 @@ export default function AudioControls({ className }: { className?: string }) {
       {/* Controls */}
       <div id="player" className="w-full flex flex-row justify-between items-center gap-x-3 px-3 mb-1">
         <div className="flex-1 min-w-0">
-          <p className="font-light text-sm" suppressHydrationWarning>
+          <p className="font-light text-sm" suppressHydrationWarning={true}>
             {displaySubtitle}
           </p>
-          <p className="font-bold max-h-10 overflow-hidden wrap-break-word leading-tight" suppressHydrationWarning>
+          <p className="font-bold max-h-10 overflow-hidden wrap-break-word leading-tight" suppressHydrationWarning={true}>
             {displayTitle}
           </p>
-          {error && (
-            <p className="text-xs text-red-400 mt-1">{error}</p>
-          )}
-          {isLoading && debouncedIsLoading && !error && (
-            <p className="text-xs text-zinc-400 mt-1">Laddar...</p>
-          )}
+          {error ? <p className="text-xs text-red-400 mt-1">{error}</p> : null}
+          {isLoading && debouncedIsLoading && !error ? <p className="text-xs text-zinc-400 mt-1">Laddar...</p> : null}
         </div>
 
-        <p className="text-sm text-zinc-400 whitespace-nowrap" suppressHydrationWarning>
+        <p className="text-sm text-zinc-400 whitespace-nowrap" suppressHydrationWarning={true}>
           {currentMedia?.type === "channel"
             ? "Live •"
             : !elapsed || !duration
