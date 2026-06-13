@@ -63,7 +63,7 @@ export async function GET() {
   }
 
   const progress = Object.fromEntries(
-    user.episode_progress.map((entry) => [entry.episode_id, entry.progress])
+    user.episode_progress.map((entry) => [entry.episode_id, entry.progress]),
   );
 
   return NextResponse.json({
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let payload: UserStatePayload | null = null;
+  let payload: UserStatePayload | null;
   try {
     payload = (await request.json()) as UserStatePayload;
   } catch {
@@ -140,8 +140,8 @@ export async function POST(request: Request) {
             episode_id: episodeId,
             progress: value,
           },
-        })
-      )
+        }),
+      ),
     );
   }
 

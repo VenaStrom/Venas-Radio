@@ -9,5 +9,5 @@ export default function SRAttribute({ className = "" }: { className?: string }) 
       <p>Hämtat från Sveriges Radio</p>
       <Image className="rounded-sm" height={18} width={18} src={"/icons/sveriges-radio.jpg"} alt="SR"></Image>
     </div>
-  )
+  );
 }

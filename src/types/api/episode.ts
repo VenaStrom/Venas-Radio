@@ -1,70 +1,73 @@
-export type SR_Episode = {
-  id: number;
-  title: string;
-  description: string;
-  url: string;
-  order?: number;
-  program: {
+export type SR_Episode = SR_Episodes_Response["episodes"][number];
+type SR_Episodes_Response = {
+  copyright: string;
+  episodes: {
     id: number;
-    name: string;
-  };
-  audiopreference: string;
-  audiopriority: string;
-  audiopresentation: string;
-  publishdateutc: string;
-  publishDate?: Date;
-  imageurl: string;
-  imageurltemplate: string;
-  photographer: string;
-  listenpodfile: {
     title: string;
     description: string;
-    filesizeinbytes: number;
+    url: string;
     program: {
       id: number;
       name: string;
     };
-    availablefromutc: string;
-    duration: number;
+    audiopreference: string;
+    audiopriority: string;
+    audiopresentation: string;
     publishdateutc: string;
-    id: number;
-    url: string;
-    statkey: string;
-  };
-  downloadpodfile: {
-    title: string;
-    description: string;
-    filesizeinbytes: number;
-    program: {
-      id: number;
-      name: string;
+    imageurl: string;
+    imageurltemplate: string;
+    photographer?: string;
+    broadcast?: {
+      playlist: {
+        duration: number;
+        publishdateutc: string;
+        id: number;
+        url: string;
+        statkey: string;
+      };
+      broadcastfiles: {
+        duration: number;
+        publishdateutc: string;
+        id: number;
+        url: string;
+        statkey: string;
+      }[];
+      availablestoputc?: string;
     };
-    availablefromutc: string;
-    duration: number;
-    publishdateutc: string;
-    id: number;
-    url: string;
-    statkey: string;
-  };
-  broadcast?: {
-    availablestoputc: string;
-    playlist: {
+    broadcasttime: {
+      starttimeutc: string;
+      endtimeutc: string;
+    };
+    listenpodfile?: {
+      title: string;
+      description: string;
+      filesizeinbytes: number;
+      program: {
+        id: number;
+        name: string;
+      };
+      availablefromutc: string;
       duration: number;
       publishdateutc: string;
       id: number;
       url: string;
       statkey: string;
     };
-    broadcastfiles: {
+    downloadpodfile?: {
+      title: string;
+      description: string;
+      filesizeinbytes: number;
+      program: {
+        id: number;
+        name: string;
+      };
+      availablefromutc: string;
       duration: number;
       publishdateutc: string;
       id: number;
       url: string;
       statkey: string;
-    }[];
-  };
-  broadcasttime?: {
-    starttimeutc: string;
-    endtimeutc: string;
-  };
+    };
+    channelid?: number;
+  }[];
 };

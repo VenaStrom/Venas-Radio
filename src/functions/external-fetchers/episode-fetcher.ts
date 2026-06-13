@@ -1,15 +1,43 @@
-import { Episode } from "@prisma/client";
-import { SR_Episode } from "@/types/api/episode";
+import type { Episode } from "@prisma/client";
+import type { SR_Episode } from "@/types/api/episode";
+import type { JSONValue } from "@/types";
+import { isObj } from "@/types";
+import { isSR_Episode } from "@/types/api/type-guards";
+
+function getEpisodeAudio(episode: SR_Episode): { url: string; duration: number } | null {
+  const podfileAudio = episode.listenpodfile ?? episode.downloadpodfile;
+  if (podfileAudio) {
+    return {
+      url: podfileAudio.url,
+      duration: podfileAudio.duration,
+    };
+  }
+
+  const broadcastAudio = episode.broadcast?.playlist ?? episode.broadcast?.broadcastfiles?.[0];
+  if (broadcastAudio) {
+    return {
+      url: broadcastAudio.url,
+      duration: broadcastAudio.duration,
+    };
+  }
+
+  return null;
+}
 
 function mapSREpisode(episode: SR_Episode): Episode {
+  const audio = getEpisodeAudio(episode);
+  if (!audio) {
+    throw new Error(`SR episode ${episode.id} has no playable audio source`);
+  }
+
   return {
     id: episode.id.toString(),
     title: episode.title,
     description: episode.description,
-    external_audio_url: episode.listenpodfile?.url || episode.downloadpodfile?.url,
+    external_audio_url: audio.url,
     program_id: episode.program.id.toString(),
-    publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""))),
-    duration: episode.listenpodfile?.duration || episode.downloadpodfile?.duration || 0,
+    publish_date: new Date(parseInt(episode.publishdateutc.replace(/\D/g, ""), 10)),
+    duration: audio.duration,
     image_square_url: episode.imageurl,
     image_wide_url: episode.imageurltemplate,
   } satisfies Episode;
@@ -45,7 +73,17 @@ export async function fetchEpisodes(
       try {
         const res = await fetch(link);
         if (!res.ok) return null;
-        return (await res.json()) as { episodes?: SR_Episode[] };
+        const data = await res.json() as JSONValue;
+        if (
+          isObj(data)
+          && "episodes" in data
+          && data.episodes !== null
+          && Array.isArray(data.episodes)
+          && data.episodes.every(isSR_Episode)
+        ) {
+          return { episodes: data.episodes };
+        }
+        return null;
       } catch (error) {
         console.error(error);
         return null;
@@ -57,10 +95,19 @@ export async function fetchEpisodes(
   for (const response of responses) {
     if (response.status !== "fulfilled") continue;
     const data = response.value;
-    if (!data?.episodes) continue;
+    if (
+      !data
+      || !("episodes" in data)
+      || data.episodes === null
+      || !Array.isArray(data.episodes)
+      || !data.episodes.every(isSR_Episode)
+    ) {
+      continue;
+    }
     data.episodes
-      .filter((episode: SR_Episode) => episode.listenpodfile || episode.downloadpodfile)
-      .forEach((episode: SR_Episode) => {
+      .filter(e => isSR_Episode(e))
+      .filter(episode => !!episode && !!getEpisodeAudio(episode))
+      .forEach(episode => {
         fetchedEpisodes.push(mapSREpisode(episode));
       });
   }
@@ -77,9 +124,9 @@ export async function fetchEpisodeById(episodeId: string): Promise<Episode | nul
   const response = await fetch(baseURL.toString());
   if (!response.ok) return null;
 
-  const data = (await response.json()) as { episode?: SR_Episode };
-  if (!data?.episode) return null;
-  if (!data.episode.listenpodfile && !data.episode.downloadpodfile) return null;
+  const data = await response.json() as JSONValue;
+  if (!isObj(data) || !("episode" in data) || !isSR_Episode(data.episode)) return null;
+  if (!getEpisodeAudio(data.episode)) return null;
 
   return mapSREpisode(data.episode);
 }

@@ -114,31 +114,45 @@ export class __Timestamp {
     const wholeSeconds = Math.floor(this.seconds.toNumber());
 
     switch (options.minuteUnit) {
-      case "long":
+      case "long": {
         parts.push(`${wholeMinutes} minuter`);
         break;
-      case "short":
+      }
+      case "short": {
         parts.push(`${wholeMinutes} min`);
         break;
-      case "none":
+      }
+      case "none": {
         parts.push(wholeMinutes.toString());
         break;
-      case "hide":
+      }
+      case "hide": {
         break;
+      }
+      default: {
+        throw new Error(`Invalid minuteUnit: ${JSON.stringify(options.minuteUnit)}`);
+      }
     }
 
     switch (options.secondUnit) {
-      case "long":
+      case "long": {
         parts.push(`${wholeSeconds} sekunder`);
         break;
-      case "short":
+      }
+      case "short": {
         parts.push(`${wholeSeconds} sek`);
         break;
-      case "none":
+      }
+      case "none": {
         parts.push(wholeSeconds.toString());
         break;
-      case "hide":
+      }
+      case "hide": {
         break;
+      }
+      default: {
+        throw new Error(`Invalid secondUnit: ${JSON.stringify(options.secondUnit)}`);
+      }
     }
 
     return parts.join(" ");

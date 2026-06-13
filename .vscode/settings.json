@@ -6,6 +6,7 @@
     "broadcastinfo",
     "channeltype",
     "downloadpodfile",
+    "eslintcache",
     "fromdate",
     "gjord",
     "hasondemand",
@@ -41,5 +42,6 @@
     "upserting",
     "venastrom"
   ],
-  "cSpell.language": "en,sv-SE"
+  "cSpell.language": "en,sv-SE",
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

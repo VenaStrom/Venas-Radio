@@ -3,7 +3,7 @@
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { usePlayContext } from "@/components/play-context/play-context-use";
-import { Channel, EpisodeWithProgram } from "@/types/types";
+import type { Channel, EpisodeWithProgram } from "@/types/types";
 
 export default function PlayButton({
   episodeID,
@@ -67,6 +67,7 @@ export default function PlayButton({
       case "channel":
         return globalIsPlaying && currentChannel?.id === id;
 
+      case null:
       default:
         return false;
     }
@@ -88,19 +89,21 @@ export default function PlayButton({
       // Inferred that this media is the one playing, so pause it
       pause();
     }
-    else {
-      // Play the selected media
-      if (interactionType === "episode") {
-        playEpisode(id);
-      }
-      else if (interactionType === "channel") {
-        playChannel(id);
-      }
+    else if (interactionType === "episode") {
+      playEpisode(id);
     }
+    else if (interactionType === "channel") {
+      playChannel(id);
+    }
+
   };
 
   return (
-    <button id={id.toString()} onClick={click}>
+    <button
+      type="button"
+      id={id.toString()}
+      onClick={click}
+    >
       {
         isPlaying
           ? <PauseIcon size={iconSize} className="fill-zinc-100" />
@@ -112,7 +115,10 @@ export default function PlayButton({
 
 export function PlayButtonSkeleton({ iconSize = 32 }: { iconSize?: number; }) {
   return (
-    <button role="none">
+    <button
+      type="button"
+      role="none"
+    >
       <PlayIcon size={iconSize} className="fill-zinc-100" />
     </button>
   );

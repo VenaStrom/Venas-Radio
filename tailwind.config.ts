@@ -1,1 +1,0 @@
-// This file exists to trigger the tailwind intellisense plugin in VSCode.

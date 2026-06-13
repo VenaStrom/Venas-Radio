@@ -1,4 +1,5 @@
-import { ProgressDB, Seconds } from "@/types/types";
+import type { JSONValue, ProgressDB } from "@/types/types";
+import { Seconds } from "@/types/types";
 
 export function progressDBDeserializer(data: string | null): ProgressDB {
   if (!data) {
@@ -6,7 +7,16 @@ export function progressDBDeserializer(data: string | null): ProgressDB {
     return {};
   };
   try {
-    const parsed = JSON.parse(data);
+    const parsed = JSON.parse(data) as JSONValue;
+    if (
+      !parsed
+      || typeof parsed !== "object"
+      || Array.isArray(parsed)
+    ) {
+      console.warn("Invalid progressDB format. Expected an object with episodeID keys and progress values.");
+      return {};
+    }
+
     const deserialized: ProgressDB = {};
 
     Object.entries(parsed).forEach(([episodeID, progressNumber]) => {
