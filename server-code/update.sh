@@ -4,7 +4,11 @@ cd /home/vr/Venas-Radio
 source /home/vr/.nvm/nvm.sh
 
 git fetch --all
-git checkout origin/main --force
+# Check out main as an attached branch (not a detached HEAD at origin/main) so
+# the build can resolve the branch name. A detached HEAD reports "HEAD", which
+# the app treats as a non-main/experimental build (orange icon + header tint)
+# and which makes the build rewrite public/icons/audio-lines.svg, dirtying the tree.
+git checkout -B main origin/main --force
 systemctl daemon-reload
 
 # Build
