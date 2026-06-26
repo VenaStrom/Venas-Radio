@@ -10,6 +10,7 @@ import { getEpisodes } from "@/functions/fetchers/get-episodes";
 import type { EpisodeWithProgram } from "@/types/types";
 import FeedRefreshButton from "@/app/feed/feed-refresh-button";
 import { refreshEpisodesForPrograms } from "@/lib/episode-prefetch";
+import SearchInput from "@/app/search/search-input";
 
 const likedProgramsCookieKey = "likedPrograms";
 const likedProgramsCookieLimit = 50;
@@ -72,22 +73,30 @@ function formatDateHeader(date: Date, todayKey: string, formatter: Intl.Relative
   return label;
 }
 
-export default function FeedPage() {
+type FeedPageProps = {
+  searchParams?: Promise<{
+    q?: string;
+  }>;
+};
+
+export default function FeedPage({ searchParams }: FeedPageProps) {
   return (
     <Suspense fallback={<FeedSkeleton />}>
-      <FeedPageContent />
+      <FeedPageContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function FeedPageContent() {
+async function FeedPageContent({ searchParams }: FeedPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const searchQuery = typeof resolvedSearchParams?.q === "string" ? resolvedSearchParams.q : "";
   const { userId } = await auth();
   const [cookieIds, userIds] = await Promise.all([
     readLikedProgramsFromCookie(),
     readLikedProgramsFromUser(userId),
   ]);
   const programIds = Array.from(new Set([...cookieIds, ...userIds]));
-  let episodes = programIds.length > 0 ? await getEpisodes({ programIds }) : [];
+  let episodes = programIds.length > 0 ? await getEpisodes({ programIds, search: searchQuery }) : [];
   const isUnauthenticated = !userId;
   const shouldPrefetch = isUnauthenticated && programIds.length > 0 && episodes.length === 0;
 
@@ -97,7 +106,14 @@ async function FeedPageContent() {
       windowDays: unauthPrefetchWindowDays,
       concurrency: unauthPrefetchConcurrency,
     });
-    episodes = await getEpisodes({ programIds });
+    episodes = await getEpisodes({ programIds, search: searchQuery });
+  }
+
+  // Fuse orders search results by relevance; re-sort by date so the date-grouping below stays valid.
+  if (searchQuery.trim()) {
+    episodes = [...episodes].sort(
+      (a, b) => getEpisodeDate(b).getTime() - getEpisodeDate(a).getTime(),
+    );
   }
 
   if (programIds.length === 0) {
@@ -111,14 +127,28 @@ async function FeedPageContent() {
     );
   }
 
+  const feedSearch = (
+    <div className="h-0 w-full flex justify-center">
+      <SearchInput initialQuery={searchQuery} placeholder="Sök i flödet..." />
+    </div>
+  );
+
   if (episodes.length === 0) {
     return (
       <main className="p-0 overflow-y-hidden flex flex-col">
-        <EmptyState
-          title="Inga avsnitt än"
-          description="Dina favoriter har inga nya avsnitt just nu."
-          action={<FeedRefreshButton programIds={programIds} />}
-        />
+        {feedSearch}
+        {searchQuery.trim() ? (
+          <EmptyState
+            title="Inga träffar"
+            description="Inga avsnitt matchar din sökning."
+          />
+        ) : (
+          <EmptyState
+            title="Inga avsnitt än"
+            description="Dina favoriter har inga nya avsnitt just nu."
+            action={<FeedRefreshButton programIds={programIds} />}
+          />
+        )}
       </main>
     );
   }
@@ -128,6 +158,7 @@ async function FeedPageContent() {
 
   return (
     <main className="p-0 overflow-y-hidden flex flex-col">
+      {feedSearch}
       <ul
         className={
           "flex-1 min-h-0 w-full overflow-y-auto flex flex-col gap-y-8 pt-4 px-6 last:pb-10"
