@@ -45,11 +45,29 @@ function getBranchName() {
 
     if (nameRev) {
       const normalized = nameRev.replace(/^remotes\/origin\//, "").replace(/^origin\//, "");
-      if (normalized && !normalized.includes("tags/")) return normalized;
+      // A detached HEAD at origin/main resolves to "remotes/origin/HEAD" -> "HEAD";
+      // reject it so we don't treat the default branch as experimental.
+      if (normalized && normalized !== "HEAD" && !normalized.includes("tags/")) return normalized;
     }
   }
   catch {
     // Ignore name-rev failures; fall through.
+  }
+
+  try {
+    // Detached at the remote default branch (e.g. deploy does
+    // `git checkout origin/main`): resolve origin/HEAD -> "origin/main" -> "main".
+    const headRef = execSync("git symbolic-ref --short refs/remotes/origin/HEAD", {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+    }).trim();
+
+    const normalized = headRef.replace(/^origin\//, "");
+    if (normalized && normalized !== "HEAD") return normalized;
+  }
+  catch {
+    // Ignore missing origin/HEAD; fall through.
   }
 
   const candidates = [
