@@ -3,7 +3,7 @@
 import ProgressBar from "@/components/progress-bar";
 import PlayButton from "@/components/play-button";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { EpisodeWithProgram, PlayableMedia, Timestamp } from "@/types/types";
+import type { EpisodeWithProgram, Timestamp } from "@/types/types";
 import { PlaybackProgress, Seconds } from "@/types/types";
 import { usePlayContext } from "@/components/play-context/play-context-use";
 import { useDebounce } from "use-debounce";
@@ -26,49 +26,25 @@ export default function AudioControls({ className }: { className?: string }) {
     remoteProgressVersion,
   } = usePlayContext();
 
-  const resolvedMedia: PlayableMedia | null = useMemo(() => currentMedia, [currentMedia]);
-
-  const [storedMedia, setStoredMedia] = useState<PlayableMedia | null>(null);
-  useEffect(() => {
-    if (currentMedia) {
-      setStoredMedia(null);
-      return;
-    }
-    if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("currentMedia");
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as PlayableMedia;
-      if (parsed?.id && parsed?.title) {
-        setStoredMedia(parsed);
-      }
-    }
-    catch {
-      // Ignore invalid stored media.
-    }
-  }, [currentMedia]);
-
   const displayTitle = useMemo(() => {
     return currentMedia?.title
       ?? currentEpisode?.title
-      ?? storedMedia?.title
       ?? (currentStreamUrl ? "Laddar..." : "Spelar inget");
-  }, [currentEpisode?.title, currentMedia?.title, currentStreamUrl, storedMedia?.title]);
+  }, [currentEpisode?.title, currentMedia?.title, currentStreamUrl]);
 
   const displaySubtitle = useMemo(() => {
     return currentMedia?.subtitle
       ?? currentEpisode?.program?.name
-      ?? storedMedia?.subtitle
       ?? "";
-  }, [currentEpisode?.program?.name, currentMedia?.subtitle, storedMedia?.subtitle]);
+  }, [currentEpisode?.program?.name, currentMedia?.subtitle]);
 
   // Playback progress class instance
   const progress: PlaybackProgress | null = useMemo(() => {
-    if (resolvedMedia?.type === "episode" && currentEpisode) {
+    if (currentMedia?.type === "episode" && currentEpisode) {
       return new PlaybackProgress(currentEpisode.duration, currentProgress ?? Seconds.from(0));
     }
     return null;
-  }, [resolvedMedia?.type, currentEpisode, currentProgress]);
+  }, [currentMedia?.type, currentEpisode, currentProgress]);
 
   // Derived progress values
   const duration: Timestamp | null = useMemo(() => progress ? progress.durationTimestamp() : null, [progress]);
@@ -160,7 +136,7 @@ export default function AudioControls({ className }: { className?: string }) {
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
-    if (resolvedMedia?.type !== "episode" || !currentEpisode) return;
+    if (currentMedia?.type !== "episode" || !currentEpisode) return;
 
     const episodeId = currentEpisode.id;
     if (
@@ -195,19 +171,19 @@ export default function AudioControls({ className }: { className?: string }) {
 
     // Avoid re-running on every progressDB update; rely on remoteProgressVersion.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedMedia?.type, currentEpisode, remoteProgressVersion]);
+  }, [currentMedia?.type, currentEpisode, remoteProgressVersion]);
 
 
   // Drag to seek handling
   const [draggedProgress, setDraggedProgress] = useState<number | null>(null);
   const onProgressDrag = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (resolvedMedia?.type === "channel") return; // No seeking for live channels
+    if (currentMedia?.type === "channel") return; // No seeking for live channels
     setDraggedProgress(parseFloat(event.target.value));
   };
   const onProgressDragEnd = () => {
     if (
       draggedProgress === null
-      || resolvedMedia?.type !== "episode"
+      || currentMedia?.type !== "episode"
       || !currentEpisode
       || !isReady
     ) {
@@ -246,7 +222,7 @@ export default function AudioControls({ className }: { className?: string }) {
 
     const onTimeUpdate = () => {
       if (
-        resolvedMedia?.type !== "episode"
+        currentMedia?.type !== "episode"
         || !currentEpisode
         || draggedProgress !== null
       ) return;
@@ -260,7 +236,7 @@ export default function AudioControls({ className }: { className?: string }) {
     return () => {
       audioEl.removeEventListener("timeupdate", onTimeUpdate);
     };
-  }, [currentEpisode, resolvedMedia?.type, draggedProgress, setCurrentProgress]);
+  }, [currentEpisode, currentMedia?.type, draggedProgress, setCurrentProgress]);
 
   const [isLoading, setIsLoading] = useState(false);
   const debouncedIsLoading = useDebounce(isLoading, 300)[0];
