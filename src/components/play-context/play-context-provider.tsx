@@ -189,9 +189,12 @@ export function PlayProvider({
 
   const [progressDB, setProgressDB] = useState<ProgressDB>(() => readStoredProgress());
   const [progressMeta, setProgressMeta] = useState<ProgressMeta>(() => readStoredProgressMeta());
-  // Timestamp of provider mount; entries in progressMeta newer than this were
-  // touched during the current session and should win over remote on merge.
-  const sessionStartRef = useRef(Date.now());
+  // Timestamp of provider mount; entries in progressMeta newer than this were touched during the current session and should win over remote on merge.
+  // Captured in an effect rather than during render so it isn't evaluated at prerender time (Cache Components forbids Date.now() during render).
+  const sessionStartRef = useRef<number>(0);
+  useEffect(() => {
+    sessionStartRef.current = Date.now();
+  }, []);
   // Mirror of progressMeta readable synchronously from the async remote-load merge.
   const progressMetaRef = useRef(progressMeta);
   const updateEpisodeProgress = (episodeID: Episode["id"], elapsed: Seconds | number) => {
