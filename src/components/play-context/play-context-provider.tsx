@@ -166,19 +166,34 @@ export function PlayProvider({
 
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const initialMedia = useMemo(() => readStoredMedia(), []);
-  const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(() => {
-    if (initialMedia.restoredMedia?.type === "episode" && initialMedia.restoredMedia.id) {
-      return getEpisodeAudioUrl(initialMedia.restoredMedia.id);
-    }
-    return initialMedia.restoredMedia?.url ?? null;
-  });
+  // Restoration is deferred to a mount effect (see below) so the first client
+  // render matches the server (all null). Reading localStorage during render
+  // would produce a hydration mismatch, and because the title <p> uses
+  // suppressHydrationWarning, React would keep the server text ("Spelar inget")
+  // and never repaint it — there'd be no post-mount state update to trigger it.
+  const [currentStreamUrl, setCurrentStreamUrl] = useState<string | null>(null);
 
   const [currentEpisode, setCurrentEpisode] = useState<EpisodeWithProgram | null>(null);
   const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
 
-  const [restoredMedia] = useState<PlayableMedia | null>(initialMedia.restoredMedia);
-  const pendingMediaRef = useRef<PendingMedia>(initialMedia.pending);
+  const [restoredMedia, setRestoredMedia] = useState<PlayableMedia | null>(null);
+  const pendingMediaRef = useRef<PendingMedia>(null);
+
+  // Restore the previously playing media from localStorage after mount. Setting
+  // state here (rather than during render) guarantees a re-render that repaints
+  // the title, while keeping the initial render in sync with the server.
+  useEffect(() => {
+    const { restoredMedia: stored, pending } = readStoredMedia();
+    pendingMediaRef.current = pending;
+
+    if (stored) {
+      setRestoredMedia(stored);
+      setCurrentStreamUrl(stored.type === "episode" ? getEpisodeAudioUrl(stored.id) : stored.url);
+    }
+    else if (pending) {
+      setCurrentStreamUrl(pending.type === "episode" ? getEpisodeAudioUrl(pending.id) : null);
+    }
+  }, []);
 
   const [followedPrograms, setFollowedPrograms] = useState<string[]>(initialFollowedPrograms);
   const [followedChannels, setFollowedChannels] = useState<string[]>(initialFollowedChannels);
