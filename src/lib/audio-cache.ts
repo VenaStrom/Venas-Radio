@@ -6,6 +6,7 @@ import { Readable } from "node:stream";
 const DEFAULT_CACHE_TTL_MS = 1000 * 60 * 60 * 48; // 48 hours
 const DEFAULT_CACHE_DIR = path.join(process.cwd(), ".audio-cache");
 const EPISODE_DIR = "episodes";
+const TMP_STALE_MS = 1000 * 60 * 60; // .tmp older than this is a dead partial download
 
 const inFlightDownloads = new Map<string, Promise<void>>();
 
@@ -96,4 +97,70 @@ export function getCacheTtlMs() {
     return hours * 60 * 60 * 1000;
   }
   return DEFAULT_CACHE_TTL_MS;
+}
+
+function getMaxCacheBytes() {
+  const raw = process.env.AUDIO_CACHE_MAX_MB;
+  const mb = raw ? Number(raw) : NaN;
+  if (Number.isFinite(mb) && mb > 0) {
+    return mb * 1024 * 1024;
+  }
+  return null;
+}
+
+export async function cleanupAudioCache(ttlMs = getCacheTtlMs()) {
+  const episodeDir = path.join(getCacheDir(), EPISODE_DIR);
+
+  let names: string[];
+  try {
+    names = await fs.promises.readdir(episodeDir);
+  }
+  catch {
+    return { removed: 0, remainingBytes: 0 };
+  }
+
+  const now = Date.now();
+  let removed = 0;
+  const kept: { filePath: string; mtimeMs: number; size: number }[] = [];
+
+  for (const name of names) {
+    const filePath = path.join(episodeDir, name);
+
+    let stat: fs.Stats;
+    try {
+      stat = await fs.promises.stat(filePath);
+    }
+    catch {
+      continue;
+    }
+    if (!stat.isFile()) continue;
+
+    const age = now - stat.mtimeMs;
+    const expired = name.endsWith(".tmp")
+      ? age > TMP_STALE_MS
+      : age >= ttlMs;
+
+    if (expired) {
+      await fs.promises.unlink(filePath).catch(() => undefined);
+      removed += 1;
+      continue;
+    }
+
+    kept.push({ filePath, mtimeMs: stat.mtimeMs, size: stat.size });
+  }
+
+  let remainingBytes = kept.reduce((sum, file) => sum + file.size, 0);
+
+  const maxBytes = getMaxCacheBytes();
+  if (maxBytes !== null && remainingBytes > maxBytes) {
+    kept.sort((a, b) => a.mtimeMs - b.mtimeMs);
+    for (const file of kept) {
+      if (remainingBytes <= maxBytes) break;
+      await fs.promises.unlink(file.filePath).catch(() => undefined);
+      remainingBytes -= file.size;
+      removed += 1;
+    }
+  }
+
+  return { removed, remainingBytes };
 }

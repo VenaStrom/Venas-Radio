@@ -1,6 +1,7 @@
 import "server-only";
 import { setInterval } from "node:timers";
 import { prefetchFollowedProgramEpisodes } from "@/lib/episode-prefetch";
+import { cleanupAudioCache } from "@/lib/audio-cache";
 
 const PREFETCH_INTERVAL_MS = 15 * 60 * 1000;
 
@@ -21,10 +22,21 @@ export function ensureEpisodePrefetchScheduler() {
     if (schedulerState.isRunning) return;
     schedulerState.isRunning = true;
     try {
-      await prefetchFollowedProgramEpisodes();
-    }
-    catch (error) {
-      console.warn("Episode prefetch scheduler failed", error);
+      try {
+        await prefetchFollowedProgramEpisodes();
+      }
+      catch (error) {
+        console.warn("Episode prefetch scheduler failed", error);
+      }
+      try {
+        const { removed } = await cleanupAudioCache();
+        if (removed > 0) {
+          console.log(`Audio cache cleanup removed ${removed} file(s)`);
+        }
+      }
+      catch (error) {
+        console.warn("Audio cache cleanup failed", error);
+      }
     }
     finally {
       schedulerState.isRunning = false;
