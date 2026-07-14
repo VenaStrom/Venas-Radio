@@ -23,5 +23,6 @@ media3-session = { group = "androidx.media3", name = "media3-session", version.r
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# kotlin.android is intentionally absent: AGP 9 has built-in Kotlin support and
+# applying it is a hard error. The Compose compiler plugin is still separate.
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

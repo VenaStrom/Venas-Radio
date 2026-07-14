@@ -31,4 +31,5 @@
   ],
   "cSpell.language": "en,sv-SE",
   "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "java.configuration.updateBuildConfiguration": "automatic",
 }
