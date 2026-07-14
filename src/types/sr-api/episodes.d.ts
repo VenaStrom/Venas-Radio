@@ -18,6 +18,7 @@ export type SR_Episodes_Response = {
     imageurltemplate: string;
     photographer?: string;
     broadcast?: {
+      availablestoputc?: string;
       playlist: {
         duration: number;
         publishdateutc: string;
@@ -32,12 +33,12 @@ export type SR_Episodes_Response = {
         url: string;
         statkey: string;
       }[];
-      availablestoputc?: string;
     };
-    broadcasttime: {
+    broadcasttime?: {
       starttimeutc: string;
       endtimeutc: string;
     };
+    channelid?: number;
     listenpodfile?: {
       title: string;
       description: string;
@@ -68,6 +69,5 @@ export type SR_Episodes_Response = {
       url: string;
       statkey: string;
     };
-    channelid?: number;
   }[];
 };
