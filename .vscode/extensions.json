@@ -1,7 +1,6 @@
 {
   "recommendations": [
     "fwcd.kotlin",
-    "redhat.java",
-    "vscjava.vscode-gradle"
+    "vscjava.vscode-java-pack"
   ]
 }
