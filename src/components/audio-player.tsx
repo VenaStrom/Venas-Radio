@@ -55,22 +55,9 @@ export default function AudioControls({ className }: { className?: string }) {
   const resumeAppliedRef = useRef(false);
   const completionThresholdSeconds = 2;
 
-  // pool of preloader audio elements for next N tracks
-  const PRELOAD_COUNT = 5;
-  const preloadPoolRef = useRef<HTMLAudioElement[]>([]);
-
-  // Create audio elements on mount
+  // Create audio element on mount
   useEffect(() => {
     audioRef.current ??= document.createElement("audio");
-
-    // Initialize preload pool
-    if (preloadPoolRef.current.length === 0) {
-      for (let i = 0; i < PRELOAD_COUNT; i++) {
-        const a = document.createElement("audio");
-        a.preload = "auto";
-        preloadPoolRef.current.push(a);
-      }
-    }
   }, []);
 
   // Compute sorted episodes from episodeDB to know which to preload
@@ -78,37 +65,6 @@ export default function AudioControls({ className }: { className?: string }) {
     const vals = Object.values(episodeDB || {});
     return vals.sort((a: EpisodeWithProgram, b: EpisodeWithProgram) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
   }, [episodeDB]);
-
-  // Helper: preload next N episodes given currentEpisode
-  useEffect(() => {
-    if (!currentEpisode || !sortedEpisodes || sortedEpisodes.length === 0) return;
-
-    const currentIndex = sortedEpisodes.findIndex((ep: EpisodeWithProgram) => ep.id === currentEpisode.id);
-    if (currentIndex === -1) return;
-
-    const audioPreloadEls = preloadPoolRef.current;
-    let poolIdx = 0;
-    for (let i = currentIndex + 1; i <= Math.min(sortedEpisodes.length - 1, currentIndex + PRELOAD_COUNT); i++) {
-      const ep = sortedEpisodes[i];
-      if (!ep) continue;
-      const preloadEl = audioPreloadEls[poolIdx++];
-      const url = getEpisodeAudioUrl(ep.id);
-      // Only set src if different to avoid needless reloads
-      if (preloadEl && preloadEl.src !== url) {
-        preloadEl.src = url;
-        preloadEl.preload = "auto";
-        try { preloadEl.load(); } catch { /* Silent */ }
-      }
-    }
-    // Clear remaining pool slots (if any)
-    for (; poolIdx < audioPreloadEls.length; poolIdx++) {
-      const el = audioPreloadEls[poolIdx];
-      if (el?.src) {
-        el.removeAttribute("src");
-        try { el.load(); } catch { /* Silent */ }
-      }
-    }
-  }, [currentEpisode, sortedEpisodes]);
 
   // Ready state handling
   const [isReady, setIsReady] = useState(false);
@@ -127,6 +83,25 @@ export default function AudioControls({ className }: { className?: string }) {
       audioEl.removeEventListener("emptied", onEmptied);
     };
   }, []);
+
+  // Warm the server-side audio cache for the next episodes so track changes
+  // start fast, without downloading any audio to the client. Waits until the
+  // current track is ready so warming never competes with it for bandwidth.
+  const WARM_COUNT = 5;
+  const warmedEpisodesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!isReady || !currentEpisode || sortedEpisodes.length === 0) return;
+
+    const currentIndex = sortedEpisodes.findIndex((ep: EpisodeWithProgram) => ep.id === currentEpisode.id);
+    if (currentIndex === -1) return;
+
+    for (let i = currentIndex + 1; i <= Math.min(sortedEpisodes.length - 1, currentIndex + WARM_COUNT); i++) {
+      const episode = sortedEpisodes[i];
+      if (!episode || warmedEpisodesRef.current.has(episode.id)) continue;
+      warmedEpisodesRef.current.add(episode.id);
+      void fetch(getEpisodeAudioUrl(episode.id), { method: "HEAD" }).catch(() => undefined);
+    }
+  }, [isReady, currentEpisode, sortedEpisodes]);
 
   // Resume playback position
   const lastResumedEpisodeRef = useRef<{ episodeId: string | null; version: number | null }>({
