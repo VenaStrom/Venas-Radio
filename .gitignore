@@ -54,3 +54,5 @@ prisma/generated/
 
 .cache*
 src/prisma/
+
+/.claude
