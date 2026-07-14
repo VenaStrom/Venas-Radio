@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Platform theme so the scaffold pulls in no extra dependency. Compose draws
+        the actual UI; this only supplies the window background and system bars.
+    -->
+    <style name="Theme.VRadio" parent="android:Theme.Material.NoActionBar" />
+</resources>

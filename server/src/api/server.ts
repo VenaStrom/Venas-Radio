@@ -4,10 +4,6 @@ import express from "express";
 const app = express();
 app.use(express.json());
 
-// Static app
-app.get("/", (_req, res) => { res.sendFile("index.html", { root: "dist" }); });
-app.get("/assets/:file", (_req, res) => { res.sendFile(`assets/${_req.params.file}`, { root: "dist" }); });
-
 app.get("/api/channels", async (req, res) => {
   const { page, pagesize: pageSize } = req.query;
 

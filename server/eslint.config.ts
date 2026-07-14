@@ -1,8 +1,6 @@
 import type { Config } from "eslint/config";
 import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 
 const tsCommonRules: Config["rules"] = {
   "prefer-const": "warn",
@@ -51,30 +49,9 @@ const tsCommonRules: Config["rules"] = {
 };
 
 export default defineConfig([
-  { // App linting
-    ...reactRefresh.configs.recommended,
-    name: "App",
-    files: ["src/app/**/*.{ts,tsx}"],
-    extends: [
-      reactHooks.configs.flat.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-    ],
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/set-state-in-render": "warn",
-      "react-hooks/immutability": "warn", // This should probably be a warning but the current recipe pipeline is dependant on it :sweat_smile:
-      ...tsCommonRules,
-    },
-    languageOptions: {
-      parserOptions: {
-        project: "./tsconfig.json",
-        tsconfigRootDir: process.cwd(),
-      },
-    },
-  },
   { // Api linting
     name: "API",
-    files: ["src/api/**/*.{ts,tsx}", "src/types/**/*.{ts,tsx}"],
+    files: ["src/api/**/*.ts", "src/types/**/*.ts"],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
     ],
@@ -90,7 +67,7 @@ export default defineConfig([
   },
   { // Script linting
     name: "scripts",
-    files: ["scripts/**/*.{ts,tsx}", "*.config.ts"],
+    files: ["scripts/**/*.ts", "*.config.ts"],
     extends: [
       ...tseslint.configs.recommendedTypeChecked,
     ],
@@ -108,15 +85,9 @@ export default defineConfig([
     ".prisma/**/*",
     "src/prisma/**/*",
     "src/.prisma/**/*",
-    ".prisma/**/*",
     "prisma/generated/**/*",
     "node_modules/**/*",
-    ".next/**/*",
-    "out/**/*",
-    "dist/**/*",
-    "dist-server/**/*",
     "build/**/*",
     "ignore/**/*",
-    "next-env.d.ts",
   ]),
 ]);

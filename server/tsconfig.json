@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
-    "jsx": "react-jsx",
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
+    // Node-only backend, so no DOM lib. window/document/localStorage will not type-check.
+    "lib": [
+      "esnext",
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -26,14 +29,10 @@
   },
   "include": [
     "**/*.ts",
-    "**/*.tsx",
   ],
   "exclude": [
     "node_modules",
-    "out",
     "build",
-    "dist-server",
-    "dist",
     "prisma/generated",
     "src/prisma/"
   ],
