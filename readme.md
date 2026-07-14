@@ -36,6 +36,97 @@ Open the `android/` directory in Android Studio (not the repo root).
 Currently a scaffold: P1/P2/P3 live streams as a Media3 playlist, to verify
 background playback and track switching before the real port begins.
 
+### Build
+
+```sh
+cd android
+./gradlew :app:assembleDebug   # build the APK
+./gradlew installDebug         # build + install to the connected device
+./gradlew clean                # nuke build output
+./gradlew javaToolchains       # list JDKs Gradle can see (see JDK note below)
+```
+
+The debug build has `applicationIdSuffix = ".debug"`, so the installed package is
+`se.venastrom.vradio.debug` — that's the id to pass to `adb`.
+
+Launch and watch playback:
+
+```sh
+adb shell am start -n se.venastrom.vradio.debug/se.venastrom.vradio.MainActivity
+adb logcat -s ExoPlayerImpl:V MediaSessionService:V AudioFocus:V
+```
+
+### JDK note
+
+There is no JDK on the dev machine — the `java-21`/`java-25` Ubuntu packages and
+VS Code's bundled Java are all **JRE-only** (no `javac`, no `jlink`). AGP's
+JdkImageTransform needs `jlink`, so `app/build.gradle.kts` pins a Java toolchain
+and lets Gradle auto-provision a real Temurin JDK into `~/.gradle/jdks/`. Without
+that pin, Gradle's auto-detection silently selects a JRE and the build fails with
+either `jlink does not exist` or `does not provide [JAVA_COMPILER]`.
+
+Do not add `gradle/gradle-daemon-jvm.properties`. Gradle generates it on
+`./gradlew wrapper`, and it pins the daemon to whatever JDK version it found —
+which on this machine resolves to VS Code's JRE stub and breaks the build.
+
+### AGP 9 note
+
+AGP 9 has built-in Kotlin support. Applying `org.jetbrains.kotlin.android` is a
+hard error, and `kotlin.compilerOptions.jvmTarget` defaults to
+`android.compileOptions.targetCompatibility`, so there is no `kotlin {}` block.
+The Compose compiler plugin is still applied separately.
+
+`compileSdk`/`targetSdk` are 37; current AndroidX refuses to compile against 36.
+
+### Dev loop
+
+Android Studio's Run button (`Shift+F10`) is the fast path: it builds, installs
+and launches in one step. Enable **Live Edit** (Settings → Editor → Live Edit) to
+push `@Composable` edits to the running app without a rebuild.
+
+Live Edit only covers composables. Changes to `PlaybackService` — i.e. most of the
+early work — need a full reinstall, so the loop there is Run, or from a terminal:
+
+```sh
+./gradlew installDebug && adb shell am start -n se.venastrom.vradio.debug/se.venastrom.vradio.MainActivity
+```
+
+### Device setup (Samsung)
+
+On the phone:
+
+1. Settings → About phone → Software information → tap **Build number** 7×.
+2. Settings → Developer options → **USB debugging** → on.
+3. Replug the cable, then accept the *Allow USB debugging?* prompt and tick
+   **Always allow from this computer**.
+
+`adb devices` should then list the phone. If it says `no permissions`, Linux needs
+a udev rule for Samsung (vendor `04e8`); `unauthorized` means the on-device prompt
+was not accepted.
+
+Plugging in without step 2 leaves the phone in MTP mode, where `lsusb` sees it but
+`adb` does not.
+
+**Samsung battery optimization will silently kill background playback.** One UI is
+aggressive about suspending background apps, which looks exactly like the bug this
+app exists to fix. Before trusting any background-audio test:
+
+- Settings → Battery → **Background usage limits** → ensure the app is not under
+  *Sleeping apps* / *Deep sleeping apps*.
+- Add it to **Never sleeping apps**.
+
+### Verifying background playback
+
+The scaffold exists to test one thing — the failure mode that killed the web
+version. Track switching, not plain playback:
+
+1. Press play, confirm audio.
+2. Background the app (home button), lock the screen.
+3. Hit **next** on the lock screen notification.
+
+Audio should switch channels without dropping. Media3 populates next/previous in
+the notification automatically because the playlist has more than one item.
+
 ## server/
 
 ```sh
