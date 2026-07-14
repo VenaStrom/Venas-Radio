@@ -14,49 +14,49 @@ import androidx.media3.session.MediaSessionService
  */
 class PlaybackService : MediaSessionService() {
 
-    private var mediaSession: MediaSession? = null
+  private var mediaSession: MediaSession? = null
 
-    override fun onCreate() {
-        super.onCreate()
+  override fun onCreate() {
+    super.onCreate()
 
-        val player = ExoPlayer.Builder(this)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .setUsage(C.USAGE_MEDIA)
-                    .build(),
-                // Media3 ducks for notifications and pauses for calls.
-                /* handleAudioFocus = */ true,
-            )
-            // Pause when headphones are unplugged.
-            .setHandleAudioBecomingNoisy(true)
-            .build()
+    val player = ExoPlayer.Builder(this)
+      .setAudioAttributes(
+        AudioAttributes.Builder()
+          .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+          .setUsage(C.USAGE_MEDIA)
+          .build(),
+        // Media3 ducks for notifications and pauses for calls.
+        /* handleAudioFocus = */ true,
+      )
+      // Pause when headphones are unplugged.
+      .setHandleAudioBecomingNoisy(true)
+      .build()
 
-        player.setMediaItems(CHANNELS.map { it.toMediaItem() })
-        player.prepare()
+    player.setMediaItems(CHANNELS.map { it.toMediaItem() })
+    player.prepare()
 
-        mediaSession = MediaSession.Builder(this, player).build()
+    mediaSession = MediaSession.Builder(this, player).build()
+  }
+
+  override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+
+  /**
+   * Swiping the task away should not kill live radio, so only stop when
+   * playback is actually idle.
+   */
+  override fun onTaskRemoved(rootIntent: Intent?) {
+    val player = mediaSession?.player
+    if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
+      stopSelf()
     }
+  }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
-
-    /**
-     * Swiping the task away should not kill live radio, so only stop when
-     * playback is actually idle.
-     */
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        val player = mediaSession?.player
-        if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
-            stopSelf()
-        }
+  override fun onDestroy() {
+    mediaSession?.run {
+      player.release()
+      release()
     }
-
-    override fun onDestroy() {
-        mediaSession?.run {
-            player.release()
-            release()
-        }
-        mediaSession = null
-        super.onDestroy()
-    }
+    mediaSession = null
+    super.onDestroy()
+  }
 }

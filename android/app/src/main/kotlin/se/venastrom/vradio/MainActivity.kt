@@ -35,106 +35,106 @@ import com.google.common.util.concurrent.MoreExecutors
 
 class MainActivity : ComponentActivity() {
 
-    private var controllerFuture: ListenableFuture<MediaController>? = null
-    private var controller by mutableStateOf<MediaController?>(null)
+  private var controllerFuture: ListenableFuture<MediaController>? = null
+  private var controller by mutableStateOf<MediaController?>(null)
 
-    // Playback works without this; denying it only hides the media notification.
-    private val requestNotifications =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+  // Playback works without this; denying it only hides the media notification.
+  private val requestNotifications =
+    registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    setContent {
+      MaterialTheme(colorScheme = darkColorScheme()) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+          PlayerScreen(controller)
         }
-
-        setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    PlayerScreen(controller)
-                }
-            }
-        }
+      }
     }
+  }
 
-    override fun onStart() {
-        super.onStart()
-        val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-        val future = MediaController.Builder(this, token).buildAsync()
-        controllerFuture = future
-        future.addListener({ controller = future.get() }, MoreExecutors.directExecutor())
-    }
+  override fun onStart() {
+    super.onStart()
+    val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+    val future = MediaController.Builder(this, token).buildAsync()
+    controllerFuture = future
+    future.addListener({ controller = future.get() }, MoreExecutors.directExecutor())
+  }
 
-    override fun onStop() {
-        controller = null
-        controllerFuture?.let(MediaController::releaseFuture)
-        controllerFuture = null
-        super.onStop()
-    }
+  override fun onStop() {
+    controller = null
+    controllerFuture?.let(MediaController::releaseFuture)
+    controllerFuture = null
+    super.onStop()
+  }
 }
 
 @Composable
 private fun PlayerScreen(controller: MediaController?) {
-    var isPlaying by remember { mutableStateOf(false) }
-    var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
-    var title by remember { mutableStateOf("") }
+  var isPlaying by remember { mutableStateOf(false) }
+  var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
+  var title by remember { mutableStateOf("") }
 
-    DisposableEffect(controller) {
-        if (controller == null) return@DisposableEffect onDispose { }
+  DisposableEffect(controller) {
+    if (controller == null) return@DisposableEffect onDispose { }
 
-        fun sync() {
-            isPlaying = controller.isPlaying
-            playbackState = controller.playbackState
-            title = controller.mediaMetadata.title?.toString() ?: ""
-        }
-        sync()
-
-        val listener = object : Player.Listener {
-            override fun onEvents(player: Player, events: Player.Events) = sync()
-        }
-        controller.addListener(listener)
-        onDispose { controller.removeListener(listener) }
+    fun sync() {
+      isPlaying = controller.isPlaying
+      playbackState = controller.playbackState
+      title = controller.mediaMetadata.title?.toString() ?: ""
     }
+    sync()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = title.ifEmpty { "—" },
-            style = MaterialTheme.typography.headlineLarge,
-        )
-        Text(
-            text = when (playbackState) {
-                Player.STATE_IDLE -> "Idle"
-                Player.STATE_BUFFERING -> "Buffrar..."
-                Player.STATE_READY -> if (isPlaying) "Live" else "Pausad"
-                Player.STATE_ENDED -> "Slut"
-                else -> ""
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { controller?.seekToPreviousMediaItem() },
-                enabled = controller != null,
-            ) { Text("Föregående") }
-
-            Button(
-                onClick = { if (isPlaying) controller?.pause() else controller?.play() },
-                enabled = controller != null,
-            ) { Text(if (isPlaying) "Pausa" else "Spela") }
-
-            Button(
-                onClick = { controller?.seekToNextMediaItem() },
-                enabled = controller != null,
-            ) { Text("Nästa") }
-        }
+    val listener = object : Player.Listener {
+      override fun onEvents(player: Player, events: Player.Events) = sync()
     }
+    controller.addListener(listener)
+    onDispose { controller.removeListener(listener) }
+  }
+
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(24.dp),
+    verticalArrangement = Arrangement.Center,
+    horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    Text(
+      text = title.ifEmpty { "—" },
+      style = MaterialTheme.typography.headlineLarge,
+    )
+    Text(
+      text = when (playbackState) {
+        Player.STATE_IDLE -> "Idle"
+        Player.STATE_BUFFERING -> "Buffrar..."
+        Player.STATE_READY -> if (isPlaying) "Live" else "Pausad"
+        Player.STATE_ENDED -> "Slut"
+        else -> ""
+      },
+      style = MaterialTheme.typography.bodyMedium,
+      modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
+    )
+
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+      Button(
+        onClick = { controller?.seekToPreviousMediaItem() },
+        enabled = controller != null,
+      ) { Text("Föregående") }
+
+      Button(
+        onClick = { if (isPlaying) controller?.pause() else controller?.play() },
+        enabled = controller != null,
+      ) { Text(if (isPlaying) "Pausa" else "Spela") }
+
+      Button(
+        onClick = { controller?.seekToNextMediaItem() },
+        enabled = controller != null,
+      ) { Text("Nästa") }
+    }
+  }
 }
