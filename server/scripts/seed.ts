@@ -1,202 +1,106 @@
-import fs from "node:fs";
-import { prisma } from "@/api/lib/prisma";
-import type { ChannelCreateManyInput, ProgramCategoryCreateManyInput, ProgramCreateManyInput } from "@/api/lib/prisma/generated";
-import { isObj } from "@/types";
+/**
+ * Ingests SR's API into the database.
+ *
+ * The mapping (stringified ids, liveaudio.url flattened onto the channel) is
+ * carried over from the main branch, which is where this schema came from. The
+ * SR-side types are the ones `yarn api:types` generates, so ingest is typed
+ * against what the API actually returns rather than a hand-written guess.
+ */
+import type { Channel, Program } from "@/api/lib/prisma/generated";
+import type { SR_Channels_Response, SR_Programs_Response } from "@/types/sr-api";
 import { isSR_Channels_Response, isSR_Programs_Response } from "@/types/sr-api/type-guards";
+import { prisma } from "@/api/lib/prisma";
 
-const cacheDir = ".cache-seed";
-const channelsCacheFile = `${cacheDir}/channels.json`;
-const programsCacheFile = `${cacheDir}/programs.json`;
+type SR_Channel = SR_Channels_Response["channels"][number];
+type SR_Program = SR_Programs_Response["programs"][number];
 
-if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+function mapChannel(channel: SR_Channel): Channel {
+  return {
+    id: channel.id.toString(),
+    name: channel.name,
+    channel_type: channel.channeltype,
+    color: channel.color,
+    // SR nests this under liveaudio. Flattening it here is what lets the client
+    // never learn that object exists.
+    external_audio_url: channel.liveaudio.url,
+    external_site_url: channel.siteurl,
+    external_schedule_url: channel.scheduleurl ?? null,
+    tagline: channel.tagline,
+    image_square_url: channel.image,
+    image_wide_url: channel.imagetemplate,
+  } satisfies Channel;
+}
 
-main()
-  .finally(() => {
-    prisma.$disconnect()
-      .catch((err: unknown) => {
-        console.error("Failed to disconnect Prisma client", err);
-      });
-    process.exit(0);
-  })
-  .catch((err: unknown) => {
-    console.error(err);
-    process.exit(1);
-  });
+function mapProgram(program: SR_Program): Program {
+  return {
+    id: program.id.toString(),
+    name: program.name,
+    description: program.description,
+    broadcast_info: program.broadcastinfo ?? null,
+    email: program.email,
+    // SR sends "" rather than omitting it, hence || over ??.
+    phone: program.phone || null,
+    program_slug: program.programslug ?? null,
+    channel_id: program.channel.id.toString(),
+    image_square_url: program.programimage,
+    image_wide_url: program.programimagetemplate,
+    archived: program.archived,
+    has_on_demand: program.hasondemand,
+    has_pod: program.haspod,
+    responsible_editor: program.responsibleeditor,
+  } satisfies Program;
+}
+
+async function fetchSr<T>(url: string, guard: (data: unknown) => data is T, what: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch ${what}: ${res.status} ${res.statusText}`);
+  const data: unknown = await res.json();
+  if (!guard(data)) throw new Error(`Unexpected ${what} response shape from SR`);
+  return data;
+}
 
 async function main() {
-  console.info("Seeding database...");
+  const { channels } = await fetchSr(
+    "https://api.sr.se/api/v2/channels?format=json&pagination=false",
+    isSR_Channels_Response,
+    "channels",
+  );
 
-  await seedChannels();
-  await seedPrograms();
-
-  console.info("Database seeded successfully");
-}
-
-async function seedChannels() {
-  const rawChannels = await fetchChannels();
-
-  if (!isSR_Channels_Response(rawChannels)) {
-    console.error("Invalid channels response", rawChannels);
-    throw new Error("Invalid channels response");
+  const channelIds = new Set<string>();
+  for (const channel of channels) {
+    const row = mapChannel(channel);
+    await prisma.channel.upsert({ where: { id: row.id }, create: row, update: row });
+    channelIds.add(row.id);
   }
+  console.info(`Upserted ${channelIds.size} channels.`);
 
-  const channels = rawChannels.channels;
+  const { programs } = await fetchSr(
+    "https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false",
+    isSR_Programs_Response,
+    "programs",
+  );
 
-  console.info(`Seeding ${channels.length} channels...`);
-
-  const seeded = await prisma.channel.createMany({
-    skipDuplicates: true,
-    data: channels.map(c => ({
-      id: c.id,
-      name: c.name,
-      tagline: c.tagline,
-      siteUrl: c.siteurl,
-      channelType: c.channeltype,
-      color: c.color,
-      image: c.image,
-      imageTemplate: c.imagetemplate,
-      scheduleUrl: c.scheduleurl,
-      xmltvId: c.xmltvid,
-    } satisfies ChannelCreateManyInput)),
-  });
-
-  console.info(`Seeded ${seeded.count} channels`);
-}
-
-async function seedPrograms() {
-  const rawPrograms = await fetchPrograms();
-
-  if (!isSR_Programs_Response(rawPrograms)) {
-    console.error("Invalid programs response", rawPrograms);
-    throw new Error("Invalid programs response");
-  }
-
-  const programs = rawPrograms.programs;
-
-  console.info(`Seeding ${programs.length} programs...`);
-
-  const categoriesById = new Map<number, ProgramCategoryCreateManyInput>();
-  for (const p of programs) {
-    if (p.programcategory) {
-      categoriesById.set(
-        p.programcategory.id,
-        {
-          id: p.programcategory.id,
-          name: p.programcategory.name,
-        } satisfies ProgramCategoryCreateManyInput,
-      );
+  let orphaned = 0;
+  for (const program of programs) {
+    const row = mapProgram(program);
+    // Some programs point at channels the channels endpoint does not list.
+    // Null the FK rather than drop the program or trip the constraint.
+    if (row.channel_id !== null && !channelIds.has(row.channel_id)) {
+      row.channel_id = null;
+      orphaned += 1;
     }
+    await prisma.program.upsert({ where: { id: row.id }, create: row, update: row });
   }
-
-  const seededCategories = await prisma.programCategory.createMany({
-    skipDuplicates: true,
-    data: [...categoriesById.values()],
-  });
-
-  console.info(`Seeded ${seededCategories.count} program categories`);
-
-  const seeded = await prisma.program.createMany({
-    skipDuplicates: true,
-    data: programs.map(p => ({
-      id: p.id,
-      name: p.name,
-      archived: p.archived,
-      broadcastInfo: p.broadcastinfo ?? null,
-      channelId: p.channel.id,
-      description: p.description,
-      email: p.email,
-      hasOnDemand: p.hasondemand,
-      hasPod: p.haspod,
-      payoff: p.payoff ?? null,
-      phone: p.phone,
-      programCategoryId: p.programcategory?.id ?? null,
-      programImage: p.programimage,
-      programImageTemplate: p.programimagetemplate,
-      programImageTemplateWide: p.programimagetemplatewide,
-      programImageWide: p.programimagewide,
-      programSlug: p.programslug ?? null,
-      programUrl: p.programurl,
-      responsibleEditor: p.responsibleeditor,
-      socialImage: p.socialimage,
-      socialImageTemplate: p.socialimagetemplate,
-    } satisfies ProgramCreateManyInput)),
-  });
-
-  console.info(`Seeded ${seeded.count} programs`);
+  console.info(`Upserted ${programs.length} programs (${orphaned} with an unknown channel).`);
 }
 
-async function fetchChannels(): Promise<Record<string, unknown>> {
-  const cachedChannels = fs.existsSync(channelsCacheFile)
-    ? JSON.parse(fs.readFileSync(channelsCacheFile, "utf-8")) as Record<string, unknown>
-    : null;
-
-  if (cachedChannels) {
-    console.info(`Using cached channels ${channelsCacheFile.length} from`, channelsCacheFile);
-    return cachedChannels;
-  }
-
-  console.info("Fetching channels from API...");
-
-  const rawChannels = await fetch("https://api.sr.se/api/v2/channels?format=json&pagination=false")
-    .catch((e: unknown) => {
-      console.error("Failed to fetch channels", e);
-      return null;
-    })
-    .then(res => res?.json())
-    .then((data: unknown) => {
-      if (!data || !isObj(data)) {
-        console.error("Invalid channels response", data);
-        return null;
-      }
-      return data;
+main()
+  .catch((e: unknown) => {
+    console.error("Error during seeding:", e);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    prisma.$disconnect().catch((e: unknown) => {
+      console.error("Error disconnecting Prisma client:", e);
     });
-
-  if (!rawChannels) {
-    console.error("Failed to fetch channels", rawChannels);
-    throw new Error("Failed to fetch channels");
-  }
-
-  fs.writeFileSync(channelsCacheFile, JSON.stringify(rawChannels, null, 2));
-
-  console.info(`Channels (${(rawChannels.channels as unknown[]).length}) saved to ${channelsCacheFile}`);
-
-  return rawChannels;
-}
-
-async function fetchPrograms(): Promise<Record<string, unknown>> {
-  const cachedPrograms = fs.existsSync(programsCacheFile)
-    ? JSON.parse(fs.readFileSync(programsCacheFile, "utf-8")) as Record<string, unknown>
-    : null;
-
-  if (cachedPrograms) {
-    console.info(`Using cached programs (${programsCacheFile.length}) from`, programsCacheFile);
-    return cachedPrograms;
-  }
-
-  console.info("Fetching programs from API...");
-
-  const rawPrograms = await fetch("https://api.sr.se/api/v2/programs/index?format=json&pagination=false&isarchived=false")
-    .catch((e: unknown) => {
-      console.error("Failed to fetch programs", e);
-      return null;
-    })
-    .then(res => res?.json())
-    .then((data: unknown) => {
-      if (!data || !isObj(data)) {
-        console.error("Invalid programs response", data);
-        return null;
-      }
-      return data;
-    });
-
-  if (!rawPrograms) {
-    console.error("Failed to fetch programs", rawPrograms);
-    throw new Error("Failed to fetch programs");
-  }
-
-  fs.writeFileSync(programsCacheFile, JSON.stringify(rawPrograms, null, 2));
-
-  console.info(`Programs (${(rawPrograms as { programs: unknown[] })["programs"].length}) saved to ${programsCacheFile}`);
-
-  return rawPrograms;
-}
+  });

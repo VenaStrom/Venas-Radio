@@ -18,17 +18,15 @@ export type Long = number;
 export type Double = number;
 
 export type ChannelDto = {
-  id: Int;
+  /** SR's numeric id, as a string. Ids are opaque here; never do arithmetic on them. */
+  id: string;
   name: string;
   tagline: string;
   image: string;
   /** Hex, e.g. "31a1bd". Used for per-channel accents. */
   color: string;
-  /**
-   * Flattened from LiveAudio.url. Null for channels with no live stream, which
-   * the client must treat as unplayable rather than assume.
-   */
-  streamUrl: string | null;
+  /** Flattened from SR's nested liveaudio object. Always playable. */
+  streamUrl: string;
 };
 
 export type ChannelsResponse = {
@@ -36,22 +34,23 @@ export type ChannelsResponse = {
   /** Total across all pages, not this page's length. */
   total: Int;
   /** Every channel id in order, so the client can render placeholders it has not paged in yet. */
-  allIds: Int[];
+  allIds: string[];
 };
 
 export type ProgramDto = {
-  id: Int;
+  id: string;
   name: string;
   description: string;
   image: string;
-  channelId: Int;
+  /** Null when SR lists a program against a channel its channels endpoint does not return. */
+  channelId: string | null;
   hasPod: boolean;
 };
 
 export type ProgramsResponse = {
   programs: ProgramDto[];
   total: Int;
-  allIds: Int[];
+  allIds: string[];
 };
 
 export type ApiError = {

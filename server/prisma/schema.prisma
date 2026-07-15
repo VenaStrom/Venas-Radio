@@ -1,3 +1,9 @@
+// Adopted from the main branch, which is the schema the database and the
+// deployed app actually run. It is narrower than the one this branch carried
+// (no ProgramCategory / SocialMediaPlatform / EpisodeBroadcast*), already
+// flattens SR's liveaudio into external_audio_url, and — importantly — types
+// User.id as String, because a Discord snowflake is 64-bit and will not fit Int.
+
 generator client {
   provider     = "prisma-client"
   moduleFormat = "esm"
@@ -9,141 +15,73 @@ datasource db {
 }
 
 model User {
-  // Might just do clerk id :woman_shrugging:
-  id            Int       @id
-  likedChannels Channel[]
-  likedPrograms Program[]
+  id                String            @id // Discord Snowflake
+  favorite_channels Channel[]         @relation("user_favorite_channels")
+  favorite_programs Program[]         @relation("user_favorite_programs")
+  episode_progress  EpisodeProgress[] @relation("user_episode_progress")
 }
 
-model Progress {
-  episodeId Int
-  userId    Int
-  progress  Int
+model EpisodeProgress {
+  user_id    String
+  user       User    @relation("user_episode_progress", fields: [user_id], references: [id])
+  episode_id String
+  episode    Episode @relation("episode_progress_episode", fields: [episode_id], references: [id])
+  progress   Float
 
-  @@id([episodeId, userId])
-}
-
-model Channel {
-  id            Int        @id
-  name          String
-  image         String
-  imageTemplate String
-  color         String
-  tagline       String
-  siteUrl       String
-  scheduleUrl   String?
-  channelType   String
-  xmltvId       String?
-  liveAudio     LiveAudio?
-  programs      Program[]
-  user          User?      @relation(fields: [userId], references: [id])
-  userId        Int?
-}
-
-model LiveAudio {
-  id        Int     @id
-  url       String
-  statKey   String
-  channelId Int     @unique
-  channel   Channel @relation(fields: [channelId], references: [id])
+  @@id([user_id, episode_id])
 }
 
 model Episode {
-  id                Int                   @id
-  title             String
-  description       String
-  url               String
-  audioPreference   String
-  audioPriority     String
-  audioPresentation String
-  publishDateUtc    String
-  imageUrl          String
-  imageUrlTemplate  String
-  photographer      String
-  programId         Int
-  program           Program               @relation(fields: [programId], references: [id])
-  broadcast         EpisodeBroadcast?
-  broadcastTime     EpisodeBroadcastTime?
+  id           String   @id
+  duration     Float
+  title        String
+  description  String   @db.Text
+  publish_date DateTime
+
+  image_square_url String
+  image_wide_url   String
+
+  external_audio_url String @map("external_url")
+
+  program_id String
+  program    Program           @relation("episode_program", fields: [program_id], references: [id])
+  progress   EpisodeProgress[] @relation("episode_progress_episode")
+}
+
+model Channel {
+  id                    String  @id
+  name                  String
+  color                 String
+  tagline               String
+  external_audio_url    String
+  external_site_url     String
+  external_schedule_url String?
+  channel_type          String
+  image_square_url      String
+  image_wide_url        String
+
+  programs        Program[] @relation("program_channel")
+  following_users User[]    @relation("user_favorite_channels")
 }
 
 model Program {
-  id                       Int                   @id
-  name                     String
-  description              String
-  email                    String
-  phone                    String
-  programUrl               String
-  programSlug              String?
-  broadcastInfo            String?
-  payoff                   String?
-  programCategoryId        Int?
-  programCategory          ProgramCategory?      @relation(fields: [programCategoryId], references: [id])
-  hasOnDemand              Boolean
-  hasPod                   Boolean
-  archived                 Boolean
-  programImage             String
-  programImageTemplate     String
-  programImageTemplateWide String
-  programImageWide         String
-  socialImage              String
-  socialImageTemplate      String
-  responsibleEditor        String
-  channelId                Int
-  channel                  Channel               @relation(fields: [channelId], references: [id])
-  socialMediaPlatforms     SocialMediaPlatform[]
-  episodes                 Episode[]
-  user                     User?                 @relation(fields: [userId], references: [id])
-  userId                   Int?
-}
+  id                 String  @id
+  name               String
+  description        String  @db.Text
+  broadcast_info     String?
+  email              String
+  phone              String?
+  responsible_editor String
+  program_slug       String? // SR's tracking slug?
+  image_square_url   String
+  image_wide_url     String
 
-model ProgramCategory {
-  id       Int       @id
-  name     String
-  programs Program[]
-}
+  archived      Boolean
+  has_on_demand Boolean
+  has_pod       Boolean
 
-model SocialMediaPlatform {
-  platform    String
-  platformUrl String
-  programId   Int
-  program     Program @relation(fields: [programId], references: [id])
-
-  @@id([programId, platform])
-  @@unique([programId, platform])
-}
-
-model EpisodeBroadcast {
-  episodeId        Int                       @id
-  availableStopUtc String
-  episode          Episode                   @relation(fields: [episodeId], references: [id])
-  playlist         EpisodeBroadcastPlaylist?
-  broadcastFiles   EpisodeBroadcastFile[]
-}
-
-model EpisodeBroadcastPlaylist {
-  broadcastId    Int              @id
-  duration       Int
-  publishDateUtc String
-  url            String
-  statKey        String
-  broadcast      EpisodeBroadcast @relation(fields: [broadcastId], references: [episodeId])
-}
-
-model EpisodeBroadcastFile {
-  id             Int              @id
-  duration       Int
-  publishDateUtc String
-  url            String
-  statKey        String
-  broadcastId    Int
-  broadcast      EpisodeBroadcast @relation(fields: [broadcastId], references: [episodeId])
-
-  @@index([broadcastId])
-}
-
-model EpisodeBroadcastTime {
-  episodeId    Int     @id
-  startTimeUtc String
-  endTimeUtc   String
-  episode      Episode @relation(fields: [episodeId], references: [id])
+  channel_id      String?
+  channel         Channel?  @relation("program_channel", fields: [channel_id], references: [id])
+  episodes        Episode[] @relation("episode_program")
+  following_users User[]    @relation("user_favorite_programs")
 }

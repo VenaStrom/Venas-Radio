@@ -7,17 +7,15 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ChannelDto(
-  val id: Int,
+  /** SR's numeric id, as a string. Ids are opaque here; never do arithmetic on them. */
+  val id: String,
   val name: String,
   val tagline: String,
   val image: String,
   /** Hex, e.g. "31a1bd". Used for per-channel accents. */
   val color: String,
-  /**
-   * Flattened from LiveAudio.url. Null for channels with no live stream, which
-   * the client must treat as unplayable rather than assume.
-   */
-  val streamUrl: String?,
+  /** Flattened from SR's nested liveaudio object. Always playable. */
+  val streamUrl: String,
 )
 
 @Serializable
@@ -26,16 +24,17 @@ data class ChannelsResponse(
   /** Total across all pages, not this page's length. */
   val total: Int,
   /** Every channel id in order, so the client can render placeholders it has not paged in yet. */
-  val allIds: List<Int>,
+  val allIds: List<String>,
 )
 
 @Serializable
 data class ProgramDto(
-  val id: Int,
+  val id: String,
   val name: String,
   val description: String,
   val image: String,
-  val channelId: Int,
+  /** Null when SR lists a program against a channel its channels endpoint does not return. */
+  val channelId: String?,
   val hasPod: Boolean,
 )
 
@@ -43,7 +42,7 @@ data class ProgramDto(
 data class ProgramsResponse(
   val programs: List<ProgramDto>,
   val total: Int,
-  val allIds: List<Int>,
+  val allIds: List<String>,
 )
 
 @Serializable

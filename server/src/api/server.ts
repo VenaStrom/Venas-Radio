@@ -38,9 +38,6 @@ app.get("/api/channels", async (req, res) => {
       skip: paging.skip,
       take: paging.take,
       orderBy: { id: "asc" },
-      // The client cannot play a channel without this, and the old route never
-      // included it.
-      include: { liveAudio: true },
     }),
   ]);
 
@@ -48,9 +45,10 @@ app.get("/api/channels", async (req, res) => {
     id: row.id,
     name: row.name,
     tagline: row.tagline,
-    image: row.image,
+    image: row.image_square_url,
     color: row.color,
-    streamUrl: row.liveAudio?.url ?? null,
+    // Already flattened at ingest, so no join is needed here.
+    streamUrl: row.external_audio_url,
   }));
 
   const body: ChannelsResponse = {
@@ -82,9 +80,9 @@ app.get("/api/programs", async (req, res) => {
     id: row.id,
     name: row.name,
     description: row.description,
-    image: row.programImage,
-    channelId: row.channelId,
-    hasPod: row.hasPod,
+    image: row.image_square_url,
+    channelId: row.channel_id,
+    hasPod: row.has_pod,
   }));
 
   const body: ProgramsResponse = {
