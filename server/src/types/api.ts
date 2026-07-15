@@ -56,3 +56,33 @@ export type ProgramsResponse = {
 export type ApiError = {
   error: string;
 };
+
+// --- Auth ---
+
+/** What the app POSTs to /auth/discord/exchange to redeem a one-time code. */
+export type ExchangeRequest = {
+  /** The one-time code from the vradio://auth deep link. */
+  code: string;
+  /**
+   * The PKCE verifier this device generated before opening the browser. It never
+   * leaves the device until now, which is what makes intercepting the deep link
+   * useless on its own.
+   */
+  verifier: string;
+};
+
+export type SessionDto = {
+  /** Opaque bearer token. Send as `Authorization: Bearer <token>`. */
+  token: string;
+  /** Discord snowflake. 64-bit, hence a string. */
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+};
+
+/** Who the current bearer token belongs to. */
+export type MeDto = {
+  userId: string;
+  username: string;
+  avatarUrl: string | null;
+};

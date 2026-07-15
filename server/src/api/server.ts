@@ -1,9 +1,12 @@
 import type { ApiError, ChannelDto, ChannelsResponse, ProgramDto, ProgramsResponse } from "@/types/api";
+import { authRouter } from "@/api/routes/auth";
+import { discordConfigured } from "@/api/lib/auth";
 import { prisma } from "@/api/lib/prisma";
 import express from "express";
 
 const app = express();
 app.use(express.json());
+app.use(authRouter);
 
 type Paging = { skip: number; take: number };
 
@@ -95,4 +98,7 @@ app.get("/api/programs", async (req, res) => {
 
 app.listen(3000, () => {
   console.log("Server is running on http://localhost:3000");
+  if (!discordConfigured) {
+    console.warn("DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET are unset — /auth/discord/* will return 503.");
+  }
 });

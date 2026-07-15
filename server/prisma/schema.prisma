@@ -16,9 +16,39 @@ datasource db {
 
 model User {
   id                String            @id // Discord Snowflake
+  username          String
+  avatar_url        String?
   favorite_channels Channel[]         @relation("user_favorite_channels")
   favorite_programs Program[]         @relation("user_favorite_programs")
   episode_progress  EpisodeProgress[] @relation("user_episode_progress")
+  sessions          Session[]         @relation("user_sessions")
+}
+
+/// Opaque bearer tokens, deliberately not JWTs: revocation is a DELETE, and at
+/// this scale statelessness buys nothing but a token we cannot take back.
+model Session {
+  token      String   @id
+  user_id    String
+  user       User     @relation("user_sessions", fields: [user_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+}
+
+/// One in-flight OAuth attempt.
+///
+/// Holds the PKCE challenge for the app<->server leg. The redirect back to the
+/// app uses a custom scheme, which any installed app can also register and
+/// intercept, so the deep link carries only exchange_code — worthless without
+/// the verifier, which never leaves the device.
+model AuthFlow {
+  state          String   @id
+  code_challenge String
+  exchange_code  String?  @unique
+  user_id        String?
+  created_at     DateTime @default(now())
+
+  @@index([created_at])
 }
 
 model EpisodeProgress {

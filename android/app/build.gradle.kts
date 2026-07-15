@@ -5,6 +5,16 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
 }
 
+/**
+ * Read via providers.exec so the configuration cache can track it. Falls back to
+ * "" rather than failing: the build must not depend on git being present.
+ */
+fun git(vararg args: String): String =
+  runCatching {
+    providers.exec { commandLine("git", *args) }
+      .standardOutput.asText.get().trim()
+  }.getOrDefault("")
+
 android {
   namespace = "se.venastrom.vradio"
   compileSdk = 37
@@ -15,19 +25,33 @@ android {
     targetSdk = 37
     versionCode = 1
     versionName = "0.1.0"
+
+    // Surfaced in the sidebar footer, mirroring the web client's build links.
+    buildConfigField("String", "GIT_BRANCH", "\"${git("rev-parse", "--abbrev-ref", "HEAD")}\"")
+    buildConfigField("String", "GIT_COMMIT", "\"${git("rev-parse", "HEAD")}\"")
   }
 
   buildTypes {
     debug {
       applicationIdSuffix = ".debug"
+      // Distinct scheme and API base per build type: a debug install must not be
+      // able to claim the release app's OAuth redirect, and debug talks to the
+      // workstation via `adb reverse tcp:3000 tcp:3000`.
+      manifestPlaceholders["authScheme"] = "vradio-debug"
+      buildConfigField("String", "AUTH_SCHEME", "\"vradio-debug\"")
+      buildConfigField("String", "API_BASE_URL", "\"http://localhost:3000\"")
     }
     release {
       isMinifyEnabled = false
+      manifestPlaceholders["authScheme"] = "vradio"
+      buildConfigField("String", "AUTH_SCHEME", "\"vradio\"")
+      buildConfigField("String", "API_BASE_URL", "\"https://vr.venastrom.se\"")
     }
   }
 
   buildFeatures {
     compose = true
+    buildConfig = true
   }
 
   // Built-in Kotlin defaults kotlin.compilerOptions.jvmTarget to targetCompatibility,
@@ -63,4 +87,5 @@ dependencies {
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.session)
   implementation(libs.kotlinx.serialization.json)
+  implementation(libs.androidx.browser)
 }

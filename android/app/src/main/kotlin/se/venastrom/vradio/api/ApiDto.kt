@@ -49,3 +49,34 @@ data class ProgramsResponse(
 data class ApiError(
   val error: String,
 )
+
+/** What the app POSTs to /auth/discord/exchange to redeem a one-time code. */
+@Serializable
+data class ExchangeRequest(
+  /** The one-time code from the vradio://auth deep link. */
+  val code: String,
+  /**
+   * The PKCE verifier this device generated before opening the browser. It never
+   * leaves the device until now, which is what makes intercepting the deep link
+   * useless on its own.
+   */
+  val verifier: String,
+)
+
+@Serializable
+data class SessionDto(
+  /** Opaque bearer token. Send as `Authorization: Bearer <token>`. */
+  val token: String,
+  /** Discord snowflake. 64-bit, hence a string. */
+  val userId: String,
+  val username: String,
+  val avatarUrl: String?,
+)
+
+/** Who the current bearer token belongs to. */
+@Serializable
+data class MeDto(
+  val userId: String,
+  val username: String,
+  val avatarUrl: String?,
+)
