@@ -6,17 +6,18 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -26,7 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -44,16 +47,15 @@ class MainActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    enableEdgeToEdge()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     setContent {
-      MaterialTheme(colorScheme = darkColorScheme()) {
-        Surface(modifier = Modifier.fillMaxSize()) {
-          PlayerScreen(controller)
-        }
+      VRadioTheme {
+        AppScaffold(controller)
       }
     }
   }
@@ -75,7 +77,39 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun PlayerScreen(controller: MediaController?) {
+private fun AppScaffold(controller: MediaController?) {
+  var selectedTab by remember { mutableStateOf(Tab.LIVE) }
+
+  Scaffold(
+    containerColor = Zinc.z900,
+    topBar = {
+      VRadioHeader(onMenuClick = { /* Stub: no menu yet. */ })
+    },
+    bottomBar = {
+      VRadioFooter(
+        selected = selectedTab,
+        onTabClick = { selectedTab = it },
+        controls = { PlayerControls(controller) },
+      )
+    },
+  ) { innerPadding ->
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .background(Zinc.z900)
+        .padding(innerPadding),
+      verticalArrangement = Arrangement.Center,
+      horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+      // Stub: each tab gets a real page during the port.
+      Text(text = selectedTab.label, color = Zinc.z100, fontSize = 24.sp)
+    }
+  }
+}
+
+/** Sits in the footer's controls slot, where the web client had a "CONTROLS" placeholder. */
+@Composable
+private fun PlayerControls(controller: MediaController?) {
   var isPlaying by remember { mutableStateOf(false) }
   var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
   var title by remember { mutableStateOf("") }
@@ -97,44 +131,45 @@ private fun PlayerScreen(controller: MediaController?) {
     onDispose { controller.removeListener(listener) }
   }
 
-  Column(
+  Row(
     modifier = Modifier
-      .fillMaxSize()
-      .padding(24.dp),
-    verticalArrangement = Arrangement.Center,
-    horizontalAlignment = Alignment.CenterHorizontally,
+      .fillMaxWidth()
+      .padding(horizontal = 12.dp, vertical = 4.dp),
+    verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(
-      text = title.ifEmpty { "—" },
-      style = MaterialTheme.typography.headlineLarge,
-    )
+    Column(modifier = Modifier.weight(1f)) {
+      Text(
+        text = "Sveriges Radio",
+        color = Zinc.z400,
+        fontSize = 13.sp,
+      )
+      Text(
+        text = title.ifEmpty { "Spelar inget" },
+        color = Zinc.z100,
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
+      )
+    }
+
     Text(
       text = when (playbackState) {
-        Player.STATE_IDLE -> "Idle"
-        Player.STATE_BUFFERING -> "Buffrar..."
-        Player.STATE_READY -> if (isPlaying) "Live" else "Pausad"
-        Player.STATE_ENDED -> "Slut"
+        Player.STATE_BUFFERING -> "Laddar..."
+        Player.STATE_READY -> if (isPlaying) "Live •" else "Pausad"
         else -> ""
       },
-      style = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
+      color = Zinc.z400,
+      fontSize = 13.sp,
+      modifier = Modifier.padding(end = 12.dp),
     )
 
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-      Button(
-        onClick = { controller?.seekToPreviousMediaItem() },
-        enabled = controller != null,
-      ) { Text("Föregående") }
-
-      Button(
-        onClick = { if (isPlaying) controller?.pause() else controller?.play() },
-        enabled = controller != null,
-      ) { Text(if (isPlaying) "Pausa" else "Spela") }
-
-      Button(
-        onClick = { controller?.seekToNextMediaItem() },
-        enabled = controller != null,
-      ) { Text("Nästa") }
-    }
+    TappableIcon(
+      icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+      contentDescription = if (isPlaying) "Pausa" else "Spela",
+      tint = Zinc.z100,
+      iconSize = 30.dp,
+      enabled = controller != null,
+      onClick = { if (isPlaying) controller?.pause() else controller?.play() },
+      modifier = Modifier.size(48.dp),
+    )
   }
 }
