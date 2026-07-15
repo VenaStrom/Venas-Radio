@@ -53,8 +53,6 @@ class MainActivity : ComponentActivity() {
       requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
-    se.venastrom.vradio.api.Probe.run()
-
     setContent {
       VRadioTheme {
         AppScaffold(controller)

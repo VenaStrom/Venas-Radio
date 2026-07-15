@@ -452,7 +452,7 @@ async function fetchEpisodesForSampledPrograms(programIDs: number[]): Promise<Re
 
       try {
         const response = await fetch(`https://api.sr.se/api/v2/episodes/index?fromdate=${fromDateStr}&todate=${toDateStr}&format=json&pagination=false&audioquality=high&programid=${programId}`);
-        data = await response.json() as unknown;
+        data = await response.json();
       }
       catch (err: unknown) {
         console.error("Failed to fetch episodes for program", { programId, err });
