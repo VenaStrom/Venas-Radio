@@ -9,6 +9,7 @@
     "start": "tsx src/api/server.ts",
     "lint": "tsc --noEmit -p ./tsconfig.json && eslint -c ./eslint.config.ts --cache --concurrency auto",
     "api:types": "tsx scripts/api-scanner.ts",
+    "api:kotlin": "tsx scripts/kotlin-dto-gen.ts",
     "rm-dist": "rm -rf .cache-seed scripts/.cache .eslintcache tsconfig.tsbuildinfo"
   },
   "dependencies": {

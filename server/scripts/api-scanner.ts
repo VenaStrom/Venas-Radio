@@ -17,11 +17,6 @@ const typeGenChannelsFile = `${typeGenOutputDir}/channels.d.ts`;
 const typeGenProgramsFile = `${typeGenOutputDir}/programs.d.ts`;
 const typeGenEpisodesFile = `${typeGenOutputDir}/episodes.d.ts`;
 
-// The Android client is a sibling package in this monorepo, so the same scanner
-// feeds both. Each response gets its own package: `Program` has a different shape
-// under /programs than under /episodes, and they would collide in one namespace.
-const kotlinGenRootDir = "../android/app/src/main/kotlin/se/venastrom/vradio/api/sr";
-const kotlinGenBasePackage = "se.venastrom.vradio.api.sr";
 
 // Declared above main()'s call site: main() runs synchronously, so anything it
 // reaches must already be initialised.
@@ -29,21 +24,7 @@ const kotlinGenBasePackage = "se.venastrom.vradio.api.sr";
 /** Leaf names the tree uses for numbers. TS collapses these back to `number`. */
 const numericLeaves = new Set(["integer", "long", "float", "double"]);
 
-/** Kotlin hard keywords. Soft/modifier keywords are legal identifiers, so they are absent. */
-const kotlinHardKeywords = new Set([
-  "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if",
-  "in", "interface", "is", "null", "object", "package", "return", "super",
-  "this", "throw", "true", "try", "typealias", "typeof", "val", "var", "when", "while",
-]);
 
-const kotlinLeafTypes: Record<string, string> = {
-  string: "String",
-  boolean: "Boolean",
-  integer: "Int",
-  long: "Long",
-  float: "Double",
-  double: "Double",
-};
 
 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 if (!fs.existsSync(resultDir)) fs.mkdirSync(resultDir);
@@ -79,14 +60,12 @@ const main = async () => {
   const channelProps = parseTypeOfTree(rawChannels);
   fs.writeFileSync(channelsResultFile, JSON.stringify(channelProps, null, 2));
   generateTSFiles(channelProps, typeGenChannelsFile, "SR_Channels_Response");
-  generateKotlin(channelProps, "channels", "ChannelsResponse");
   console.info("Channels done");
 
   const rawPrograms = await fetchPrograms();
   const programProps = parseTypeOfTree(rawPrograms);
   fs.writeFileSync(programsResultFile, JSON.stringify(programProps, null, 2));
   generateTSFiles(programProps, typeGenProgramsFile, "SR_Programs_Response");
-  generateKotlin(programProps, "programs", "ProgramsResponse");
   console.info("Programs done");
 
   const programIDs = (rawPrograms.programs as { id: number }[]).map(p => p.id);
@@ -100,7 +79,6 @@ const main = async () => {
     ? episodeProps[0]
     : episodeProps;
   generateTSFiles(episodeTree, typeGenEpisodesFile, "SR_Episodes_Response");
-  generateKotlin(episodeTree, "episodes", "EpisodesResponse");
   console.info("Episodes done");
 
   // Make index file in types/api that exports all generated types
@@ -114,21 +92,6 @@ main()
     process.exit(1);
   });
 
-/**
- * Writes the Kotlin mirror of a response into the Android client.
- *
- * Skipped rather than fatal when android/ is absent, so the server's own type
- * generation never depends on the client being checked out.
- */
-function generateKotlin(tree: TypeTree, module: string, rootName: string) {
-  if (!fs.existsSync("../android")) {
-    console.warn(`Skipping Kotlin output for ${module}: ../android not found`);
-    return;
-  }
-  const outputFile = `${kotlinGenRootDir}/${module}/${rootName}.kt`;
-  generateKotlinFile(tree, outputFile, `${kotlinGenBasePackage}.${module}`, rootName);
-  console.info(`Kotlin written to ${outputFile}`);
-}
 
 type Leaf = Set<string>; // All possible primitive types at a leaf node
 type TypeTree = Leaf | TypeTree[] | { [key: string]: TypeTree };
@@ -374,175 +337,6 @@ function generateTSFiles(typeTree: TypeTree, outputFile: string, typeName: strin
       return "unknown";
     }
   }
-}
-
-function pascalCase(value: string): string {
-  return value
-    .replace(/[^A-Za-z0-9]+(.)?/g, (_m, chr: string | undefined) => chr ? chr.toUpperCase() : "")
-    .replace(/^(.)/, chr => chr.toUpperCase());
-}
-
-/**
- * The SR API uses flat lowercase keys ("broadcastfiles"), which cannot be split
- * into words without a dictionary, so this only strips the plural.
- */
-function singularize(value: string): string {
-  if (/ies$/i.test(value)) return value.replace(/ies$/i, "y");
-  if (/(s|x|z|ch|sh)es$/i.test(value)) return value.replace(/es$/i, "");
-  if (/s$/i.test(value) && !/ss$/i.test(value)) return value.slice(0, -1);
-  return value;
-}
-
-/**
- * Emits kotlinx.serialization data classes for a type tree.
- *
- * Property names mirror the JSON keys verbatim. The API's keys are flat lowercase
- * ("imagetemplate"), and splitting them into camelCase would need a word list, so
- * these stay wire-faithful; map them to nicer domain models by hand.
- *
- * Unlike TS, Kotlin has no anonymous object types, so every nested object is
- * hoisted into its own named data class.
- */
-function generateKotlinFile(
-  typeTree: TypeTree,
-  outputFile: string,
-  packageName: string,
-  rootName: string,
-) {
-  const declarations: string[] = [];
-  const usedNames = new Set<string>();
-  /** "<hint>|<shape>" -> class name, so the same concept emits one class. */
-  const classesByShape = new Map<string, string>();
-  let usesJsonElement = false;
-  let usesSerialName = false;
-
-  const serializeShape = (tree: TypeTree): string => JSON.stringify(tree, (_key: string, val: unknown): unknown => {
-    if (isSet(val)) return { __set: [...val].sort() };
-    return val;
-  });
-
-  const uniqueName = (hint: string): string => {
-    const base = pascalCase(hint) || "Node";
-    let name = base;
-    let suffix = 2;
-    while (usedNames.has(name)) name = `${base}${suffix++}`;
-    usedNames.add(name);
-    return name;
-  };
-
-  const safeIdentifier = (key: string): { name: string; serialName: boolean } => {
-    const isValid = /^[A-Za-z_][A-Za-z0-9_]*$/.test(key);
-    if (isValid && !kotlinHardKeywords.has(key)) return { name: key, serialName: false };
-    // Backticks make almost anything a legal identifier, and the property name
-    // still matches the JSON key, so no @SerialName is needed.
-    if (!/[.;:/\\[\]<>\n\r]/.test(key)) return { name: `\`${key}\``, serialName: false };
-    const sanitized = key.replace(/[^A-Za-z0-9_]/g, "_").replace(/^(\d)/, "_$1");
-    return { name: sanitized, serialName: true };
-  };
-
-  const leafType = (leaf: Leaf): { type: string; nullable: boolean } => {
-    const nullable = leaf.has("undefined");
-    const concrete = [...leaf].filter(t => t !== "undefined" && t !== "unknown");
-
-    if (concrete.length === 0) {
-      usesJsonElement = true;
-      return { type: "JsonElement", nullable: true };
-    }
-    if (concrete.length === 1) {
-      const mapped = kotlinLeafTypes[concrete[0] as string];
-      if (mapped) return { type: mapped, nullable };
-      usesJsonElement = true;
-      return { type: "JsonElement", nullable: true };
-    }
-    // Several numeric kinds seen across samples: widen to the one that holds all.
-    if (concrete.every(t => numericLeaves.has(t))) {
-      const type = concrete.some(t => t === "float" || t === "double")
-        ? "Double"
-        : concrete.includes("long") ? "Long" : "Int";
-      return { type, nullable };
-    }
-    // A genuine union (e.g. string | number). Kotlin has no untagged unions.
-    usesJsonElement = true;
-    return { type: "JsonElement", nullable: true };
-  };
-
-  const typeOf = (tree: TypeTree, hint: string): { type: string; nullable: boolean } => {
-    if (isSet(tree)) return leafType(tree);
-
-    if (isArr(tree)) {
-      // A single item type means the scanner merged every sample into one shape.
-      if (tree.length !== 1) {
-        usesJsonElement = true;
-        return { type: "List<JsonElement>", nullable: false };
-      }
-      const item = typeOf(tree[0] as TypeTree, singularize(hint));
-      return { type: `List<${item.type}${item.nullable ? "?" : ""}>`, nullable: false };
-    }
-
-    if (isObj(tree)) {
-      return { type: emitClass(tree, hint), nullable: false };
-    }
-
-    usesJsonElement = true;
-    return { type: "JsonElement", nullable: true };
-  };
-
-  function emitClass(obj: Record<string, TypeTree>, hint: string): string {
-    // Keyed on hint *and* shape. Hint alone would merge Playlist with
-    // Broadcastfile (identical shapes, different concepts); shape alone would
-    // give three copies of `program` the first name that claimed it.
-    const shapeKey = `${pascalCase(hint)}|${serializeShape(obj)}`;
-    const existing = classesByShape.get(shapeKey);
-    if (existing) return existing;
-
-    const className = uniqueName(hint);
-    // Registered before recursing, so a self-referencing type cannot loop.
-    classesByShape.set(shapeKey, className);
-    const props: string[] = [];
-
-    Object.entries(obj).forEach(([rawKey, val]) => {
-      const optionalKey = rawKey.endsWith("?");
-      const key = optionalKey ? rawKey.slice(0, -1) : rawKey;
-
-      const resolved = typeOf(val, key);
-      const nullable = optionalKey || resolved.nullable;
-      const identifier = safeIdentifier(key);
-      if (identifier.serialName) usesSerialName = true;
-
-      if (identifier.serialName) props.push(`  @SerialName("${key.replace(/"/g, "\\\"")}")`);
-      // Nullable + a default makes the key optional to kotlinx.serialization.
-      props.push(`  val ${identifier.name}: ${resolved.type}${nullable ? "?" : ""}${nullable ? " = null" : ""},`);
-    });
-
-    // Pushed after recursing, so nested classes are declared before their parent.
-    declarations.push(`@Serializable\ndata class ${className}(\n${props.join("\n")}\n)`);
-    return className;
-  }
-
-  const root = typeOf(typeTree, rootName);
-  const rootIsClass = usedNames.has(pascalCase(rootName));
-
-  const imports = ["import kotlinx.serialization.Serializable"];
-  if (usesSerialName) imports.push("import kotlinx.serialization.SerialName");
-  if (usesJsonElement) imports.push("import kotlinx.serialization.json.JsonElement");
-  imports.sort();
-
-  const alias = rootIsClass ? "" : `\ntypealias ${pascalCase(rootName)} = ${root.type}\n`;
-
-  const content = [
-    "// Generated by scripts/api-scanner.ts from live api.sr.se responses.",
-    "// Do not edit by hand; run `yarn api:types` in server/ instead.",
-    "",
-    `package ${packageName}`,
-    "",
-    ...imports,
-    "",
-    declarations.join("\n\n"),
-    alias,
-  ].join("\n");
-
-  fs.mkdirSync(outputFile.slice(0, outputFile.lastIndexOf("/")), { recursive: true });
-  fs.writeFileSync(outputFile, `${content}\n`);
 }
 
 async function fetchChannels(): Promise<Record<string, unknown>> {

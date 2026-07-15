@@ -1,85 +1,98 @@
+import type { ApiError, ChannelDto, ChannelsResponse, ProgramDto, ProgramsResponse } from "@/types/api";
 import { prisma } from "@/api/lib/prisma";
 import express from "express";
 
 const app = express();
 app.use(express.json());
 
+type Paging = { skip: number; take: number };
+
+/**
+ * Shared because both list endpoints validated `page`/`pagesize` identically,
+ * and drifted anyway: only /api/channels returned allIds.
+ */
+function parsePaging(page: unknown, pageSize: unknown): Paging | null {
+  if (typeof page !== "string" || typeof pageSize !== "string") return null;
+
+  const pageNum = Number(page);
+  const sizeNum = Number(pageSize);
+  if (!Number.isInteger(pageNum) || pageNum < 1) return null;
+  if (!Number.isInteger(sizeNum) || sizeNum < 1) return null;
+
+  return { skip: (pageNum - 1) * sizeNum, take: sizeNum };
+}
+
+const invalidPaging: ApiError = { error: "Missing or invalid 'page' or 'pagesize' query parameters." };
+
 app.get("/api/channels", async (req, res) => {
-  const { page, pagesize: pageSize } = req.query;
-
-  if (
-    typeof page !== "string"
-    || isNaN(Number(page)) || Number(page) < 1
-    || typeof pageSize !== "string"
-    || isNaN(Number(pageSize)) || Number(pageSize) < 1
-  ) {
-    res.status(400).json({ error: "Missing or invalid 'page' or 'pagesize' query parameters." });
+  const paging = parsePaging(req.query.page, req.query.pagesize);
+  if (!paging) {
+    res.status(400).json(invalidPaging);
     return;
   }
 
-  const skip = (Number(page) - 1) * Number(pageSize);
-  const take = Number(pageSize);
+  const [total, allIds, rows] = await Promise.all([
+    prisma.channel.count(),
+    prisma.channel.findMany({ select: { id: true }, orderBy: { id: "asc" } }),
+    prisma.channel.findMany({
+      skip: paging.skip,
+      take: paging.take,
+      orderBy: { id: "asc" },
+      // The client cannot play a channel without this, and the old route never
+      // included it.
+      include: { liveAudio: true },
+    }),
+  ]);
 
-  if (isNaN(skip) || isNaN(take) || skip < 0 || take < 1) {
-    res.status(400).json({ error: "Invalid 'page' or 'pagesize' query parameters." });
-    return;
-  }
+  const channels: ChannelDto[] = rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    tagline: row.tagline,
+    image: row.image,
+    color: row.color,
+    streamUrl: row.liveAudio?.url ?? null,
+  }));
 
-  const total = await prisma.channel.count();
-  const allIds = await prisma.channel.findMany({ select: { id: true } }).then(channels => channels.map(c => c.id));
-  const takeChannels = await prisma.channel.findMany({ skip, take });
-
-  const progress = skip + take >= total ? 1 : (skip / total);
-
-  if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
-    res.status(500).json({ error: "Failed to calculate progress." });
-    return;
-  }
-
-  res.json({
-    channels: takeChannels,
-    progress,
+  const body: ChannelsResponse = {
+    channels,
     total,
-    allIds,
-  });
+    allIds: allIds.map(c => c.id),
+  };
+  res.json(body);
 });
 
 app.get("/api/programs", async (req, res) => {
-  const { page, pagesize: pageSize } = req.query;
-
-  if (
-    typeof page !== "string"
-    || isNaN(Number(page)) || Number(page) < 1
-    || typeof pageSize !== "string"
-    || isNaN(Number(pageSize)) || Number(pageSize) < 1
-  ) {
-    res.status(400).json({ error: "Missing or invalid 'page' or 'pagesize' query parameters." });
+  const paging = parsePaging(req.query.page, req.query.pagesize);
+  if (!paging) {
+    res.status(400).json(invalidPaging);
     return;
   }
 
-  const skip = (Number(page) - 1) * Number(pageSize);
-  const take = Number(pageSize);
+  const [total, allIds, rows] = await Promise.all([
+    prisma.program.count(),
+    prisma.program.findMany({ select: { id: true }, orderBy: { id: "asc" } }),
+    prisma.program.findMany({
+      skip: paging.skip,
+      take: paging.take,
+      orderBy: { id: "asc" },
+    }),
+  ]);
 
-  if (isNaN(skip) || isNaN(take) || skip < 0 || take < 1) {
-    res.status(400).json({ error: "Invalid 'page' or 'pagesize' query parameters." });
-    return;
-  }
+  const programs: ProgramDto[] = rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    image: row.programImage,
+    channelId: row.channelId,
+    hasPod: row.hasPod,
+  }));
 
-  const total = await prisma.program.count();
-  const takePrograms = await prisma.program.findMany({ skip, take });
-
-  const progress = skip + take >= total ? 1 : (skip / total);
-  
-  if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
-    res.status(500).json({ error: "Failed to calculate progress." });
-    return;
-  }
-
-  res.json({
-    programs: takePrograms,
-    progress,
+  const body: ProgramsResponse = {
+    programs,
     total,
-  });
+    allIds: allIds.map(p => p.id),
+  };
+  res.json(body);
 });
 
 app.listen(3000, () => {
