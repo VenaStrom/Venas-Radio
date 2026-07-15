@@ -58,18 +58,22 @@ adb logcat -s ExoPlayerImpl:V MediaSessionService:V AudioFocus:V
 
 ### JDK note
 
-There is no JDK on the dev machine — the `java-21`/`java-25` Ubuntu packages and
-VS Code's bundled Java are all **JRE-only** (no `javac`, no `jlink`). AGP's
-JdkImageTransform needs `jlink`, so `app/build.gradle.kts` pins a Java toolchain
-and lets Gradle auto-provision a real Temurin JDK into `~/.gradle/jdks/`. Without
-that pin, Gradle's auto-detection silently selects a JRE and the build fails with
-either `jlink does not exist` or `does not provide [JAVA_COMPILER]`.
+Most Java on this machine is **JRE-only** — the `java-21`/`java-25` Ubuntu
+packages and VS Code's bundled Java all have `java` but no `javac`/`jlink`. AGP's
+JdkImageTransform needs `jlink`, so anything that resolves to a JRE fails with
+`jlink does not exist` or `does not provide [JAVA_COMPILER]`. The real JDKs are
+Android Studio's embedded JBR and whatever Gradle provisions into `~/.gradle/jdks/`.
 
-Do not add `gradle/gradle-daemon-jvm.properties`. Gradle generates it on
-`./gradlew wrapper`, and it pins the daemon to whatever JDK version it found —
-which on this machine resolves to VS Code's JRE stub and breaks the build.
+Three pieces keep that from going wrong, and all are load-bearing:
 
-### AGP 9 note
+- `app/build.gradle.kts` pins a **compile toolchain** (`java { toolchain { 21 } }`).
+  Without it AGP falls back to the JVM running Gradle, which here is a JRE. No
+  vendor constraint, so Studio's JBR satisfies it directly.
+- `gradle/gradle-daemon-jvm.properties` pins the **daemon JVM** to
+  `JETBRAINS`/`21`. The vendor matters: a bare version of `21` also matches VS
+  Code's JRE stub. Android Studio generates this file — let it.
+- `settings.gradle.kts` applies the **foojay resolver**, which is what allows
+  Gradle to auto-download a JDK when none is present.
 
 AGP 9 has built-in Kotlin support. Applying `org.jetbrains.kotlin.android` is a
 hard error, and `kotlin.compilerOptions.jvmTarget` defaults to

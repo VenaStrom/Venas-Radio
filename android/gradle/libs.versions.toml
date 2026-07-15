@@ -1,4 +1,7 @@
 [versions]
+# Needs regular Android Studio. Android Studio for Platform (the `asfp` package)
+# caps AGP at 9.1.0, which in turn is only tested to compileSdk 36.1 — below what
+# current AndroidX requires.
 agp = "9.3.0"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
