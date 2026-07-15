@@ -9,6 +9,7 @@ activityCompose = "1.13.0"
 composeBom = "2026.06.01"
 lifecycle = "2.11.0"
 media3 = "1.10.1"
+kotlinxSerialization = "1.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,9 +24,11 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 # kotlin.android is intentionally absent: AGP 9 has built-in Kotlin support and
 # applying it is a hard error. The Compose compiler plugin is still separate.
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

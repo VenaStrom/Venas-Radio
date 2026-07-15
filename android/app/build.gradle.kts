@@ -2,6 +2,7 @@ plugins {
   alias(libs.plugins.android.application)
   // No kotlin.android plugin: AGP 9 compiles Kotlin natively via built-in Kotlin.
   alias(libs.plugins.kotlin.compose)
+  alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -61,4 +62,5 @@ dependencies {
 
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.session)
+  implementation(libs.kotlinx.serialization.json)
 }
