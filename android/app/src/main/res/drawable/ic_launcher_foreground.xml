@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lucide "audio-lines", carried over from the web client's logo
+  (public/icons/audio-lines.svg on the main branch).
+
+  The source viewBox is 24x24 on a 108x108dp adaptive canvas. The centre 72x72dp
+  is the safe zone (guaranteed visible), but filling it leaves the glyph touching
+  the mask with no margin. Scaling by 2 (24 -> 48) and centring at 30 puts the
+  waveform at roughly 60% of the mask diameter, which is the usual launcher look.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="108"
+  android:viewportHeight="108">
+
+  <group
+    android:scaleX="2"
+    android:scaleY="2"
+    android:translateX="30"
+    android:translateY="30">
+
+    <path
+      android:pathData="M2,10v3"
+      android:strokeColor="#09090B"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="2" />
+    <path
+      android:pathData="M6,6v11"
+      android:strokeColor="#09090B"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="2" />
+    <path
+      android:pathData="M10,3v18"
+      android:strokeColor="#09090B"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="2" />
+    <path
+      android:pathData="M14,8v7"
+      android:strokeColor="#09090B"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="2" />
+    <path
+      android:pathData="M18,5v13"
+      android:strokeColor="#09090B"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="2" />
+    <path
+      android:pathData="M22,10v3"
+      android:strokeColor="#09090B"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"
+      android:strokeWidth="2" />
+  </group>
+</vector>
