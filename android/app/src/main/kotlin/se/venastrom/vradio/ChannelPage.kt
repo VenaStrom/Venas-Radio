@@ -224,8 +224,8 @@ private fun ChannelRow(
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .height(112.dp)
-      .padding(horizontal = 16.dp, vertical = 8.dp),
+      .height(124.dp)
+      .padding(horizontal = 16.dp, vertical = 14.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     AsyncImage(
@@ -326,8 +326,8 @@ private fun ChannelRowSkeleton() {
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .height(112.dp)
-      .padding(horizontal = 16.dp, vertical = 8.dp)
+      .height(124.dp)
+      .padding(horizontal = 16.dp, vertical = 14.dp)
       .alpha(pulse),
     verticalAlignment = Alignment.CenterVertically,
   ) {

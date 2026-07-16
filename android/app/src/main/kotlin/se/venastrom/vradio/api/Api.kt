@@ -1,6 +1,7 @@
 package se.venastrom.vradio.api
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -50,22 +51,35 @@ object Api {
 
   private suspend inline fun <reified T> cached(context: Context, key: String, path: String): T =
     withContext(Dispatchers.IO) {
+      val startedAt = System.currentTimeMillis()
+      // Not a local fun: those are unsupported inside inline functions.
+      val elapsed = { "${System.currentTimeMillis() - startedAt}ms" }
+
       val file = File(File(context.cacheDir, CACHE_DIR), "$key.json")
 
-      readCache<T>(file, requireFresh = true)?.let { return@withContext it }
+      readCache<T>(file, requireFresh = true)?.let {
+        Log.d("Api", "$key: cache hit in ${elapsed()}")
+        return@withContext it
+      }
 
       lockFor(key).withLock {
         // Whoever held the lock first may have already refreshed it.
-        readCache<T>(file, requireFresh = true)?.let { return@withLock it }
+        readCache<T>(file, requireFresh = true)?.let {
+          Log.d("Api", "$key: cache hit after lock in ${elapsed()}")
+          return@withLock it
+        }
 
         try {
           val body = httpGet("${BuildConfig.API_BASE_URL}$path")
           val value = json.decodeFromString<T>(body)
           writeCache(file, body)
+          Log.d("Api", "$key: fetched over network in ${elapsed()}")
           value
         }
         catch (e: Throwable) {
-          readCache<T>(file, requireFresh = false) ?: throw e
+          readCache<T>(file, requireFresh = false)
+            ?.also { Log.d("Api", "$key: network failed, stale cache in ${elapsed()}") }
+            ?: throw e
         }
       }
     }

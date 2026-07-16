@@ -13,6 +13,9 @@ fun ChannelDto.toMediaItem(): MediaItem = MediaItem.Builder()
       .setTitle(name)
       .setArtist("Sveriges Radio")
       .setArtworkUri(Uri.parse(image))
+      // The player UI branches on this: radio stations get a static full
+      // progress bar, podcast episodes (later) get position + seeking.
+      .setMediaType(MediaMetadata.MEDIA_TYPE_RADIO_STATION)
       .setIsPlayable(true)
       .setIsBrowsable(false)
       .build(),

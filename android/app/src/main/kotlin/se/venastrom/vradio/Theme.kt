@@ -12,6 +12,7 @@ object Zinc {
   val z400 = Color(0xFFA1A1AA)
   val z500 = Color(0xFF71717A)
   val z600 = Color(0xFF52525B)
+  val z800 = Color(0xFF27272A)
   val z900 = Color(0xFF18181B)
   val z950 = Color(0xFF09090B)
 }
