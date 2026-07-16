@@ -135,6 +135,27 @@ fun VRadioFooter(
   }
 }
 
+/** The web's fill-[red] on liked hearts. */
+private val LikedRed = Color(0xFFFF0000)
+
+/** Heart toggle, ported from like-button.tsx. [subject] names what gets followed, for TalkBack. */
+@Composable
+fun LikeButton(
+  isLiked: Boolean,
+  subject: String,
+  onToggle: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  TappableIcon(
+    icon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart,
+    contentDescription = if (isLiked) "Sluta följa $subject" else "Följ $subject",
+    tint = if (isLiked) LikedRed else Zinc.z100,
+    iconSize = 28.dp,
+    onClick = onToggle,
+    modifier = modifier.size(40.dp),
+  )
+}
+
 /**
  * An icon with its own tap target.
  *

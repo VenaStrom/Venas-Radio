@@ -56,8 +56,6 @@ import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.ChannelDto
 import se.venastrom.vradio.store.LocalStore
 
-private val LikedRed = Color(0xFFFF0000)
-
 /**
  * The LIVE tab: intro blurb and the live channel list.
  * Mirrors the web client's page.tsx + channel-list.tsx + channel-dom.tsx.
@@ -254,14 +252,7 @@ private fun ChannelRow(
           modifier = Modifier.weight(1f),
         )
 
-        TappableIcon(
-          icon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart,
-          contentDescription = if (isLiked) "Sluta följa ${channel.name}" else "Följ ${channel.name}",
-          tint = if (isLiked) LikedRed else Zinc.z100,
-          iconSize = 28.dp,
-          onClick = onToggleLike,
-          modifier = Modifier.size(40.dp),
-        )
+        LikeButton(isLiked = isLiked, subject = channel.name, onToggle = onToggleLike)
 
         TappableIcon(
           icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,

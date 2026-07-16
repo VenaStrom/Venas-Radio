@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lucide, carried over from the web client's icons.tsx. Tinted at the call site. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="24dp"
+  android:height="24dp"
+  android:viewportWidth="24"
+  android:viewportHeight="24">
+  <!-- Circle drawn as two arcs: VectorDrawable has no <circle>. -->
+  <path
+    android:pathData="M11,3a8,8 0 1,0 0,16a8,8 0 1,0 0,-16M21,21l-4.3,-4.3"
+    android:strokeColor="#FFFFFF"
+    android:strokeLineCap="round"
+    android:strokeLineJoin="round"
+    android:strokeWidth="2" />
+</vector>

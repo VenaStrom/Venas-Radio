@@ -211,6 +211,7 @@ private fun MainContent(
 
     when (selectedTab) {
       Tab.LIVE -> ChannelPage(controller = controller, modifier = pageModifier)
+      Tab.SEARCH -> SearchPage(modifier = pageModifier)
 
       // Stubs: the remaining tabs get real pages during the port.
       else -> Column(
