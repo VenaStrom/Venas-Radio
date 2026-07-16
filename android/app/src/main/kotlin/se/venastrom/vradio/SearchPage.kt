@@ -27,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +46,7 @@ import coil3.compose.AsyncImage
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.ProgramDto
 import se.venastrom.vradio.store.LocalStore
+import se.venastrom.vradio.store.UiSession
 
 /**
  * The SEARCH tab: program search. Mirrors the web client's search/page.tsx.
@@ -63,7 +63,8 @@ fun SearchPage(modifier: Modifier = Modifier) {
   var programs by remember { mutableStateOf<List<ProgramDto>?>(null) }
   var channelNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
   var loadFailed by remember { mutableStateOf(false) }
-  var query by rememberSaveable { mutableStateOf("") }
+  // Session-scoped so switching tabs does not wipe the query.
+  var query by UiSession::searchQuery
 
   LaunchedEffect(Unit) {
     try {

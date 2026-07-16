@@ -31,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +51,7 @@ import kotlinx.coroutines.launch
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.EpisodeDto
 import se.venastrom.vradio.store.LocalStore
+import se.venastrom.vradio.store.UiSession
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -77,7 +77,8 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
   var episodes by remember { mutableStateOf<List<EpisodeDto>?>(null) }
   var loadFailed by remember { mutableStateOf(false) }
   var refreshing by remember { mutableStateOf(false) }
-  var query by rememberSaveable { mutableStateOf("") }
+  // Session-scoped so switching tabs does not wipe the query.
+  var query by UiSession::feedQuery
 
   LaunchedEffect(followed) {
     if (followed.isEmpty()) return@LaunchedEffect
@@ -126,26 +127,6 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
     onDispose { controller.removeListener(listener) }
   }
 
-  fun playPause(episode: EpisodeDto) {
-    val c = controller ?: return
-    val feed = episodes ?: return
-
-    // Already loaded: toggle without resetting the position.
-    if (c.currentMediaItem?.mediaId == episode.id) {
-      if (c.isPlaying) c.pause() else c.play()
-      return
-    }
-
-    // The whole feed becomes the playlist so a finished episode auto-advances
-    // to the next one — the continuity that kept breaking on the web.
-    val saved = LocalStore.progressSeconds.value[episode.id] ?: 0.0
-    val complete = saved >= episode.durationSeconds - COMPLETION_EPSILON_SECONDS
-    val startMs = if (complete) 0L else (saved * 1000).toLong()
-    c.setMediaItems(feed.map { it.toMediaItem() }, feed.indexOf(episode), startMs)
-    c.prepare()
-    c.play()
-  }
-
   val filtered = remember(episodes, query) {
     val q = query.trim().lowercase()
     if (q.isEmpty()) {
@@ -156,6 +137,27 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
         q in it.title.lowercase() || q in it.description.lowercase() || q in it.programName.lowercase()
       }
     }
+  }
+
+  fun playPause(episode: EpisodeDto) {
+    val c = controller ?: return
+    // The list as currently shown becomes the playlist, so a finished episode
+    // auto-advances to the next one — and with a search active, "next" means
+    // the next search hit, not the next thing in the unfiltered feed.
+    val playlist = filtered ?: return
+
+    // Already loaded: toggle without resetting the position.
+    if (c.currentMediaItem?.mediaId == episode.id) {
+      if (c.isPlaying) c.pause() else c.play()
+      return
+    }
+
+    val saved = LocalStore.progressSeconds.value[episode.id] ?: 0.0
+    val complete = saved >= episode.durationSeconds - COMPLETION_EPSILON_SECONDS
+    val startMs = if (complete) 0L else (saved * 1000).toLong()
+    c.setMediaItems(playlist.map { it.toMediaItem() }, playlist.indexOf(episode), startMs)
+    c.prepare()
+    c.play()
   }
 
   if (followed.isEmpty()) {
