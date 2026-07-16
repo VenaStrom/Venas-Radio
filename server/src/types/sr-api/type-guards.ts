@@ -264,87 +264,142 @@ export function isSR_Episodes_Response(data: unknown): data is SR_Episodes_Respo
       console.info("Episode is missing imageurltemplate or imageurltemplate is not a string", { episode, data });
       return false;
     }
-    if (!("photographer" in episode) || typeof episode.photographer !== "string") {
-      console.info("Episode is missing photographer or photographer is not a string", { episode, data });
+    if (("photographer" in episode) && typeof episode.photographer !== "string") {
+      console.info("Episode photographer is not a string", { episode, data });
       return false;
     }
-    if (!("broadcast" in episode) || !isObj(episode.broadcast)) {
-      console.info("Episode is missing broadcast or broadcast is not an object", { episode, data });
-      return false;
-    }
-    const broadcast = episode.broadcast;
-    if (!("availablestoputc" in broadcast) || typeof broadcast.availablestoputc !== "string") {
-      console.info("Broadcast is missing availablestoputc or availablestoputc is not a string", { broadcast, episode, data });
-      return false;
-    }
-    if (!("playlist" in broadcast) || !isObj(broadcast.playlist)) {
-      console.info("Broadcast is missing playlist or playlist is not an object", { broadcast, episode, data });
-      return false;
-    }
-    const playlist = broadcast.playlist;
-    if (!("duration" in playlist) || typeof playlist.duration !== "number") {
-      console.info("Playlist is missing duration or duration is not a number", { playlist, broadcast, episode, data });
-      return false;
-    }
-    if (!("publishdateutc" in playlist) || typeof playlist.publishdateutc !== "string") {
-      console.info("Playlist is missing publishdateutc or publishdateutc is not a string", { playlist, broadcast, episode, data });
-      return false;
-    }
-    if (!("id" in playlist) || typeof playlist.id !== "number") {
-      console.info("Playlist is missing id or id is not a number", { playlist, broadcast, episode, data });
-      return false;
-    }
-    if (!("url" in playlist) || typeof playlist.url !== "string") {
-      console.info("Playlist is missing url or url is not a string", { playlist, broadcast, episode, data });
-      return false;
-    }
-    if (!("statkey" in playlist) || typeof playlist.statkey !== "string") {
-      console.info("Playlist is missing statkey or statkey is not a string", { playlist, broadcast, episode, data });
-      return false;
-    }
-    if (!("broadcastfiles" in broadcast) || !Array.isArray(broadcast.broadcastfiles)) {
-      console.info("Broadcast is missing broadcastfiles or broadcastfiles is not an array", { broadcast, episode, data });
-      return false;
-    }
-    for (const file of broadcast.broadcastfiles) {
-      if (!isObj(file)) return false;
-      if (!("duration" in file) || typeof file.duration !== "number") {
-        console.info("Broadcastfile is missing duration or duration is not a number", { file, broadcast, episode, data });
+    // Optional: pod-only episodes carry no broadcast at all.
+    if (("broadcast" in episode) && episode.broadcast !== undefined) {
+      if (!isObj(episode.broadcast)) {
+        console.info("Episode broadcast is not an object", { episode, data });
         return false;
       }
-      if (!("publishdateutc" in file) || typeof file.publishdateutc !== "string") {
-        console.info("Broadcastfile is missing publishdateutc or publishdateutc is not a string", { file, broadcast, episode, data });
+      const broadcast = episode.broadcast;
+      if (("availablestoputc" in broadcast) && typeof broadcast.availablestoputc !== "string") {
+        console.info("Broadcast availablestoputc is not a string", { broadcast, episode, data });
         return false;
       }
-      if (!("id" in file) || typeof file.id !== "number") {
-        console.info("Broadcastfile is missing id or id is not a number", { file, broadcast, episode, data });
+      if (!("playlist" in broadcast) || !isObj(broadcast.playlist)) {
+        console.info("Broadcast is missing playlist or playlist is not an object", { broadcast, episode, data });
         return false;
       }
-      if (!("url" in file) || typeof file.url !== "string") {
-        console.info("Broadcastfile is missing url or url is not a string", { file, broadcast, episode, data });
+      const playlist = broadcast.playlist;
+      if (!("duration" in playlist) || typeof playlist.duration !== "number") {
+        console.info("Playlist is missing duration or duration is not a number", { playlist, broadcast, episode, data });
         return false;
       }
-      if (!("statkey" in file) || typeof file.statkey !== "string") {
-        console.info("Broadcastfile is missing statkey or statkey is not a string", { file, broadcast, episode, data });
+      if (!("publishdateutc" in playlist) || typeof playlist.publishdateutc !== "string") {
+        console.info("Playlist is missing publishdateutc or publishdateutc is not a string", { playlist, broadcast, episode, data });
+        return false;
+      }
+      if (!("id" in playlist) || typeof playlist.id !== "number") {
+        console.info("Playlist is missing id or id is not a number", { playlist, broadcast, episode, data });
+        return false;
+      }
+      if (!("url" in playlist) || typeof playlist.url !== "string") {
+        console.info("Playlist is missing url or url is not a string", { playlist, broadcast, episode, data });
+        return false;
+      }
+      if (!("statkey" in playlist) || typeof playlist.statkey !== "string") {
+        console.info("Playlist is missing statkey or statkey is not a string", { playlist, broadcast, episode, data });
+        return false;
+      }
+      if (!("broadcastfiles" in broadcast) || !Array.isArray(broadcast.broadcastfiles)) {
+        console.info("Broadcast is missing broadcastfiles or broadcastfiles is not an array", { broadcast, episode, data });
+        return false;
+      }
+      for (const file of broadcast.broadcastfiles) {
+        if (!isObj(file)) return false;
+        if (!("duration" in file) || typeof file.duration !== "number") {
+          console.info("Broadcastfile is missing duration or duration is not a number", { file, broadcast, episode, data });
+          return false;
+        }
+        if (!("publishdateutc" in file) || typeof file.publishdateutc !== "string") {
+          console.info("Broadcastfile is missing publishdateutc or publishdateutc is not a string", { file, broadcast, episode, data });
+          return false;
+        }
+        if (!("id" in file) || typeof file.id !== "number") {
+          console.info("Broadcastfile is missing id or id is not a number", { file, broadcast, episode, data });
+          return false;
+        }
+        if (!("url" in file) || typeof file.url !== "string") {
+          console.info("Broadcastfile is missing url or url is not a string", { file, broadcast, episode, data });
+          return false;
+        }
+        if (!("statkey" in file) || typeof file.statkey !== "string") {
+          console.info("Broadcastfile is missing statkey or statkey is not a string", { file, broadcast, episode, data });
+          return false;
+        }
+      }
+    }
+    // Optional: absent on episodes that were never broadcast.
+    if (("broadcasttime" in episode) && episode.broadcasttime !== undefined) {
+      if (!isObj(episode.broadcasttime)) {
+        console.info("Episode broadcasttime is not an object", { episode, data });
+        return false;
+      }
+      const broadcasttime = episode.broadcasttime;
+      if (!("starttimeutc" in broadcasttime) || typeof broadcasttime.starttimeutc !== "string") {
+        console.info("Broadcasttime is missing starttimeutc or starttimeutc is not a string", { broadcasttime, episode, data });
+        return false;
+      }
+      if (!("endtimeutc" in broadcasttime) || typeof broadcasttime.endtimeutc !== "string") {
+        console.info("Broadcasttime is missing endtimeutc or endtimeutc is not a string", { broadcasttime, episode, data });
         return false;
       }
     }
-    if (!("broadcasttime" in episode) || !isObj(episode.broadcasttime)) {
-      console.info("Episode is missing broadcasttime or broadcasttime is not an object", { episode, data });
+    if (("channelid" in episode) && typeof episode.channelid !== "number") {
+      console.info("Episode channelid is not a number", { episode, data });
       return false;
     }
-    const broadcasttime = episode.broadcasttime;
-    if (!("starttimeutc" in broadcasttime) || typeof broadcasttime.starttimeutc !== "string") {
-      console.info("Broadcasttime is missing starttimeutc or starttimeutc is not a string", { broadcasttime, episode, data });
-      return false;
-    }
-    if (!("endtimeutc" in broadcasttime) || typeof broadcasttime.endtimeutc !== "string") {
-      console.info("Broadcasttime is missing endtimeutc or endtimeutc is not a string", { broadcasttime, episode, data });
-      return false;
-    }
-    if (!("channelid" in episode) || typeof episode.channelid !== "number") {
-      console.info("Episode is missing channelid or channelid is not a number", { episode, data });
-      return false;
+    // Optional pod files, but when present the audio picker depends on their shape.
+    for (const key of ["listenpodfile", "downloadpodfile"] as const) {
+      if (!(key in episode) || episode[key] === undefined) continue;
+      const podfile = episode[key];
+      if (!isObj(podfile)) {
+        console.info(`Episode ${key} is not an object`, { episode, data });
+        return false;
+      }
+      if (!("title" in podfile) || typeof podfile.title !== "string") {
+        console.info(`Episode ${key} is missing title or title is not a string`, { podfile, episode, data });
+        return false;
+      }
+      if (!("description" in podfile) || typeof podfile.description !== "string") {
+        console.info(`Episode ${key} is missing description or description is not a string`, { podfile, episode, data });
+        return false;
+      }
+      if (!("filesizeinbytes" in podfile) || typeof podfile.filesizeinbytes !== "number") {
+        console.info(`Episode ${key} is missing filesizeinbytes or filesizeinbytes is not a number`, { podfile, episode, data });
+        return false;
+      }
+      if (!("program" in podfile) || !isObj(podfile.program)) {
+        console.info(`Episode ${key} is missing program or program is not an object`, { podfile, episode, data });
+        return false;
+      }
+      if (!("availablefromutc" in podfile) || typeof podfile.availablefromutc !== "string") {
+        console.info(`Episode ${key} is missing availablefromutc or availablefromutc is not a string`, { podfile, episode, data });
+        return false;
+      }
+      if (!("duration" in podfile) || typeof podfile.duration !== "number") {
+        console.info(`Episode ${key} is missing duration or duration is not a number`, { podfile, episode, data });
+        return false;
+      }
+      if (!("publishdateutc" in podfile) || typeof podfile.publishdateutc !== "string") {
+        console.info(`Episode ${key} is missing publishdateutc or publishdateutc is not a string`, { podfile, episode, data });
+        return false;
+      }
+      if (!("id" in podfile) || typeof podfile.id !== "number") {
+        console.info(`Episode ${key} is missing id or id is not a number`, { podfile, episode, data });
+        return false;
+      }
+      if (!("url" in podfile) || typeof podfile.url !== "string") {
+        console.info(`Episode ${key} is missing url or url is not a string`, { podfile, episode, data });
+        return false;
+      }
+      if (!("statkey" in podfile) || typeof podfile.statkey !== "string") {
+        console.info(`Episode ${key} is missing statkey or statkey is not a string`, { podfile, episode, data });
+        return false;
+      }
     }
   }
   return true;

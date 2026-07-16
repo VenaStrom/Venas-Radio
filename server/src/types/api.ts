@@ -53,6 +53,27 @@ export type ProgramsResponse = {
   allIds: string[];
 };
 
+export type EpisodeDto = {
+  id: string;
+  title: string;
+  description: string;
+  /** Wide (16:9) artwork — the feed thumbnail. */
+  image: string;
+  programId: string;
+  /** Denormalized so the client never has to join against the programs list. */
+  programName: string;
+  /** Direct SR mp3 (pod file when available, else the broadcast recording). */
+  audioUrl: string;
+  durationSeconds: Int;
+  /** Unix epoch milliseconds. */
+  publishedAtMs: Long;
+};
+
+/** Newest first. */
+export type EpisodesResponse = {
+  episodes: EpisodeDto[];
+};
+
 export type ApiError = {
   error: string;
 };

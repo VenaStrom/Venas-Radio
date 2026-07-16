@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
@@ -77,7 +78,14 @@ class PlaybackService : MediaSessionService() {
       player.addListener(object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
           val id = mediaItem?.mediaId ?: return
-          LocalStore.setCurrentMedia(CurrentMedia(MediaType.CHANNEL, id))
+          val type =
+            if (mediaItem.mediaMetadata.mediaType == MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE) {
+              MediaType.EPISODE
+            }
+            else {
+              MediaType.CHANNEL
+            }
+          LocalStore.setCurrentMedia(CurrentMedia(type, id))
         }
       })
     }

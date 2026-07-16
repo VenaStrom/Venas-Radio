@@ -46,6 +46,29 @@ data class ProgramsResponse(
 )
 
 @Serializable
+data class EpisodeDto(
+  val id: String,
+  val title: String,
+  val description: String,
+  /** Wide (16:9) artwork — the feed thumbnail. */
+  val image: String,
+  val programId: String,
+  /** Denormalized so the client never has to join against the programs list. */
+  val programName: String,
+  /** Direct SR mp3 (pod file when available, else the broadcast recording). */
+  val audioUrl: String,
+  val durationSeconds: Int,
+  /** Unix epoch milliseconds. */
+  val publishedAtMs: Long,
+)
+
+/** Newest first. */
+@Serializable
+data class EpisodesResponse(
+  val episodes: List<EpisodeDto>,
+)
+
+@Serializable
 data class ApiError(
   val error: String,
 )

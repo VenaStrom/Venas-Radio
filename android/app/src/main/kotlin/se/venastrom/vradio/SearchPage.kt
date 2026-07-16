@@ -168,9 +168,9 @@ private fun searchRank(program: ProgramDto, query: String): Int? = when {
   else -> null
 }
 
-/** Floating pill above the footer, ported from search-input.tsx. */
+/** The search pill, ported from search-input.tsx. Shared with the feed page. */
 @Composable
-private fun SearchBar(
+fun SearchBar(
   value: String,
   onValueChange: (String) -> Unit,
   placeholder: String,

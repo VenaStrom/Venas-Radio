@@ -40,6 +40,9 @@ object Api {
   @Synchronized
   private fun lockFor(key: String): Mutex = locks.getOrPut(key) { Mutex() }
 
+  /** Feed data goes stale fast; the server itself re-asks SR after 15 minutes. */
+  private const val EPISODES_TTL_MS = 15L * 60 * 1000
+
   /** The server orders by id, which is lexicographic varchar order; name order is what the UI wants. */
   suspend fun channels(context: Context): List<ChannelDto> =
     cached<ChannelsResponse>(context, "channels", "/api/channels?page=1&pagesize=$PAGE_SIZE")
@@ -49,7 +52,26 @@ object Api {
     cached<ProgramsResponse>(context, "programs", "/api/programs?page=1&pagesize=$PAGE_SIZE")
       .programs.sortedBy { it.name }
 
-  private suspend inline fun <reified T> cached(context: Context, key: String, path: String): T =
+  /**
+   * Latest episodes for [programIds], newest first. The cache key carries the
+   * id set, so changing what you follow can never serve the wrong feed.
+   * [force] skips the freshness check (pull-to-refresh) but still falls back
+   * to stale cache when the network is down.
+   */
+  suspend fun episodes(context: Context, programIds: Collection<String>, force: Boolean = false): List<EpisodeDto> {
+    val ids = programIds.sorted()
+    val key = "episodes-${ids.joinToString(",").hashCode().toUInt().toString(16)}"
+    val path = "/api/episodes?programIds=${ids.joinToString(",")}"
+    return cached<EpisodesResponse>(context, key, path, ttlMs = EPISODES_TTL_MS, force = force).episodes
+  }
+
+  private suspend inline fun <reified T> cached(
+    context: Context,
+    key: String,
+    path: String,
+    ttlMs: Long = TTL_MS,
+    force: Boolean = false,
+  ): T =
     withContext(Dispatchers.IO) {
       val startedAt = System.currentTimeMillis()
       // Not a local fun: those are unsupported inside inline functions.
@@ -57,16 +79,20 @@ object Api {
 
       val file = File(File(context.cacheDir, CACHE_DIR), "$key.json")
 
-      readCache<T>(file, requireFresh = true)?.let {
-        Log.d("Api", "$key: cache hit in ${elapsed()}")
-        return@withContext it
+      if (!force) {
+        readCache<T>(file, ttlMs)?.let {
+          Log.d("Api", "$key: cache hit in ${elapsed()}")
+          return@withContext it
+        }
       }
 
       lockFor(key).withLock {
         // Whoever held the lock first may have already refreshed it.
-        readCache<T>(file, requireFresh = true)?.let {
-          Log.d("Api", "$key: cache hit after lock in ${elapsed()}")
-          return@withLock it
+        if (!force) {
+          readCache<T>(file, ttlMs)?.let {
+            Log.d("Api", "$key: cache hit after lock in ${elapsed()}")
+            return@withLock it
+          }
         }
 
         try {
@@ -77,17 +103,17 @@ object Api {
           value
         }
         catch (e: Throwable) {
-          readCache<T>(file, requireFresh = false)
+          readCache<T>(file, ttlMs = null)
             ?.also { Log.d("Api", "$key: network failed, stale cache in ${elapsed()}") }
             ?: throw e
         }
       }
     }
 
-  /** Null on missing, expired (when [requireFresh]), or undecodable — all mean "go to network". */
-  private inline fun <reified T> readCache(file: File, requireFresh: Boolean): T? {
+  /** Null on missing, expired (when [ttlMs] is given), or undecodable — all mean "go to network". */
+  private inline fun <reified T> readCache(file: File, ttlMs: Long?): T? {
     if (!file.isFile) return null
-    if (requireFresh && System.currentTimeMillis() - file.lastModified() >= TTL_MS) return null
+    if (ttlMs != null && System.currentTimeMillis() - file.lastModified() >= ttlMs) return null
     return runCatching { json.decodeFromString<T>(file.readText()) }.getOrNull()
   }
 
