@@ -172,6 +172,7 @@ private fun AppScaffold(
       CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         MainContent(
           controller = controller,
+          session = session,
           selectedTab = selectedTab,
           onTabClick = { selectedTab = it },
           onMenuClick = { scope.launch { drawerState.open() } },
@@ -184,13 +185,14 @@ private fun AppScaffold(
 @Composable
 private fun MainContent(
   controller: MediaController?,
+  session: SessionState,
   selectedTab: Tab,
   onTabClick: (Tab) -> Unit,
   onMenuClick: () -> Unit,
 ) {
   Scaffold(
     containerColor = Zinc.z900,
-    topBar = { VRadioHeader(onMenuClick = onMenuClick) },
+    topBar = { VRadioHeader(session = session, onMenuClick = onMenuClick) },
     bottomBar = {
       VRadioFooter(
         selected = selectedTab,

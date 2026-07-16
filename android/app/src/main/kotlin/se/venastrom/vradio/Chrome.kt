@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -27,19 +28,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import se.venastrom.vradio.auth.SessionState
 
 /**
- * Header: logo on the left, options on the right.
+ * Header: logo on the left, sync state and options on the right.
  * Mirrors the web client's <header> in app.tsx.
  */
 @Composable
 fun VRadioHeader(
+  session: SessionState,
   onMenuClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
@@ -74,6 +78,8 @@ fun VRadioHeader(
 
     Spacer(modifier = Modifier.weight(1f))
 
+    SyncIndicator(session = session, onClick = onMenuClick)
+
     TappableIcon(
       icon = R.drawable.ic_menu,
       contentDescription = "Meny",
@@ -82,6 +88,44 @@ fun VRadioHeader(
       onClick = onMenuClick,
       modifier = Modifier.size(48.dp),
     )
+  }
+}
+
+/**
+ * Whether listening data syncs to an account — which is the entire point of
+ * signing in, so it is phrased as sync state rather than "logged in". Signed
+ * out shows the Discord mark as the invitation. Tapping it opens the drawer,
+ * where sign-in lives.
+ */
+@Composable
+private fun SyncIndicator(session: SessionState, onClick: () -> Unit) {
+  // While restoring the session there is nothing truthful to claim yet.
+  if (session is SessionState.Loading) return
+
+  val (icon, tint, label) = when (session) {
+    is SessionState.SignedIn ->
+      Triple(R.drawable.ic_sync, Color(0xFF22C55E), "Synk på") // Tailwind green-500
+    is SessionState.Failed ->
+      Triple(R.drawable.ic_sync_problem, Color(0xFFF87171), "Synkfel") // Tailwind red-400
+    else ->
+      Triple(R.drawable.ic_discord, Color(0xFF5865F2), "Logga in") // Discord blurple
+  }
+
+  Row(
+    modifier = Modifier
+      .clip(RoundedCornerShape(percent = 50))
+      .clickable(onClick = onClick)
+      .padding(horizontal = 10.dp, vertical = 6.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+  ) {
+    Icon(
+      painter = painterResource(icon),
+      contentDescription = null,
+      tint = tint,
+      modifier = Modifier.size(18.dp),
+    )
+    Text(text = label, color = Zinc.z400, fontSize = 12.sp)
   }
 }
 
