@@ -1,9 +1,28 @@
+// Not referenced as java.util.Properties inline: inside this script `java`
+// resolves to the JavaPluginExtension accessor, shadowing the package.
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
   // No kotlin.android plugin: AGP 9 compiles Kotlin natively via built-in Kotlin.
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
 }
+
+/**
+ * Where debug builds reach the dev server. Machine-specific, so it lives in
+ * local.properties (gitignored) as `vradio.apiBaseUrl`, e.g. the workstation's
+ * LAN address so a physical phone can reach it over Wi-Fi. The VRADIO_API_URL
+ * env var wins when set; localhost (via `adb reverse tcp:3000 tcp:3000`) is
+ * the fallback.
+ */
+val devApiBaseUrl: String = System.getenv("VRADIO_API_URL")
+  ?: Properties().let { props ->
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(props::load)
+    props.getProperty("vradio.apiBaseUrl")
+  }
+  ?: "http://localhost:3000"
 
 /**
  * Read via providers.exec so the configuration cache can track it. Falls back to
@@ -34,12 +53,11 @@ android {
   buildTypes {
     debug {
       applicationIdSuffix = ".debug"
-      // Distinct scheme and API base per build type: a debug install must not be
-      // able to claim the release app's OAuth redirect, and debug talks to the
-      // workstation via `adb reverse tcp:3000 tcp:3000`.
+      // Distinct scheme and API base per build type: a debug install must not
+      // be able to claim the release app's OAuth redirect.
       manifestPlaceholders["authScheme"] = "vradio-debug"
       buildConfigField("String", "AUTH_SCHEME", "\"vradio-debug\"")
-      buildConfigField("String", "API_BASE_URL", "\"http://localhost:3000\"")
+      buildConfigField("String", "API_BASE_URL", "\"$devApiBaseUrl\"")
     }
     release {
       isMinifyEnabled = false
