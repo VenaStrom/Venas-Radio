@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.venastrom.vradio.auth.Auth
 import se.venastrom.vradio.auth.SessionState
+import se.venastrom.vradio.store.LocalStore
 
 class MainActivity : ComponentActivity() {
 
@@ -121,9 +122,13 @@ private fun AppScaffold(
   val scope = rememberCoroutineScope()
   val context = LocalContext.current
 
-  // Auth calls block on the network, so they never run on the main thread.
+  // Auth calls block on the network, so they never run on the main thread;
+  // LocalStore.load is the store's one disk read and belongs off it too.
   LaunchedEffect(Unit) {
-    session = withContext(Dispatchers.IO) { Auth.restore(context) }
+    withContext(Dispatchers.IO) {
+      LocalStore.load(context)
+      session = Auth.restore(context)
+    }
   }
 
   LaunchedEffect(redirectUri) {
