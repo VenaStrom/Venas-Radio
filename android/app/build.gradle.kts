@@ -88,4 +88,6 @@ dependencies {
   implementation(libs.media3.session)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.androidx.browser)
+  implementation(libs.coil.compose)
+  implementation(libs.coil.network.okhttp)
 }

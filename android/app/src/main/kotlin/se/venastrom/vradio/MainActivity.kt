@@ -45,6 +45,9 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +80,14 @@ class MainActivity : ComponentActivity() {
     redirectUri = intent?.data?.takeIf(Auth::isRedirect)
 
     setContent {
+      // Explicit network fetcher: Coil 3's core has no networking, and relying
+      // on ServiceLoader discovery makes image loading fail silently if it
+      // ever breaks. Coil's disk cache (cacheDir/image_cache) comes with it.
+      setSingletonImageLoaderFactory { ctx ->
+        ImageLoader.Builder(ctx)
+          .components { add(OkHttpNetworkFetcherFactory()) }
+          .build()
+      }
       VRadioTheme {
         AppScaffold(
           controller = controller,
@@ -99,7 +110,12 @@ class MainActivity : ComponentActivity() {
     val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
     val future = MediaController.Builder(this, token).buildAsync()
     controllerFuture = future
-    future.addListener({ controller = future.get() }, MoreExecutors.directExecutor())
+    // releaseFuture in onStop cancels a not-yet-done future, and this listener
+    // still runs; get() on it would throw.
+    future.addListener(
+      { if (!future.isCancelled) controller = future.get() },
+      MoreExecutors.directExecutor(),
+    )
   }
 
   override fun onStop() {
@@ -196,16 +212,22 @@ private fun MainContent(
       )
     },
   ) { innerPadding ->
-    Column(
-      modifier = Modifier
-        .fillMaxSize()
-        .background(Zinc.z900)
-        .padding(innerPadding),
-      verticalArrangement = Arrangement.Center,
-      horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-      // Stub: each tab gets a real page during the port.
-      Text(text = selectedTab.label, color = Zinc.z100, fontSize = 24.sp)
+    val pageModifier = Modifier
+      .fillMaxSize()
+      .background(Zinc.z900)
+      .padding(innerPadding)
+
+    when (selectedTab) {
+      Tab.LIVE -> ChannelPage(controller = controller, modifier = pageModifier)
+
+      // Stubs: the remaining tabs get real pages during the port.
+      else -> Column(
+        modifier = pageModifier,
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        Text(text = selectedTab.label, color = Zinc.z100, fontSize = 24.sp)
+      }
     }
   }
 }
