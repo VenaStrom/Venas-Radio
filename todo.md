@@ -1,1 +1,3 @@
-Remember what was playing
+- [x] save last playing
+- [ ] levels of compact UI
+- [ ] orange icon in debug build

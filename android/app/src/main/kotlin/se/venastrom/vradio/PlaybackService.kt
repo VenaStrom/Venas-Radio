@@ -22,6 +22,7 @@ import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.store.CurrentMedia
 import se.venastrom.vradio.store.LocalStore
 import se.venastrom.vradio.store.MediaType
+import se.venastrom.vradio.store.Sync
 
 /**
  * Owns the player. Because playback lives in a foreground service rather than a
@@ -55,6 +56,9 @@ class PlaybackService : MediaSessionService() {
 
     scope.launch {
       withContext(Dispatchers.IO) { LocalStore.load(applicationContext) }
+      // The service can outlive the activity by hours; progress written here
+      // must still reach the server, so sync runs with playback, not the UI.
+      Sync.start(applicationContext)
       val restored = LocalStore.currentMedia.value
 
       val restoredEpisode = restored?.toEpisodeMediaItem()

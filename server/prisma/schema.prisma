@@ -57,6 +57,9 @@ model EpisodeProgress {
   episode_id String
   episode    Episode @relation("episode_progress_episode", fields: [episode_id], references: [id])
   progress   Float
+  /// Client-reported epoch of the last local update. Drives per-episode
+  /// last-write-wins when several devices sync the same account.
+  touched_at DateTime @default(now()) @db.DateTime(3)
 
   @@id([user_id, episode_id])
 }

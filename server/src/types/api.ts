@@ -107,3 +107,27 @@ export type MeDto = {
   username: string;
   avatarUrl: string | null;
 };
+
+// --- User state sync ---
+
+export type EpisodeProgressDto = {
+  episodeId: string;
+  /** Elapsed listening time. */
+  seconds: Double;
+  /**
+   * Client clock, epoch ms, of the last local update. The server keeps
+   * whichever side is newer per episode, so two devices converge instead of
+   * the last full push clobbering everything.
+   */
+  touchedAtMs: Long;
+};
+
+/**
+ * The synced user state. GET returns it; PUT sends the client's view and gets
+ * the merged result back, so one round trip both uploads and reconciles.
+ */
+export type UserStateDto = {
+  progress: EpisodeProgressDto[];
+  followedProgramIds: string[];
+  followedChannelIds: string[];
+};

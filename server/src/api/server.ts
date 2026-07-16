@@ -1,6 +1,7 @@
 import type { ApiError, ChannelDto, ChannelsResponse, ProgramDto, ProgramsResponse } from "@/types/api";
 import { authRouter } from "@/api/routes/auth";
 import { episodesRouter } from "@/api/routes/episodes";
+import { userStateRouter } from "@/api/routes/user-state";
 import { discordConfigured } from "@/api/lib/auth";
 import { prisma } from "@/api/lib/prisma";
 import express from "express";
@@ -9,6 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(authRouter);
 app.use(episodesRouter);
+app.use(userStateRouter);
 
 type Paging = { skip: number; take: number };
 

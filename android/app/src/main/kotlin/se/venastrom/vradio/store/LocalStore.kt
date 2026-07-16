@@ -17,6 +17,9 @@ enum class MediaType { CHANNEL, EPISODE }
  * carry a playback snapshot too: the feed window moves, so weeks later the
  * episode may no longer be fetchable, and resuming must not need the network.
  */
+/** One progress entry as the server reports it, handed over by [Sync]. */
+data class RemoteProgress(val episodeId: String, val seconds: Double, val touchedAtMs: Long)
+
 @Serializable
 data class CurrentMedia(
   val type: MediaType,
@@ -119,6 +122,52 @@ object LocalStore {
   fun setCurrentMedia(media: CurrentMedia?) {
     _currentMedia.value = media
     persist(KEY_CURRENT_MEDIA, media)
+  }
+
+  @Synchronized
+  fun progressTouchedSnapshot(): Map<String, Long> = progressTouchedAt
+
+  /**
+   * Applies the server's view of the account.
+   *
+   * Progress is merged per episode, last-write-wins against the local
+   * touched-at stamps — and applying never bumps a stamp, so remote data can
+   * never masquerade as a local edit. Follows are unioned; unfollowing still
+   * propagates because [Sync]'s push replaces the server-side set.
+   */
+  @Synchronized
+  fun applyRemoteState(
+    progress: List<RemoteProgress>,
+    programIds: Collection<String>,
+    channelIds: Collection<String>,
+  ) {
+    var progressChanged = false
+    val newProgress = _progressSeconds.value.toMutableMap()
+    val newTouched = progressTouchedAt.toMutableMap()
+    for (entry in progress) {
+      if (entry.touchedAtMs > (newTouched[entry.episodeId] ?: 0L)) {
+        newProgress[entry.episodeId] = entry.seconds
+        newTouched[entry.episodeId] = entry.touchedAtMs
+        progressChanged = true
+      }
+    }
+    if (progressChanged) {
+      _progressSeconds.value = newProgress
+      progressTouchedAt = newTouched
+      persist(KEY_PROGRESS, _progressSeconds.value)
+      persist(KEY_PROGRESS_TOUCHED, progressTouchedAt)
+    }
+
+    val mergedPrograms = _followedPrograms.value + programIds
+    if (mergedPrograms != _followedPrograms.value) {
+      _followedPrograms.value = mergedPrograms
+      persist(KEY_FOLLOWED_PROGRAMS, mergedPrograms)
+    }
+    val mergedChannels = _followedChannels.value + channelIds
+    if (mergedChannels != _followedChannels.value) {
+      _followedChannels.value = mergedChannels
+      persist(KEY_FOLLOWED_CHANNELS, mergedChannels)
+    }
   }
 
   private fun toggle(set: Set<String>, id: String): Set<String> =

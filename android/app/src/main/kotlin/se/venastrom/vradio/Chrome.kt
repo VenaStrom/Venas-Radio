@@ -25,6 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.venastrom.vradio.auth.SessionState
+import se.venastrom.vradio.store.Sync
 
 /**
  * Header: logo on the left, sync state and options on the right.
@@ -102,10 +105,12 @@ private fun SyncIndicator(session: SessionState, onClick: () -> Unit) {
   // While restoring the session there is nothing truthful to claim yet.
   if (session is SessionState.Loading) return
 
-  val (icon, tint, label) = when (session) {
-    is SessionState.SignedIn ->
+  val syncFailed by Sync.failed.collectAsStateWithLifecycle()
+
+  val (icon, tint, label) = when {
+    session is SessionState.SignedIn && !syncFailed ->
       Triple(R.drawable.ic_sync, Color(0xFF22C55E), "Synk på") // Tailwind green-500
-    is SessionState.Failed ->
+    session is SessionState.SignedIn || session is SessionState.Failed ->
       Triple(R.drawable.ic_sync_problem, Color(0xFFF87171), "Synkfel") // Tailwind red-400
     else ->
       Triple(R.drawable.ic_discord, Color(0xFF5865F2), "Logga in") // Discord blurple

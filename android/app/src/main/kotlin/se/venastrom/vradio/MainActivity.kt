@@ -43,6 +43,7 @@ import kotlinx.coroutines.withContext
 import se.venastrom.vradio.auth.Auth
 import se.venastrom.vradio.auth.SessionState
 import se.venastrom.vradio.store.LocalStore
+import se.venastrom.vradio.store.Sync
 
 class MainActivity : ComponentActivity() {
 
@@ -131,6 +132,15 @@ private fun AppScaffold(
     withContext(Dispatchers.IO) {
       LocalStore.load(context)
       session = Auth.restore(context)
+    }
+  }
+
+  // Sync spins up (or re-pulls) whenever a signed-in session appears — at app
+  // start via restore, or the moment the OAuth flow completes.
+  LaunchedEffect(session) {
+    if (session is SessionState.SignedIn) {
+      Sync.start(context)
+      Sync.refresh(context)
     }
   }
 
