@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,11 +38,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
-import se.venastrom.vradio.store.LocalStore
 import java.util.Locale
 
 /**
@@ -52,8 +48,6 @@ import java.util.Locale
  */
 @Composable
 fun PlayerControls(controller: MediaController?) {
-  val context = LocalContext.current
-
   var isPlaying by remember { mutableStateOf(false) }
   var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
   var title by remember { mutableStateOf("") }
@@ -82,19 +76,13 @@ fun PlayerControls(controller: MediaController?) {
   }
 
   // Media3 has no position callback — the position is meant to be polled.
+  // Display only: persisting progress is PlaybackService's job, since playback
+  // outlives this composable.
   LaunchedEffect(controller) {
     val c = controller ?: return@LaunchedEffect
-    // Guarantees the store is loaded before updateProgress can ever run.
-    withContext(Dispatchers.IO) { LocalStore.load(context) }
     while (isActive) {
       positionMs = c.currentPosition
       durationMs = c.duration
-      // Episodes remember where you were; live has no position worth keeping.
-      if (isEpisode && c.isPlaying && durationMs != C.TIME_UNSET) {
-        c.currentMediaItem?.mediaId?.let { id ->
-          LocalStore.updateProgress(id, positionMs / 1000.0, durationMs / 1000.0)
-        }
-      }
       delay(500)
     }
   }

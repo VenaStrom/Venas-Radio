@@ -14,6 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.venastrom.vradio.api.Api
@@ -52,43 +54,88 @@ class PlaybackService : MediaSessionService() {
     mediaSession = MediaSession.Builder(this, player).build()
 
     scope.launch {
-      // Cache-first, so a device that has run before gets its playlist without
-      // the network; only a first-ever launch with no connectivity ends up empty.
-      val channels = try {
-        Api.channels(applicationContext)
+      withContext(Dispatchers.IO) { LocalStore.load(applicationContext) }
+      val restored = LocalStore.currentMedia.value
+
+      val restoredEpisode = restored?.toEpisodeMediaItem()
+      if (restoredEpisode != null) {
+        // Resume the episode where it was left, paused, straight from the
+        // snapshot — no network, and no dependence on it still being in the feed.
+        val startMs = ((LocalStore.progressSeconds.value[restored.id] ?: 0.0) * 1000).toLong()
+        player.setMediaItem(restoredEpisode, startMs)
+        player.prepare()
       }
-      catch (e: Throwable) {
-        Log.w("PlaybackService", "Could not load channels", e)
-        return@launch
-      }
-      val restored = withContext(Dispatchers.IO) {
-        LocalStore.load(applicationContext)
-        LocalStore.currentMedia.value
+      else {
+        // Cache-first, so a device that has run before gets its playlist without
+        // the network; only a first-ever launch with no connectivity ends up empty.
+        val channels = runCatching { Api.channels(applicationContext) }
+          .onFailure { Log.w("PlaybackService", "Could not load channels", it) }
+          .getOrNull()
+        if (channels != null) {
+          player.setMediaItems(channels.map { it.toMediaItem() })
+          if (restored?.type == MediaType.CHANNEL) {
+            val index = channels.indexOfFirst { it.id == restored.id }
+            if (index >= 0) player.seekToDefaultPosition(index)
+          }
+          player.prepare()
+        }
       }
 
-      player.setMediaItems(channels.map { it.toMediaItem() })
-      if (restored?.type == MediaType.CHANNEL) {
-        val index = channels.indexOfFirst { it.id == restored.id }
-        if (index >= 0) player.seekToDefaultPosition(index)
-      }
-      player.prepare()
-
-      // Attached only after restoration so the setMediaItems/seek above cannot
-      // clobber the stored media with their own synthetic transitions.
+      // Attached only after restoration so the calls above cannot clobber the
+      // stored media with their own synthetic transitions.
       player.addListener(object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-          val id = mediaItem?.mediaId ?: return
-          val type =
-            if (mediaItem.mediaMetadata.mediaType == MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE) {
-              MediaType.EPISODE
-            }
-            else {
-              MediaType.CHANNEL
-            }
-          LocalStore.setCurrentMedia(CurrentMedia(type, id))
+          persistCurrentMedia(mediaItem)
+        }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+          // Seeks and pauses are save points, so a process kill right after
+          // either cannot lose the position.
+          if (events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_IS_PLAYING_CHANGED)) {
+            saveEpisodeProgress(player)
+          }
         }
       })
+
+      // Progress saving lives here, not in the UI: playback outlives the
+      // activity, and the notification keeps playing long after the
+      // MediaController is released.
+      while (isActive) {
+        if (player.isPlaying) saveEpisodeProgress(player)
+        delay(1000)
+      }
     }
+  }
+
+  /** Full snapshot, so an episode can be rebuilt for resume without the network. */
+  private fun persistCurrentMedia(mediaItem: MediaItem?) {
+    val item = mediaItem ?: return
+    val metadata = item.mediaMetadata
+    val type =
+      if (metadata.mediaType == MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE) {
+        MediaType.EPISODE
+      }
+      else {
+        MediaType.CHANNEL
+      }
+    LocalStore.setCurrentMedia(
+      CurrentMedia(
+        type = type,
+        id = item.mediaId,
+        title = metadata.title?.toString(),
+        subtitle = metadata.artist?.toString(),
+        image = metadata.artworkUri?.toString(),
+        audioUrl = item.localConfiguration?.uri?.toString(),
+      ),
+    )
+  }
+
+  private fun saveEpisodeProgress(player: Player) {
+    val item = player.currentMediaItem ?: return
+    if (item.mediaMetadata.mediaType != MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE) return
+    val durationMs = player.duration
+    if (durationMs == C.TIME_UNSET) return
+    LocalStore.updateProgress(item.mediaId, player.currentPosition / 1000.0, durationMs / 1000.0)
   }
 
   override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession

@@ -12,12 +12,21 @@ import kotlinx.serialization.json.Json
 enum class MediaType { CHANNEL, EPISODE }
 
 /**
- * What was last playing, by reference. Only type + id are stored; everything
- * displayable (name, image, stream url) is re-derived from the API cache so a
- * stale snapshot can never disagree with fresh data.
+ * What was last playing. For channels only type + id matter — the rest is
+ * re-derived from the API cache, which always holds every channel. Episodes
+ * carry a playback snapshot too: the feed window moves, so weeks later the
+ * episode may no longer be fetchable, and resuming must not need the network.
  */
 @Serializable
-data class CurrentMedia(val type: MediaType, val id: String)
+data class CurrentMedia(
+  val type: MediaType,
+  val id: String,
+  val title: String? = null,
+  /** Program name for episodes, "Sveriges Radio" for channels. */
+  val subtitle: String? = null,
+  val image: String? = null,
+  val audioUrl: String? = null,
+)
 
 /**
  * The web client's localStorage, ported: followed channels/programs, episode
