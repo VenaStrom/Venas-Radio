@@ -131,6 +131,11 @@ private fun AppScaffold(
   LaunchedEffect(Unit) {
     withContext(Dispatchers.IO) {
       LocalStore.load(context)
+      // Reopen on the last used tab — before Auth.restore, which can block on
+      // the network for seconds.
+      LocalStore.lastTab.value
+        ?.let { name -> Tab.entries.find { it.name == name } }
+        ?.let { selectedTab = it }
       session = Auth.restore(context)
     }
   }
@@ -184,7 +189,14 @@ private fun AppScaffold(
           controller = controller,
           session = session,
           selectedTab = selectedTab,
-          onTabClick = { selectedTab = it },
+          onTabClick = { tab ->
+            selectedTab = tab
+            // Via load on IO: a footer tap can beat the initial load on a cold start.
+            scope.launch(Dispatchers.IO) {
+              LocalStore.load(context)
+              LocalStore.setLastTab(tab.name)
+            }
+          },
           onMenuClick = { scope.launch { drawerState.open() } },
         )
       }

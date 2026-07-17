@@ -63,6 +63,7 @@ object LocalStore {
   private const val KEY_CURRENT_MEDIA = "current_media"
   private const val KEY_COMPACTNESS = "ui_compactness"
   private const val KEY_DOWNLOAD_ON_WIFI = "download_on_wifi"
+  private const val KEY_LAST_TAB = "last_tab"
 
   private val json = Json { ignoreUnknownKeys = true }
 
@@ -102,6 +103,10 @@ object LocalStore {
   private val _downloadOnWifi = MutableStateFlow(false)
   val downloadOnWifi: StateFlow<Boolean> = _downloadOnWifi.asStateFlow()
 
+  /** Name of the last selected nav tab, so the app reopens where it was left. */
+  private val _lastTab = MutableStateFlow<String?>(null)
+  val lastTab: StateFlow<String?> = _lastTab.asStateFlow()
+
   /** Idempotent. Call once from a Dispatchers.IO context before anything else. */
   @Synchronized
   fun load(context: Context) {
@@ -116,6 +121,7 @@ object LocalStore {
     _currentMedia.value = decode(p, KEY_CURRENT_MEDIA)
     _compactness.value = decode(p, KEY_COMPACTNESS) ?: Compactness.DEFAULT
     _downloadOnWifi.value = decode(p, KEY_DOWNLOAD_ON_WIFI) ?: false
+    _lastTab.value = decode(p, KEY_LAST_TAB)
 
     // Assigned last: it is the "loaded" flag, and the flows must hold their
     // persisted values before anyone can mutate them.
@@ -175,6 +181,12 @@ object LocalStore {
   fun setDownloadOnWifi(value: Boolean) {
     _downloadOnWifi.value = value
     persist(KEY_DOWNLOAD_ON_WIFI, value)
+  }
+
+  @Synchronized
+  fun setLastTab(name: String) {
+    _lastTab.value = name
+    persist(KEY_LAST_TAB, name)
   }
 
   @Synchronized

@@ -6,6 +6,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
@@ -107,6 +108,17 @@ class PlaybackService : MediaSessionService() {
           // either cannot lose the position.
           if (events.containsAny(Player.EVENT_POSITION_DISCONTINUITY, Player.EVENT_IS_PLAYING_CHANGED)) {
             saveEpisodeProgress(player)
+          }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+          // A dead source (pruned download, CDN hiccup) must not silently end
+          // the listening session: log it, skip past it, keep going.
+          Log.w("PlaybackService", "Player error on ${player.currentMediaItem?.mediaId}", error)
+          if (player.hasNextMediaItem()) {
+            player.seekToNextMediaItem()
+            player.prepare()
+            player.play()
           }
         }
       })

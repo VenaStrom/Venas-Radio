@@ -68,7 +68,7 @@ fun Sidebar(
       fontSize = 20.sp,
     )
     Text(
-      text = "Spara dina favoriter och inställningar för att synka mellan enheter.",
+      text = "Logga in för att synka din lyssningshistorik och favoritprogram.",
       color = Zinc.z400,
       fontSize = 13.sp,
       modifier = Modifier.padding(top = 4.dp, bottom = 20.dp),
