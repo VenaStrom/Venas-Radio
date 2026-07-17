@@ -34,6 +34,9 @@ class PlaybackService : MediaSessionService() {
 
   private var mediaSession: MediaSession? = null
 
+  /** Within this of the end counts as finished — same epsilon the pages use. */
+  private val COMPLETION_EPSILON_SECONDS = 2.0
+
   // Main-thread scope: the player must only be touched from the main thread.
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -92,6 +95,11 @@ class PlaybackService : MediaSessionService() {
       player.addListener(object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
           persistCurrentMedia(mediaItem)
+          // Only automatic advances: a listener tapping an episode chose it
+          // deliberately, and our own corrective seeks arrive as SEEK.
+          if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+            resumeOrSkip(player)
+          }
         }
 
         override fun onEvents(player: Player, events: Player.Events) {
@@ -134,6 +142,41 @@ class PlaybackService : MediaSessionService() {
         audioUrl = item.localConfiguration?.uri?.toString(),
       ),
     )
+  }
+
+  /**
+   * Auto-advance lands on the next playlist item blindly, so it would replay
+   * finished episodes from zero and restart half-listened ones. Walk forward
+   * to the first unfinished episode and enter it at its saved position; when
+   * only finished episodes remain, stop instead of re-playing them.
+   *
+   * Durations come from [LocalStore], learned during playback — an episode
+   * with no recorded duration has never played and thus cannot be finished.
+   */
+  private fun resumeOrSkip(player: Player) {
+    var index = player.currentMediaItemIndex
+    var startMs = 0L
+
+    while (index < player.mediaItemCount) {
+      val item = player.getMediaItemAt(index)
+      // Live channels have nothing to resume or skip.
+      if (item.mediaMetadata.mediaType != MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE) return
+
+      val saved = LocalStore.progressSeconds.value[item.mediaId] ?: 0.0
+      val duration = LocalStore.durationSecondsOf(item.mediaId)
+      val finished = duration != null && saved >= duration - COMPLETION_EPSILON_SECONDS
+      if (!finished) {
+        startMs = (saved * 1000).toLong()
+        break
+      }
+      index++
+    }
+
+    when {
+      index >= player.mediaItemCount -> player.pause()
+      index == player.currentMediaItemIndex -> if (startMs > 0) player.seekTo(startMs)
+      else -> player.seekTo(index, startMs)
+    }
   }
 
   private fun saveEpisodeProgress(player: Player) {

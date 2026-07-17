@@ -3,5 +3,5 @@
 - [x] orange icon in debug build
 - [ ] proxy/cache things from SR?
 - [x] clamp min progress visually in episode list to some percent to make it more obvious that the episode has been started
-- [ ] does autoplay skip finishedepisodes? (no, it does not)
-  - [ ] does it continue an autoplayed episode at the right place? (seemingly no. When it autolpayed a completed episode it restarted but that could be a different path than the one i wanna verify)
+- [x] does autoplay skip finishedepisodes? (no, it does not)
+  - [x] does it continue an autoplayed episode at the right place? (seemingly no. When it autolpayed a completed episode it restarted but that could be a different path than the one i wanna verify)

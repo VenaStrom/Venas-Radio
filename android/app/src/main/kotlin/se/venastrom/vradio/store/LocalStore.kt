@@ -59,6 +59,7 @@ object LocalStore {
   private const val KEY_FOLLOWED_PROGRAMS = "followed_programs"
   private const val KEY_PROGRESS = "progress_seconds"
   private const val KEY_PROGRESS_TOUCHED = "progress_touched_at"
+  private const val KEY_DURATIONS = "episode_durations"
   private const val KEY_CURRENT_MEDIA = "current_media"
   private const val KEY_COMPACTNESS = "ui_compactness"
   private const val KEY_DOWNLOAD_ON_WIFI = "download_on_wifi"
@@ -84,6 +85,14 @@ object LocalStore {
    */
   private var progressTouchedAt: Map<String, Long> = emptyMap()
 
+  /**
+   * Episode id → duration seconds, learned as episodes play. Exists so the
+   * playback service can judge "is this finished?" for episodes whose DTOs it
+   * never sees. Only played episodes have entries, which suffices: an episode
+   * that never played cannot be finished.
+   */
+  private var episodeDurations: Map<String, Double> = emptyMap()
+
   private val _currentMedia = MutableStateFlow<CurrentMedia?>(null)
   val currentMedia: StateFlow<CurrentMedia?> = _currentMedia.asStateFlow()
 
@@ -103,6 +112,7 @@ object LocalStore {
     _followedPrograms.value = decode(p, KEY_FOLLOWED_PROGRAMS) ?: emptySet()
     _progressSeconds.value = decode(p, KEY_PROGRESS) ?: emptyMap()
     progressTouchedAt = decode(p, KEY_PROGRESS_TOUCHED) ?: emptyMap()
+    episodeDurations = decode(p, KEY_DURATIONS) ?: emptyMap()
     _currentMedia.value = decode(p, KEY_CURRENT_MEDIA)
     _compactness.value = decode(p, KEY_COMPACTNESS) ?: Compactness.DEFAULT
     _downloadOnWifi.value = decode(p, KEY_DOWNLOAD_ON_WIFI) ?: false
@@ -139,7 +149,15 @@ object LocalStore {
     progressTouchedAt = progressTouchedAt + (episodeId to System.currentTimeMillis())
     persist(KEY_PROGRESS, _progressSeconds.value)
     persist(KEY_PROGRESS_TOUCHED, progressTouchedAt)
+
+    if (durationSeconds != null && durationSeconds.isFinite() && episodeDurations[episodeId] != durationSeconds) {
+      episodeDurations = episodeDurations + (episodeId to durationSeconds)
+      persist(KEY_DURATIONS, episodeDurations)
+    }
   }
+
+  @Synchronized
+  fun durationSecondsOf(episodeId: String): Double? = episodeDurations[episodeId]
 
   @Synchronized
   fun setCurrentMedia(media: CurrentMedia?) {

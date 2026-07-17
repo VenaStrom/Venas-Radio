@@ -156,10 +156,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
 
   fun playPause(episode: EpisodeDto) {
     val c = controller ?: return
-    // The list as currently shown becomes the playlist, so a finished episode
-    // auto-advances to the next one — and with a search active, "next" means
-    // the next search hit, not the next thing in the unfiltered feed.
-    val playlist = filtered ?: return
+    val visible = filtered ?: return
 
     // Already loaded: toggle without resetting the position.
     if (c.currentMediaItem?.mediaId == episode.id) {
@@ -167,9 +164,17 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
       return
     }
 
+    fun finished(e: EpisodeDto): Boolean =
+      (LocalStore.progressSeconds.value[e.id] ?: 0.0) >= e.durationSeconds - COMPLETION_EPSILON_SECONDS
+
+    // The list as currently shown becomes the playlist (with a search active,
+    // "next" means the next search hit) — minus finished episodes, so
+    // auto-advance never even considers them. The tapped one stays regardless:
+    // replaying something on purpose is allowed.
+    val playlist = visible.filter { it.id == episode.id || !finished(it) }
+
     val saved = LocalStore.progressSeconds.value[episode.id] ?: 0.0
-    val complete = saved >= episode.durationSeconds - COMPLETION_EPSILON_SECONDS
-    val startMs = if (complete) 0L else (saved * 1000).toLong()
+    val startMs = if (finished(episode)) 0L else (saved * 1000).toLong()
     c.setMediaItems(
       playlist.map { it.toMediaItem(Downloads.localUri(context, it.id)) },
       playlist.indexOf(episode),
