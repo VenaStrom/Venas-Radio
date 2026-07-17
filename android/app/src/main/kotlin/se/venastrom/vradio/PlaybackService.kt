@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.store.CurrentMedia
+import se.venastrom.vradio.store.Downloads
 import se.venastrom.vradio.store.LocalStore
 import se.venastrom.vradio.store.MediaType
 import se.venastrom.vradio.store.Sync
@@ -61,7 +62,8 @@ class PlaybackService : MediaSessionService() {
       Sync.start(applicationContext)
       val restored = LocalStore.currentMedia.value
 
-      val restoredEpisode = restored?.toEpisodeMediaItem()
+      val restoredEpisode =
+        restored?.toEpisodeMediaItem(Downloads.localUri(applicationContext, restored.id))
       if (restoredEpisode != null) {
         // Resume the episode where it was left, paused, straight from the
         // snapshot — no network, and no dependence on it still being in the feed.

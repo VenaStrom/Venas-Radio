@@ -61,6 +61,7 @@ object LocalStore {
   private const val KEY_PROGRESS_TOUCHED = "progress_touched_at"
   private const val KEY_CURRENT_MEDIA = "current_media"
   private const val KEY_COMPACTNESS = "ui_compactness"
+  private const val KEY_DOWNLOAD_ON_WIFI = "download_on_wifi"
 
   private val json = Json { ignoreUnknownKeys = true }
 
@@ -89,6 +90,9 @@ object LocalStore {
   private val _compactness = MutableStateFlow(Compactness.DEFAULT)
   val compactness: StateFlow<Compactness> = _compactness.asStateFlow()
 
+  private val _downloadOnWifi = MutableStateFlow(false)
+  val downloadOnWifi: StateFlow<Boolean> = _downloadOnWifi.asStateFlow()
+
   /** Idempotent. Call once from a Dispatchers.IO context before anything else. */
   @Synchronized
   fun load(context: Context) {
@@ -101,6 +105,7 @@ object LocalStore {
     progressTouchedAt = decode(p, KEY_PROGRESS_TOUCHED) ?: emptyMap()
     _currentMedia.value = decode(p, KEY_CURRENT_MEDIA)
     _compactness.value = decode(p, KEY_COMPACTNESS) ?: Compactness.DEFAULT
+    _downloadOnWifi.value = decode(p, KEY_DOWNLOAD_ON_WIFI) ?: false
 
     // Assigned last: it is the "loaded" flag, and the flows must hold their
     // persisted values before anyone can mutate them.
@@ -146,6 +151,12 @@ object LocalStore {
   fun setCompactness(value: Compactness) {
     _compactness.value = value
     persist(KEY_COMPACTNESS, value)
+  }
+
+  @Synchronized
+  fun setDownloadOnWifi(value: Boolean) {
+    _downloadOnWifi.value = value
+    persist(KEY_DOWNLOAD_ON_WIFI, value)
   }
 
   @Synchronized

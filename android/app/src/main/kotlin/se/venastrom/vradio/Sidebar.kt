@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -16,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,6 +34,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.venastrom.vradio.auth.SessionState
 import se.venastrom.vradio.store.Compactness
+import se.venastrom.vradio.store.Downloads
 import se.venastrom.vradio.store.LocalStore
 
 private const val REPO_URL = "https://github.com/VenaStrom/Venas-Radio"
@@ -87,6 +90,7 @@ fun Sidebar(
     }
 
     CompactnessSelect(modifier = Modifier.padding(top = 28.dp))
+    DownloadToggle(modifier = Modifier.padding(top = 24.dp))
 
     Spacer(modifier = Modifier.weight(1f))
 
@@ -123,6 +127,40 @@ private fun CompactnessSelect(modifier: Modifier = Modifier) {
         )
       }
     }
+  }
+}
+
+/** Downloads the feed's newest episodes over Wi-Fi so they play offline. */
+@Composable
+private fun DownloadToggle(modifier: Modifier = Modifier) {
+  val context = LocalContext.current
+  val enabled by LocalStore.downloadOnWifi.collectAsStateWithLifecycle()
+
+  Row(
+    modifier = modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Column(modifier = Modifier.weight(1f)) {
+      Text(
+        text = "Ladda ner flödet",
+        color = Zinc.z100,
+        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+      )
+      Text(
+        text = "Via Wi-Fi, för lyssning offline",
+        color = Zinc.z400,
+        fontSize = 12.sp,
+      )
+    }
+    Switch(
+      checked = enabled,
+      onCheckedChange = { checked ->
+        LocalStore.setDownloadOnWifi(checked)
+        // Off should also give the storage back, not strand a pile of mp3s.
+        if (!checked) Downloads.clearAll(context)
+      },
+    )
   }
 }
 

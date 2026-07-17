@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.EpisodeDto
 import se.venastrom.vradio.store.Compactness
+import se.venastrom.vradio.store.Downloads
 import se.venastrom.vradio.store.LocalStore
 import se.venastrom.vradio.store.UiSession
 import java.time.Instant
@@ -91,6 +92,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
       val feed = Api.episodes(context, followed)
       episodes = feed.episodes
       offline = feed.offline
+      if (!feed.offline) Downloads.sync(context, feed.episodes)
     }
     catch (_: Throwable) {
       loadFailed = true
@@ -105,6 +107,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
         val feed = Api.episodes(context, followed, force = true)
         episodes = feed.episodes
         offline = feed.offline
+        if (!feed.offline) Downloads.sync(context, feed.episodes)
         loadFailed = false
       }
       catch (_: Throwable) {
@@ -116,6 +119,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
 
   val progress by LocalStore.progressSeconds.collectAsStateWithLifecycle()
   val compactness by LocalStore.compactness.collectAsStateWithLifecycle()
+  val downloadedIds by Downloads.downloaded.collectAsStateWithLifecycle()
 
   var playingId by remember { mutableStateOf<String?>(null) }
   DisposableEffect(controller) {
@@ -163,7 +167,11 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
     val saved = LocalStore.progressSeconds.value[episode.id] ?: 0.0
     val complete = saved >= episode.durationSeconds - COMPLETION_EPSILON_SECONDS
     val startMs = if (complete) 0L else (saved * 1000).toLong()
-    c.setMediaItems(playlist.map { it.toMediaItem() }, playlist.indexOf(episode), startMs)
+    c.setMediaItems(
+      playlist.map { it.toMediaItem(Downloads.localUri(context, it.id)) },
+      playlist.indexOf(episode),
+      startMs,
+    )
     c.prepare()
     c.play()
   }
@@ -272,6 +280,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
                   episode = episode,
                   progressSeconds = progress[episode.id] ?: 0.0,
                   isPlaying = playingId == episode.id,
+                  isDownloaded = episode.id in downloadedIds,
                   playEnabled = controller != null,
                   onPlayPause = { playPause(episode) },
                   compactness = compactness,
@@ -322,6 +331,7 @@ private fun EpisodeRow(
   episode: EpisodeDto,
   progressSeconds: Double,
   isPlaying: Boolean,
+  isDownloaded: Boolean,
   playEnabled: Boolean,
   onPlayPause: () -> Unit,
   compactness: Compactness,
@@ -434,9 +444,10 @@ private fun EpisodeRow(
         remaining <= COMPLETION_EPSILON_SECONDS -> "${formatSpan(episode.durationSeconds)}  ·  Lyssnad"
         else -> "${formatSpan(remaining.toInt())} kvar"
       }
+      val downloadedSuffix = if (isDownloaded) "  ·  Nedladdad" else ""
       Text(
         text = "${dateHeaderLabel(localDateOf(episode.publishedAtMs), LocalDate.now())} " +
-          "${formatClock(episode.publishedAtMs)}  ·  $listenState",
+          "${formatClock(episode.publishedAtMs)}  ·  $listenState$downloadedSuffix",
         color = Zinc.z400,
         fontSize = 12.sp,
         modifier = Modifier.weight(1f),

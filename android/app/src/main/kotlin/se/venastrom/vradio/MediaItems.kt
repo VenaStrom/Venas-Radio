@@ -30,12 +30,14 @@ fun ChannelDto.toMediaItem(): MediaItem = MediaItem.Builder()
 /**
  * Rebuilds a playable episode from the stored snapshot, entirely offline.
  * Null for channels and for snapshots written before audio urls were stored.
+ * [localUri] (a downloaded file) wins over the stream url when present.
  */
-fun CurrentMedia.toEpisodeMediaItem(): MediaItem? {
-  if (type != MediaType.EPISODE || audioUrl == null) return null
+fun CurrentMedia.toEpisodeMediaItem(localUri: Uri? = null): MediaItem? {
+  if (type != MediaType.EPISODE) return null
+  val uri = localUri ?: audioUrl?.let(Uri::parse) ?: return null
   return MediaItem.Builder()
     .setMediaId(id)
-    .setUri(audioUrl)
+    .setUri(uri)
     .setMediaMetadata(
       MediaMetadata.Builder()
         .setTitle(title)
@@ -49,9 +51,10 @@ fun CurrentMedia.toEpisodeMediaItem(): MediaItem? {
     .build()
 }
 
-fun EpisodeDto.toMediaItem(): MediaItem = MediaItem.Builder()
+/** [localUri] (a downloaded file) wins over the stream url when present. */
+fun EpisodeDto.toMediaItem(localUri: Uri? = null): MediaItem = MediaItem.Builder()
   .setMediaId(id)
-  .setUri(audioUrl)
+  .setUri(localUri ?: Uri.parse(audioUrl))
   .setMediaMetadata(
     MediaMetadata.Builder()
       .setTitle(title)
