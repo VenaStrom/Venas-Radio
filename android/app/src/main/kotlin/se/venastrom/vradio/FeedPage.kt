@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -76,6 +77,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
 
   val followed by LocalStore.followedPrograms.collectAsStateWithLifecycle()
   var episodes by remember { mutableStateOf<List<EpisodeDto>?>(null) }
+  var offline by remember { mutableStateOf(false) }
   var loadFailed by remember { mutableStateOf(false) }
   var refreshing by remember { mutableStateOf(false) }
   // Session-scoped so switching tabs does not wipe the query.
@@ -86,7 +88,9 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
     episodes = null
     loadFailed = false
     try {
-      episodes = Api.episodes(context, followed)
+      val feed = Api.episodes(context, followed)
+      episodes = feed.episodes
+      offline = feed.offline
     }
     catch (_: Throwable) {
       loadFailed = true
@@ -98,7 +102,9 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
     scope.launch {
       refreshing = true
       try {
-        episodes = Api.episodes(context, followed, force = true)
+        val feed = Api.episodes(context, followed, force = true)
+        episodes = feed.episodes
+        offline = feed.offline
         loadFailed = false
       }
       catch (_: Throwable) {
@@ -182,6 +188,20 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
         .padding(top = 8.dp, bottom = 8.dp)
         .fillMaxWidth(10f / 12f),
     )
+
+    // Otherwise "offline" masquerades as "your programs have nothing new" —
+    // most confusingly right after following something.
+    if (offline) {
+      Text(
+        text = "Ingen kontakt med servern – visar sparade avsnitt",
+        color = Color(0xFFFBBF24), // Tailwind amber-400
+        fontSize = 12.sp,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(bottom = 4.dp),
+      )
+    }
 
     when {
       filtered != null && filtered.isEmpty() && query.isNotBlank() -> EmptyState(

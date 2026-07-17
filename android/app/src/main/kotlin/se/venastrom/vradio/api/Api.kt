@@ -25,6 +25,13 @@ import java.net.URL
  *  3. network fails → serve the stale cache if one exists (offline still
  *     shows channels), else propagate the failure
  */
+/**
+ * A feed answer that knows where it came from: [offline] means the network was
+ * unreachable and [episodes] are the newest cached data — the UI says so
+ * instead of letting "offline" masquerade as "nothing new".
+ */
+data class EpisodesFeed(val episodes: List<EpisodeDto>, val offline: Boolean)
+
 object Api {
   private val json = Json { ignoreUnknownKeys = true }
 
@@ -43,14 +50,17 @@ object Api {
   /** Feed data goes stale fast; the server itself re-asks SR after 15 minutes. */
   private const val EPISODES_TTL_MS = 15L * 60 * 1000
 
+  /** The value plus whether it is current (network or unexpired cache) or a stale fallback. */
+  private data class CacheResult<T>(val value: T, val fresh: Boolean)
+
   /** The server orders by id, which is lexicographic varchar order; name order is what the UI wants. */
   suspend fun channels(context: Context): List<ChannelDto> =
     cached<ChannelsResponse>(context, "channels", "/api/channels?page=1&pagesize=$PAGE_SIZE")
-      .channels.sortedBy { it.name }
+      .value.channels.sortedBy { it.name }
 
   suspend fun programs(context: Context): List<ProgramDto> =
     cached<ProgramsResponse>(context, "programs", "/api/programs?page=1&pagesize=$PAGE_SIZE")
-      .programs.sortedBy { it.name }
+      .value.programs.sortedBy { it.name }
 
   /**
    * Latest episodes for [programIds], newest first. The cache key carries the
@@ -58,18 +68,20 @@ object Api {
    * [force] skips the freshness check (pull-to-refresh) but still falls back
    * to stale cache when the network is down.
    */
-  suspend fun episodes(context: Context, programIds: Collection<String>, force: Boolean = false): List<EpisodeDto> {
+  suspend fun episodes(context: Context, programIds: Collection<String>, force: Boolean = false): EpisodesFeed {
     val ids = programIds.sorted()
     val key = "episodes-${ids.joinToString(",").hashCode().toUInt().toString(16)}"
     val path = "/api/episodes?programIds=${ids.joinToString(",")}"
     return try {
-      cached<EpisodesResponse>(context, key, path, ttlMs = EPISODES_TTL_MS, force = force).episodes
+      val result = cached<EpisodesResponse>(context, key, path, ttlMs = EPISODES_TTL_MS, force = force)
+      EpisodesFeed(result.value.episodes, offline = !result.fresh)
     }
     catch (e: Throwable) {
       // The key hashes the followed set, so changing follows while offline
       // points at a cache file that does not exist. The newest cached feed,
       // filtered to what is followed now, beats an empty error page.
-      staleEpisodesAnyKey(context, ids.toSet()) ?: throw e
+      val fallback = staleEpisodesAnyKey(context, ids.toSet()) ?: throw e
+      EpisodesFeed(fallback, offline = true)
     }
   }
 
@@ -91,7 +103,7 @@ object Api {
     path: String,
     ttlMs: Long = TTL_MS,
     force: Boolean = false,
-  ): T =
+  ): CacheResult<T> =
     withContext(Dispatchers.IO) {
       val startedAt = System.currentTimeMillis()
       // Not a local fun: those are unsupported inside inline functions.
@@ -102,7 +114,7 @@ object Api {
       if (!force) {
         readCache<T>(file, ttlMs)?.let {
           Log.d("Api", "$key: cache hit in ${elapsed()}")
-          return@withContext it
+          return@withContext CacheResult(it, fresh = true)
         }
       }
 
@@ -111,7 +123,7 @@ object Api {
         if (!force) {
           readCache<T>(file, ttlMs)?.let {
             Log.d("Api", "$key: cache hit after lock in ${elapsed()}")
-            return@withLock it
+            return@withLock CacheResult(it, fresh = true)
           }
         }
 
@@ -120,11 +132,12 @@ object Api {
           val value = json.decodeFromString<T>(body)
           writeCache(file, body)
           Log.d("Api", "$key: fetched over network in ${elapsed()}")
-          value
+          CacheResult(value, fresh = true)
         }
         catch (e: Throwable) {
           readCache<T>(file, ttlMs = null)
             ?.also { Log.d("Api", "$key: network failed, stale cache in ${elapsed()}") }
+            ?.let { CacheResult(it, fresh = false) }
             ?: throw e
         }
       }
