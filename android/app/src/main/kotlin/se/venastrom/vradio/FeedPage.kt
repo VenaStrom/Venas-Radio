@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -38,6 +39,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -120,6 +122,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
   val progress by LocalStore.progressSeconds.collectAsStateWithLifecycle()
   val compactness by LocalStore.compactness.collectAsStateWithLifecycle()
   val downloadedIds by Downloads.downloaded.collectAsStateWithLifecycle()
+  val downloadsEnabled by LocalStore.downloadOnWifi.collectAsStateWithLifecycle()
 
   var playingId by remember { mutableStateOf<String?>(null) }
   DisposableEffect(controller) {
@@ -281,6 +284,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
                   progressSeconds = progress[episode.id] ?: 0.0,
                   isPlaying = playingId == episode.id,
                   isDownloaded = episode.id in downloadedIds,
+                  showDownloadBadge = downloadsEnabled,
                   playEnabled = controller != null,
                   onPlayPause = { playPause(episode) },
                   compactness = compactness,
@@ -332,6 +336,7 @@ private fun EpisodeRow(
   progressSeconds: Double,
   isPlaying: Boolean,
   isDownloaded: Boolean,
+  showDownloadBadge: Boolean,
   playEnabled: Boolean,
   onPlayPause: () -> Unit,
   compactness: Compactness,
@@ -385,6 +390,7 @@ private fun EpisodeRow(
         ProgressLine(fraction)
       }
 
+      if (showDownloadBadge) DownloadBadge(isDownloaded)
       TappableIcon(
         icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
         contentDescription = if (isPlaying) "Pausa ${episode.title}" else "Spela ${episode.title}",
@@ -444,15 +450,15 @@ private fun EpisodeRow(
         remaining <= COMPLETION_EPSILON_SECONDS -> "${formatSpan(episode.durationSeconds)}  ·  Lyssnad"
         else -> "${formatSpan(remaining.toInt())} kvar"
       }
-      val downloadedSuffix = if (isDownloaded) "  ·  Nedladdad" else ""
       Text(
         text = "${dateHeaderLabel(localDateOf(episode.publishedAtMs), LocalDate.now())} " +
-          "${formatClock(episode.publishedAtMs)}  ·  $listenState$downloadedSuffix",
+          "${formatClock(episode.publishedAtMs)}  ·  $listenState",
         color = Zinc.z400,
         fontSize = 12.sp,
         modifier = Modifier.weight(1f),
       )
 
+      if (showDownloadBadge) DownloadBadge(isDownloaded)
       TappableIcon(
         icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
         contentDescription = if (isPlaying) "Pausa ${episode.title}" else "Spela ${episode.title}",
@@ -464,6 +470,23 @@ private fun EpisodeRow(
       )
     }
   }
+}
+
+/**
+ * Whether the episode's audio is on the device. Green = playable offline,
+ * dimmed = streamed. Only rendered while the download setting is on — a badge
+ * about downloads that will never happen would just mislead.
+ */
+@Composable
+private fun DownloadBadge(isDownloaded: Boolean) {
+  Icon(
+    painter = painterResource(R.drawable.ic_download),
+    contentDescription = if (isDownloaded) "Nedladdad" else "Inte nedladdad",
+    tint = if (isDownloaded) Color(0xFF22C55E) else Zinc.z600, // Tailwind green-500
+    modifier = Modifier
+      .padding(end = 4.dp)
+      .size(16.dp),
+  )
 }
 
 /** Static thin bar: listened share of the episode. */
