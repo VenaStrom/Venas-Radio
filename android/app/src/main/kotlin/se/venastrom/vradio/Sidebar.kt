@@ -20,6 +20,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -135,6 +136,10 @@ private fun CompactnessSelect(modifier: Modifier = Modifier) {
 private fun DownloadToggle(modifier: Modifier = Modifier) {
   val context = LocalContext.current
   val enabled by LocalStore.downloadOnWifi.collectAsStateWithLifecycle()
+  val bytes by Downloads.downloadedBytes.collectAsStateWithLifecycle()
+
+  // The panel may open before any feed load has indexed the files.
+  LaunchedEffect(Unit) { Downloads.refreshIndex(context) }
 
   Row(
     modifier = modifier.fillMaxWidth(),
@@ -152,6 +157,14 @@ private fun DownloadToggle(modifier: Modifier = Modifier) {
         color = Zinc.z400,
         fontSize = 12.sp,
       )
+      if (enabled || bytes > 0) {
+        Text(
+          text = "${formatBytes(bytes)} nedladdat",
+          color = Zinc.z500,
+          fontSize = 12.sp,
+          modifier = Modifier.padding(top = 2.dp),
+        )
+      }
     }
     Switch(
       checked = enabled,
@@ -162,6 +175,12 @@ private fun DownloadToggle(modifier: Modifier = Modifier) {
       },
     )
   }
+}
+
+private fun formatBytes(bytes: Long): String = when {
+  bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1e9)
+  bytes >= 1_000_000 -> "%.0f MB".format(bytes / 1e6)
+  else -> "%.0f kB".format(bytes / 1e3)
 }
 
 @Composable

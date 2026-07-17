@@ -32,6 +32,9 @@ object Downloads {
   /** Ids with a complete local file, for the "Nedladdad" markers. */
   val downloaded = MutableStateFlow<Set<String>>(emptySet())
 
+  /** Total size on disk of the downloaded episodes, for the settings panel. */
+  val downloadedBytes = MutableStateFlow(0L)
+
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val syncing = AtomicBoolean(false)
 
@@ -50,8 +53,14 @@ object Downloads {
     val app = context.applicationContext
     scope.launch {
       dir(app).listFiles()?.forEach(File::delete)
-      refreshIndex(app)
+      refreshIndexNow(app)
     }
+  }
+
+  /** Re-reads the on-disk state (async). The settings panel calls this on open. */
+  fun refreshIndex(context: Context) {
+    val app = context.applicationContext
+    scope.launch { refreshIndexNow(app) }
   }
 
   /**
@@ -65,9 +74,8 @@ object Downloads {
     scope.launch {
       try {
         LocalStore.load(app)
-        refreshIndex(app)
+        refreshIndexNow(app)
         if (!LocalStore.downloadOnWifi.value) return@launch
-        if (!onWifi(app)) return@launch
 
         val progress = LocalStore.progressSeconds.value
         val wanted = episodes
@@ -76,17 +84,21 @@ object Downloads {
           .take(MAX_EPISODES)
         val wantedIds = wanted.map { it.id }.toSet()
 
+        // Pruning needs no network, so it runs before the Wi-Fi gate: listened
+        // and aged-out episodes free their storage even on mobile data.
         dir(app).listFiles()?.forEach { file ->
           if (file.name.substringBefore(".") !in wantedIds) file.delete()
         }
-        refreshIndex(app)
+        refreshIndexNow(app)
+
+        if (!onWifi(app)) return@launch
 
         for (episode in wanted) {
           if (fileFor(app, episode.id).isFile) continue
           // Both can change mid-run: the toggle in the drawer, Wi-Fi by walking away.
           if (!LocalStore.downloadOnWifi.value || !onWifi(app)) break
           download(app, episode)
-          refreshIndex(app)
+          refreshIndexNow(app)
         }
       }
       finally {
@@ -95,12 +107,10 @@ object Downloads {
     }
   }
 
-  private fun refreshIndex(context: Context) {
-    downloaded.value = dir(context).listFiles()
-      ?.filter { it.isFile && it.extension == "mp3" }
-      ?.map { it.nameWithoutExtension }
-      ?.toSet()
-      ?: emptySet()
+  private fun refreshIndexNow(context: Context) {
+    val files = dir(context).listFiles()?.filter { it.isFile && it.extension == "mp3" } ?: emptyList()
+    downloaded.value = files.map { it.nameWithoutExtension }.toSet()
+    downloadedBytes.value = files.sumOf { it.length() }
   }
 
   private fun download(context: Context, episode: EpisodeDto) {
