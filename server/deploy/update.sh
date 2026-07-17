@@ -8,9 +8,9 @@ source /home/vr/.nvm/nvm.sh
 
 cd "$REPO"
 git fetch --all
-# Attached branch rather than a detached HEAD at origin/main, so the build can
+# Attached branch rather than a detached HEAD at origin/android, so the build can
 # resolve the branch name.
-git checkout -B main origin/main --force
+git checkout -B android origin/android --force
 
 cd "$SERVER"
 corepack enable
