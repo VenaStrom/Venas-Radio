@@ -42,3 +42,4 @@ server/scripts/.cache/
 build/
 
 /.claude
+*.keystore

@@ -16,12 +16,13 @@ plugins {
  * env var wins when set; localhost (via `adb reverse tcp:3000 tcp:3000`) is
  * the fallback.
  */
+val localProperties: Properties = Properties().also { props ->
+  val file = rootProject.file("local.properties")
+  if (file.exists()) file.inputStream().use(props::load)
+}
+
 val devApiBaseUrl: String = System.getenv("VRADIO_API_URL")
-  ?: Properties().let { props ->
-    val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use(props::load)
-    props.getProperty("vradio.apiBaseUrl")
-  }
+  ?: localProperties.getProperty("vradio.apiBaseUrl")
   ?: "http://localhost:3000"
 
 /**
@@ -50,6 +51,21 @@ android {
     buildConfigField("String", "GIT_COMMIT", "\"${git("rev-parse", "HEAD")}\"")
   }
 
+  signingConfigs {
+    // Machine-specific and gitignored, like the dev server address. Absent
+    // (fresh clone), release falls back to the debug signature so
+    // assembleRelease still produces an installable APK.
+    val keystoreFile = localProperties.getProperty("vradio.keystoreFile")
+    if (keystoreFile != null) {
+      create("release") {
+        storeFile = rootProject.file(keystoreFile)
+        storePassword = localProperties.getProperty("vradio.keystorePassword")
+        keyAlias = localProperties.getProperty("vradio.keyAlias")
+        keyPassword = localProperties.getProperty("vradio.keyPassword")
+      }
+    }
+  }
+
   buildTypes {
     debug {
       applicationIdSuffix = ".debug"
@@ -61,9 +77,10 @@ android {
     }
     release {
       isMinifyEnabled = false
+      signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
       manifestPlaceholders["authScheme"] = "vradio"
       buildConfigField("String", "AUTH_SCHEME", "\"vradio\"")
-      buildConfigField("String", "API_BASE_URL", "\"https://vr.venastrom.se\"")
+      buildConfigField("String", "API_BASE_URL", "\"https://vr-backend.venastrom.se\"")
     }
   }
 
