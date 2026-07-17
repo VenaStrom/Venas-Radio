@@ -1,4 +1,4 @@
 - [x] save last playing
-- [ ] levels of compact UI
+- [x] levels of compact UI
 - [x] orange icon in debug build
 - [ ] proxy/cache things from SR?

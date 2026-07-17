@@ -20,6 +20,19 @@ enum class MediaType { CHANNEL, EPISODE }
 /** One progress entry as the server reports it, handed over by [Sync]. */
 data class RemoteProgress(val episodeId: String, val seconds: Double, val touchedAtMs: Long)
 
+/** How dense the list pages render. A device preference — deliberately not synced. */
+@Serializable
+enum class Compactness(val label: String) {
+  /** The full rows: artwork, attribution, description. */
+  DEFAULT("Standard"),
+
+  /** Thinner rows with small artwork; descriptions dropped. */
+  COMPACT("Kompakt"),
+
+  /** No artwork at all: name, progress and buttons. */
+  LIST("Lista"),
+}
+
 @Serializable
 data class CurrentMedia(
   val type: MediaType,
@@ -47,6 +60,7 @@ object LocalStore {
   private const val KEY_PROGRESS = "progress_seconds"
   private const val KEY_PROGRESS_TOUCHED = "progress_touched_at"
   private const val KEY_CURRENT_MEDIA = "current_media"
+  private const val KEY_COMPACTNESS = "ui_compactness"
 
   private val json = Json { ignoreUnknownKeys = true }
 
@@ -72,6 +86,9 @@ object LocalStore {
   private val _currentMedia = MutableStateFlow<CurrentMedia?>(null)
   val currentMedia: StateFlow<CurrentMedia?> = _currentMedia.asStateFlow()
 
+  private val _compactness = MutableStateFlow(Compactness.DEFAULT)
+  val compactness: StateFlow<Compactness> = _compactness.asStateFlow()
+
   /** Idempotent. Call once from a Dispatchers.IO context before anything else. */
   @Synchronized
   fun load(context: Context) {
@@ -83,6 +100,7 @@ object LocalStore {
     _progressSeconds.value = decode(p, KEY_PROGRESS) ?: emptyMap()
     progressTouchedAt = decode(p, KEY_PROGRESS_TOUCHED) ?: emptyMap()
     _currentMedia.value = decode(p, KEY_CURRENT_MEDIA)
+    _compactness.value = decode(p, KEY_COMPACTNESS) ?: Compactness.DEFAULT
 
     // Assigned last: it is the "loaded" flag, and the flows must hold their
     // persisted values before anyone can mutate them.
@@ -122,6 +140,12 @@ object LocalStore {
   fun setCurrentMedia(media: CurrentMedia?) {
     _currentMedia.value = media
     persist(KEY_CURRENT_MEDIA, media)
+  }
+
+  @Synchronized
+  fun setCompactness(value: Compactness) {
+    _compactness.value = value
+    persist(KEY_COMPACTNESS, value)
   }
 
   @Synchronized

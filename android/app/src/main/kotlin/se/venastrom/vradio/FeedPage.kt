@@ -50,6 +50,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.EpisodeDto
+import se.venastrom.vradio.store.Compactness
 import se.venastrom.vradio.store.LocalStore
 import se.venastrom.vradio.store.UiSession
 import java.time.Instant
@@ -108,6 +109,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
   }
 
   val progress by LocalStore.progressSeconds.collectAsStateWithLifecycle()
+  val compactness by LocalStore.compactness.collectAsStateWithLifecycle()
 
   var playingId by remember { mutableStateOf<String?>(null) }
   DisposableEffect(controller) {
@@ -214,9 +216,15 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
         val today = LocalDate.now()
         LazyColumn(
           modifier = Modifier.weight(1f),
-          // px-6 pt-4 pb-10 from the web list.
+          // px-6 pt-4 pb-10 from the web list; gap-y-8 in the full layout.
           contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 40.dp),
-          verticalArrangement = Arrangement.spacedBy(32.dp), // gap-y-8
+          verticalArrangement = Arrangement.spacedBy(
+            when (compactness) {
+              Compactness.DEFAULT -> 32.dp
+              Compactness.COMPACT -> 16.dp
+              Compactness.LIST -> 8.dp
+            },
+          ),
         ) {
           if (filtered == null) {
             itemsIndexed(List(8) { it }, key = { i, _ -> i }) { _, _ -> EpisodeRowSkeleton() }
@@ -246,6 +254,7 @@ fun FeedPage(controller: MediaController?, onExplore: () -> Unit, modifier: Modi
                   isPlaying = playingId == episode.id,
                   playEnabled = controller != null,
                   onPlayPause = { playPause(episode) },
+                  compactness = compactness,
                 )
               }
             }
@@ -295,7 +304,70 @@ private fun EpisodeRow(
   isPlaying: Boolean,
   playEnabled: Boolean,
   onPlayPause: () -> Unit,
+  compactness: Compactness,
 ) {
+  val fraction = if (episode.durationSeconds > 0) {
+    (progressSeconds / episode.durationSeconds).toFloat().coerceIn(0f, 1f)
+  }
+  else {
+    0f
+  }
+
+  if (compactness != Compactness.DEFAULT) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      if (compactness == Compactness.COMPACT) {
+        AsyncImage(
+          model = episode.image,
+          contentDescription = "Avsnittsbild för ${episode.title}",
+          modifier = Modifier
+            .size(width = 80.dp, height = 45.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Zinc.z600),
+        )
+      }
+
+      Column(modifier = Modifier.weight(1f)) {
+        if (compactness == Compactness.COMPACT) {
+          Text(text = episode.programName, color = Zinc.z400, fontSize = 11.sp, maxLines = 1)
+          Text(
+            text = episode.title,
+            color = Zinc.z100,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+          )
+        }
+        else {
+          Text(
+            text = "${episode.programName} · ${episode.title}",
+            color = Zinc.z100,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+          )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        ProgressLine(fraction)
+      }
+
+      TappableIcon(
+        icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+        contentDescription = if (isPlaying) "Pausa ${episode.title}" else "Spela ${episode.title}",
+        tint = Zinc.z100,
+        iconSize = 26.dp,
+        enabled = playEnabled,
+        onClick = onPlayPause,
+        modifier = Modifier.size(40.dp),
+      )
+    }
+    return
+  }
+
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     SRAttribute()
 
@@ -330,12 +402,6 @@ private fun EpisodeRow(
       overflow = TextOverflow.Ellipsis,
     )
 
-    val fraction = if (episode.durationSeconds > 0) {
-      (progressSeconds / episode.durationSeconds).toFloat().coerceIn(0f, 1f)
-    }
-    else {
-      0f
-    }
     ProgressLine(fraction)
 
     Row(

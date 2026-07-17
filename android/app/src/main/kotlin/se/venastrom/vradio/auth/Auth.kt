@@ -14,6 +14,9 @@ import java.net.URL
 import java.security.MessageDigest
 import java.security.SecureRandom
 
+/** An HTTP error with its status, so callers can tell "rejected" from "unreachable". */
+class HttpException(val code: Int, body: String) : Exception("HTTP $code $body")
+
 sealed interface SessionState {
   data object Loading : SessionState
   data object SignedOut : SessionState
@@ -124,10 +127,19 @@ object Auth {
       val res = get("${BuildConfig.API_BASE_URL}/auth/me", token)
       val me = json.decodeFromString<MeDto>(res)
       SessionState.SignedIn(me.userId, me.username, me.avatarUrl)
+    } catch (e: HttpException) {
+      if (e.code == 401 || e.code == 403) {
+        // Actually rejected: the session is gone, so is the token.
+        storeToken(context, null)
+        SessionState.SignedOut
+      }
+      else {
+        SessionState.Failed("Servern svarade med fel ${e.code}.")
+      }
     } catch (_: Throwable) {
-      // A rejected token is not an error worth surfacing; it just means signed out.
-      storeToken(context, null)
-      SessionState.SignedOut
+      // Unreachable is not rejected: keep the token, next launch retries.
+      // Signing the user out over a network blip would throw away a valid session.
+      SessionState.Failed("Kunde inte nå servern.")
     }
   }
 
@@ -162,7 +174,7 @@ object Auth {
     val code = responseCode
     if (code !in 200..299) {
       val err = errorStream?.bufferedReader()?.readText().orEmpty()
-      throw IllegalStateException("HTTP $code ${err.take(200)}")
+      throw HttpException(code, err.take(200))
     }
     return if (code == 204) "" else inputStream.bufferedReader().use { it.readText() }
   }

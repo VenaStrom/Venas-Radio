@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.ProgramDto
+import se.venastrom.vradio.store.Compactness
 import se.venastrom.vradio.store.LocalStore
 import se.venastrom.vradio.store.UiSession
 
@@ -80,6 +81,7 @@ fun SearchPage(modifier: Modifier = Modifier) {
   }
 
   val followed by LocalStore.followedPrograms.collectAsStateWithLifecycle()
+  val compactness by LocalStore.compactness.collectAsStateWithLifecycle()
 
   // Recomputed per keystroke; favorites are snapshotted per result set like the
   // web's orderingFavorites, so toggling a like never reshuffles what you see.
@@ -114,9 +116,15 @@ fun SearchPage(modifier: Modifier = Modifier) {
 
     LazyColumn(
       modifier = Modifier.weight(1f),
-      // px-6 pt-4 pb-10 from the web list.
+      // px-6 pt-4 pb-10 from the web list; gap-y-12 in the full layout.
       contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 40.dp),
-      verticalArrangement = Arrangement.spacedBy(48.dp), // gap-y-12
+      verticalArrangement = Arrangement.spacedBy(
+        when (compactness) {
+          Compactness.DEFAULT -> 48.dp
+          Compactness.COMPACT -> 16.dp
+          Compactness.LIST -> 4.dp
+        },
+      ),
     ) {
       when {
         results != null -> {
@@ -126,6 +134,7 @@ fun SearchPage(modifier: Modifier = Modifier) {
               channelName = program.channelId?.let(channelNames::get),
               isLiked = program.id in followed,
               onToggleLike = { LocalStore.toggleFollowedProgram(program.id) },
+              compactness = compactness,
             )
           }
           if (results.isEmpty()) {
@@ -234,7 +243,43 @@ private fun ProgramRow(
   channelName: String?,
   isLiked: Boolean,
   onToggleLike: () -> Unit,
+  compactness: Compactness,
 ) {
+  if (compactness != Compactness.DEFAULT) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      if (compactness == Compactness.COMPACT) {
+        AsyncImage(
+          model = program.image,
+          contentDescription = "Programbild för ${program.name}",
+          modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(Zinc.z600),
+        )
+      }
+
+      Column(modifier = Modifier.weight(1f)) {
+        Text(
+          text = program.name,
+          color = Zinc.z100,
+          fontWeight = FontWeight.Bold,
+          fontSize = 15.sp,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+        )
+        if (compactness == Compactness.COMPACT && channelName != null) {
+          Text(text = "Sänds i $channelName", color = Zinc.z400, fontSize = 11.sp, maxLines = 1)
+        }
+      }
+
+      LikeButton(isLiked = isLiked, subject = program.name, onToggle = onToggleLike)
+    }
+    return
+  }
+
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     SRAttribute()
 

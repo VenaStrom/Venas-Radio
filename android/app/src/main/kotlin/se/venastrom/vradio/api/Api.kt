@@ -62,8 +62,28 @@ object Api {
     val ids = programIds.sorted()
     val key = "episodes-${ids.joinToString(",").hashCode().toUInt().toString(16)}"
     val path = "/api/episodes?programIds=${ids.joinToString(",")}"
-    return cached<EpisodesResponse>(context, key, path, ttlMs = EPISODES_TTL_MS, force = force).episodes
+    return try {
+      cached<EpisodesResponse>(context, key, path, ttlMs = EPISODES_TTL_MS, force = force).episodes
+    }
+    catch (e: Throwable) {
+      // The key hashes the followed set, so changing follows while offline
+      // points at a cache file that does not exist. The newest cached feed,
+      // filtered to what is followed now, beats an empty error page.
+      staleEpisodesAnyKey(context, ids.toSet()) ?: throw e
+    }
   }
+
+  private suspend fun staleEpisodesAnyKey(context: Context, programIds: Set<String>): List<EpisodeDto>? =
+    withContext(Dispatchers.IO) {
+      File(context.cacheDir, CACHE_DIR)
+        .listFiles { file -> file.name.startsWith("episodes-") && file.name.endsWith(".json") }
+        ?.maxByOrNull { it.lastModified() }
+        ?.let { file -> runCatching { json.decodeFromString<EpisodesResponse>(file.readText()) }.getOrNull() }
+        ?.episodes
+        ?.filter { it.programId in programIds }
+        ?.takeIf { it.isNotEmpty() }
+        ?.also { Log.d("Api", "episodes: cross-key stale fallback served ${it.size}") }
+    }
 
   private suspend inline fun <reified T> cached(
     context: Context,

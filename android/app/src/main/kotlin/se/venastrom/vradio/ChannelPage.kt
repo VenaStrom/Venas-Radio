@@ -54,6 +54,7 @@ import androidx.media3.session.MediaController
 import coil3.compose.AsyncImage
 import se.venastrom.vradio.api.Api
 import se.venastrom.vradio.api.ChannelDto
+import se.venastrom.vradio.store.Compactness
 import se.venastrom.vradio.store.LocalStore
 
 /**
@@ -76,6 +77,7 @@ fun ChannelPage(controller: MediaController?, modifier: Modifier = Modifier) {
   }
 
   val followed by LocalStore.followedChannels.collectAsStateWithLifecycle()
+  val compactness by LocalStore.compactness.collectAsStateWithLifecycle()
 
   // Favorites first, but ordered by a snapshot taken when the list arrived:
   // toggling a like must not teleport the row mid-scroll. Same trick as the
@@ -154,6 +156,7 @@ fun ChannelPage(controller: MediaController?, modifier: Modifier = Modifier) {
           onToggleLike = { LocalStore.toggleFollowedChannel(channel.id) },
           onPlayPause = { playPause(channel) },
           playEnabled = controller != null,
+          compactness = compactness,
         )
       }
 
@@ -218,7 +221,51 @@ private fun ChannelRow(
   onToggleLike: () -> Unit,
   onPlayPause: () -> Unit,
   playEnabled: Boolean,
+  compactness: Compactness,
 ) {
+  if (compactness != Compactness.DEFAULT) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 16.dp, vertical = if (compactness == Compactness.LIST) 2.dp else 8.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      if (compactness == Compactness.COMPACT) {
+        AsyncImage(
+          model = channel.image,
+          contentDescription = "Kanalbild för ${channel.name}",
+          modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(Zinc.z600),
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+      }
+
+      Text(
+        text = channel.name,
+        color = Zinc.z100,
+        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f),
+      )
+
+      LikeButton(isLiked = isLiked, subject = channel.name, onToggle = onToggleLike)
+      TappableIcon(
+        icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
+        contentDescription = if (isPlaying) "Pausa ${channel.name}" else "Spela ${channel.name}",
+        tint = Zinc.z100,
+        iconSize = 28.dp,
+        enabled = playEnabled,
+        onClick = onPlayPause,
+        modifier = Modifier.size(40.dp),
+      )
+    }
+    return
+  }
+
   Row(
     modifier = Modifier
       .fillMaxWidth()

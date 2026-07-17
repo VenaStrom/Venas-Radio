@@ -13,8 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,7 +29,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.venastrom.vradio.auth.SessionState
+import se.venastrom.vradio.store.Compactness
+import se.venastrom.vradio.store.LocalStore
 
 private const val REPO_URL = "https://github.com/VenaStrom/Venas-Radio"
 
@@ -79,9 +86,43 @@ fun Sidebar(
       }
     }
 
+    CompactnessSelect(modifier = Modifier.padding(top = 28.dp))
+
     Spacer(modifier = Modifier.weight(1f))
 
     BuildInfo()
+  }
+}
+
+/** How dense the list pages render: full rows, thin rows, or text-only. */
+@Composable
+private fun CompactnessSelect(modifier: Modifier = Modifier) {
+  val current by LocalStore.compactness.collectAsStateWithLifecycle()
+
+  Column(modifier = modifier) {
+    Text(
+      text = "Layout",
+      color = Zinc.z100,
+      fontWeight = FontWeight.Bold,
+      fontSize = 15.sp,
+    )
+
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 8.dp)) {
+      Compactness.entries.forEachIndexed { index, level ->
+        SegmentedButton(
+          selected = level == current,
+          onClick = { LocalStore.setCompactness(level) },
+          shape = SegmentedButtonDefaults.itemShape(index = index, count = Compactness.entries.size),
+          colors = SegmentedButtonDefaults.colors(
+            activeContainerColor = Zinc.z800,
+            activeContentColor = Zinc.z100,
+            inactiveContainerColor = Color.Transparent,
+            inactiveContentColor = Zinc.z400,
+          ),
+          label = { Text(text = level.label, fontSize = 13.sp) },
+        )
+      }
+    }
   }
 }
 
