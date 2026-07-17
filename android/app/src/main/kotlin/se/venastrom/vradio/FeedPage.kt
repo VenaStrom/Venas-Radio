@@ -492,6 +492,10 @@ private fun DownloadBadge(isDownloaded: Boolean) {
 /** Static thin bar: listened share of the episode. */
 @Composable
 private fun ProgressLine(fraction: Float) {
+  // Floored at 4% so a barely-started episode still reads as started — the
+  // web client's ProgressBar did the same with its 3% offset.
+  val filled = if (fraction > 0f) fraction.coerceAtLeast(0.04f) else 0f
+
   Box(
     modifier = Modifier
       .fillMaxWidth()
@@ -499,10 +503,10 @@ private fun ProgressLine(fraction: Float) {
       .clip(RoundedCornerShape(2.dp))
       .background(Zinc.z800),
   ) {
-    if (fraction > 0f) {
+    if (filled > 0f) {
       Box(
         modifier = Modifier
-          .fillMaxWidth(fraction)
+          .fillMaxWidth(filled)
           .fillMaxHeight()
           .background(Zinc.z100, RoundedCornerShape(2.dp)),
       )
