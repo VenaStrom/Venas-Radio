@@ -137,6 +137,8 @@ private fun DownloadToggle(modifier: Modifier = Modifier) {
   val context = LocalContext.current
   val enabled by LocalStore.downloadOnWifi.collectAsStateWithLifecycle()
   val bytes by Downloads.downloadedBytes.collectAsStateWithLifecycle()
+  val seconds by Downloads.downloadedSeconds.collectAsStateWithLifecycle()
+  val count = Downloads.downloaded.collectAsStateWithLifecycle().value.size
 
   // The panel may open before any feed load has indexed the files.
   LaunchedEffect(Unit) { Downloads.refreshIndex(context) }
@@ -159,7 +161,7 @@ private fun DownloadToggle(modifier: Modifier = Modifier) {
       )
       if (enabled || bytes > 0) {
         Text(
-          text = "${formatBytes(bytes)} nedladdat",
+          text = "$count avsnitt · ${formatListeningTime(seconds)} · ${formatBytes(bytes)}",
           color = Zinc.z500,
           fontSize = 12.sp,
           modifier = Modifier.padding(top = 2.dp),
@@ -175,6 +177,12 @@ private fun DownloadToggle(modifier: Modifier = Modifier) {
       },
     )
   }
+}
+
+private fun formatListeningTime(totalSeconds: Long): String {
+  val hours = totalSeconds / 3600
+  val minutes = (totalSeconds % 3600) / 60
+  return if (hours > 0) "$hours h $minutes min" else "$minutes min"
 }
 
 private fun formatBytes(bytes: Long): String = when {

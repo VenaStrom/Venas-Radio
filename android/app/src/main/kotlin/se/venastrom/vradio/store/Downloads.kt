@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import se.venastrom.vradio.api.EpisodeDto
 import java.io.File
 import java.net.HttpURLConnection
@@ -35,6 +36,11 @@ object Downloads {
   /** Total size on disk of the downloaded episodes, for the settings panel. */
   val downloadedBytes = MutableStateFlow(0L)
 
+  /** Total listening time of the downloaded episodes, for the settings panel. */
+  val downloadedSeconds = MutableStateFlow(0L)
+
+  private val json = Json { ignoreUnknownKeys = true }
+
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val syncing = AtomicBoolean(false)
 
@@ -43,6 +49,13 @@ object Downloads {
 
   private fun fileFor(context: Context, episodeId: String): File =
     File(dir(context), "$episodeId.mp3")
+
+  /**
+   * id -> durationSeconds for the downloadable set. The mp3s on disk do not
+   * know their durations; this index remembers them so the settings panel can
+   * total up offline listening time without probing every file.
+   */
+  private fun durationIndexFile(context: Context): File = File(dir(context), "durations.json")
 
   /** The local copy to play, or null when the episode is not (fully) downloaded. */
   fun localUri(context: Context, episodeId: String): Uri? =
@@ -84,9 +97,15 @@ object Downloads {
           .take(MAX_EPISODES)
         val wantedIds = wanted.map { it.id }.toSet()
 
+        runCatching {
+          dir(app).mkdirs()
+          durationIndexFile(app).writeText(json.encodeToString(wanted.associate { it.id to it.durationSeconds }))
+        }
+
         // Pruning needs no network, so it runs before the Wi-Fi gate: listened
         // and aged-out episodes free their storage even on mobile data.
         dir(app).listFiles()?.forEach { file ->
+          if (file.extension == "json") return@forEach
           if (file.name.substringBefore(".") !in wantedIds) file.delete()
         }
         refreshIndexNow(app)
@@ -109,8 +128,14 @@ object Downloads {
 
   private fun refreshIndexNow(context: Context) {
     val files = dir(context).listFiles()?.filter { it.isFile && it.extension == "mp3" } ?: emptyList()
-    downloaded.value = files.map { it.nameWithoutExtension }.toSet()
+    val ids = files.map { it.nameWithoutExtension }.toSet()
+    val durations = runCatching {
+      json.decodeFromString<Map<String, Int>>(durationIndexFile(context).readText())
+    }.getOrDefault(emptyMap())
+
+    downloaded.value = ids
     downloadedBytes.value = files.sumOf { it.length() }
+    downloadedSeconds.value = ids.sumOf { (durations[it] ?: 0).toLong() }
   }
 
   private fun download(context: Context, episode: EpisodeDto) {
