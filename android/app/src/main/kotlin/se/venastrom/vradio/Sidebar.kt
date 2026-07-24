@@ -131,11 +131,15 @@ private fun CompactnessSelect(modifier: Modifier = Modifier) {
   }
 }
 
+/** The download-limit presets offered in the sidebar. */
+private val downloadLimitChoices = listOf(5, 10, 20, 50)
+
 /** Downloads the feed's newest episodes over Wi-Fi so they play offline. */
 @Composable
 private fun DownloadToggle(modifier: Modifier = Modifier) {
   val context = LocalContext.current
   val enabled by LocalStore.downloadOnWifi.collectAsStateWithLifecycle()
+  val limit by LocalStore.downloadLimit.collectAsStateWithLifecycle()
   val bytes by Downloads.downloadedBytes.collectAsStateWithLifecycle()
   val seconds by Downloads.downloadedSeconds.collectAsStateWithLifecycle()
   val count = Downloads.downloaded.collectAsStateWithLifecycle().value.size
@@ -143,39 +147,63 @@ private fun DownloadToggle(modifier: Modifier = Modifier) {
   // The panel may open before any feed load has indexed the files.
   LaunchedEffect(Unit) { Downloads.refreshIndex(context) }
 
-  Row(
-    modifier = modifier.fillMaxWidth(),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Column(modifier = Modifier.weight(1f)) {
-      Text(
-        text = "Ladda ner flödet",
-        color = Zinc.z100,
-        fontWeight = FontWeight.Bold,
-        fontSize = 15.sp,
+  Column(modifier = modifier.fillMaxWidth()) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      Column(modifier = Modifier.weight(1f)) {
+        Text(
+          text = "Ladda ner flödet",
+          color = Zinc.z100,
+          fontWeight = FontWeight.Bold,
+          fontSize = 15.sp,
+        )
+        Text(
+          text = "Via Wi-Fi, för lyssning offline",
+          color = Zinc.z400,
+          fontSize = 12.sp,
+        )
+        if (enabled || bytes > 0) {
+          Text(
+            text = "$count avsnitt · ${formatListeningTime(seconds)} · ${formatBytes(bytes)}",
+            color = Zinc.z500,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 2.dp),
+          )
+        }
+      }
+      Switch(
+        checked = enabled,
+        onCheckedChange = { checked ->
+          LocalStore.setDownloadOnWifi(checked)
+          // Off should also give the storage back, not strand a pile of mp3s.
+          if (!checked) Downloads.clearAll(context)
+        },
       )
+    }
+
+    if (enabled) {
       Text(
-        text = "Via Wi-Fi, för lyssning offline",
+        text = "Antal avsnitt",
         color = Zinc.z400,
         fontSize = 12.sp,
+        modifier = Modifier.padding(top = 8.dp),
       )
-      if (enabled || bytes > 0) {
-        Text(
-          text = "$count avsnitt · ${formatListeningTime(seconds)} · ${formatBytes(bytes)}",
-          color = Zinc.z500,
-          fontSize = 12.sp,
-          modifier = Modifier.padding(top = 2.dp),
-        )
+      SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 4.dp)) {
+        downloadLimitChoices.forEachIndexed { index, choice ->
+          SegmentedButton(
+            selected = choice == limit,
+            onClick = { LocalStore.setDownloadLimit(choice) },
+            shape = SegmentedButtonDefaults.itemShape(index = index, count = downloadLimitChoices.size),
+            colors = SegmentedButtonDefaults.colors(
+              activeContainerColor = Zinc.z800,
+              activeContentColor = Zinc.z100,
+              inactiveContainerColor = Color.Transparent,
+              inactiveContentColor = Zinc.z400,
+            ),
+            label = { Text(text = "$choice", fontSize = 13.sp) },
+          )
+        }
       }
     }
-    Switch(
-      checked = enabled,
-      onCheckedChange = { checked ->
-        LocalStore.setDownloadOnWifi(checked)
-        // Off should also give the storage back, not strand a pile of mp3s.
-        if (!checked) Downloads.clearAll(context)
-      },
-    )
   }
 }
 

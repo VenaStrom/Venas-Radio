@@ -22,12 +22,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Files live in app-private external storage (not cacheDir — Android may purge
  * that, and a purge is exactly what a download exists to prevent). The set is
- * bounded: the [MAX_EPISODES] newest not-yet-finished episodes of the feed;
- * anything outside that (aged out, fully listened, unfollowed) is pruned on
- * each sync. Playback prefers the local file via [localUri] when one exists.
+ * bounded: the newest not-yet-finished episodes of the feed, capped by
+ * [LocalStore.downloadLimit]; anything outside that (aged out, fully
+ * listened, unfollowed) is pruned on each sync. Playback prefers the local file via [localUri] when one exists.
  */
 object Downloads {
-  private const val MAX_EPISODES = 20
   private const val COMPLETION_EPSILON_SECONDS = 2.0
 
   /** Ids with a complete local file, for the "Nedladdad" markers. */
@@ -94,7 +93,7 @@ object Downloads {
         val wanted = episodes
           .filter { (progress[it.id] ?: 0.0) < it.durationSeconds - COMPLETION_EPSILON_SECONDS }
           .sortedByDescending { it.publishedAtMs }
-          .take(MAX_EPISODES)
+          .take(LocalStore.downloadLimit.value)
         val wantedIds = wanted.map { it.id }.toSet()
 
         runCatching {
